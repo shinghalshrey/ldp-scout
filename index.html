@@ -1,0 +1,1744 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LDP Scout — MBA Leadership Program Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,300;1,9..144,400&family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+<script src="https://unpkg.com/mammoth@1.6.0/mammoth.browser.min.js"></script>
+<style>
+:root {
+  --bg:#f7f6f2;--bg2:#ffffff;--bg3:#f0efe9;--bg4:#e8e6df;
+  --border:rgba(0,0,0,0.07);--border2:rgba(0,0,0,0.13);
+  --text:#18180f;--text2:#57564d;--text3:#9a9a8e;
+  --accent:#1d6a45;--accent2:#145234;--accent-bg:#e6f4ed;
+  --blue:#1a4fa8;--blue-bg:#e7eef8;
+  --amber:#8a5e00;--amber-bg:#fdf3d8;
+  --coral:#b33a1a;--coral-bg:#fdeee8;
+  --teal:#0d6b6b;--teal-bg:#e0f4f4;
+  --purple:#5a3a9a;--purple-bg:#eeebf8;
+  --red:#c0392b;--gold:#c8971a;
+  --mono:'DM Mono',monospace;--serif:'Fraunces',serif;--sans:'Outfit',sans-serif;
+  --radius:12px;--shadow:0 2px 12px rgba(0,0,0,0.06);--shadow-md:0 4px 24px rgba(0,0,0,0.09);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;font-size:14px}
+
+/* TOPBAR */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:0 28px;height:56px;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;background:rgba(247,246,242,0.96);backdrop-filter:blur(10px)}
+.brand{display:flex;align-items:center;gap:10px}
+.brand-mark{width:30px;height:30px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.brand-name{font-family:var(--serif);font-size:18px;font-weight:500;letter-spacing:-0.3px}
+.brand-name span{color:var(--accent);font-style:italic}
+.nav-tabs{display:flex;gap:2px;background:var(--bg3);border-radius:10px;padding:3px;border:1px solid var(--border)}
+.nav-tab{padding:6px 16px;font-size:12px;font-weight:500;border-radius:7px;cursor:pointer;color:var(--text2);border:none;background:none;font-family:var(--sans);transition:all .15s;white-space:nowrap}
+.nav-tab.active{background:var(--bg2);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,0.08)}
+.topbar-right{display:flex;align-items:center;gap:12px}
+.date-lbl{font-family:var(--mono);font-size:10px;color:var(--text3)}
+.pro-badge{font-size:10px;padding:4px 10px;background:linear-gradient(135deg,#1d6a45,#0f4530);color:#fff;border-radius:20px;font-weight:600;letter-spacing:.04em;cursor:pointer;transition:opacity .15s}
+.pro-badge:hover{opacity:.85}
+
+/* LAYOUT */
+.main{padding:24px 28px;max-width:1440px;margin:0 auto}
+.page{display:none}
+.page.active{display:block}
+
+/* STAT CARDS — clickable */
+.stat-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:20px}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;cursor:pointer;transition:all .15s;position:relative;overflow:hidden;user-select:none}
+.stat-card:hover{border-color:var(--border2);box-shadow:var(--shadow);transform:translateY(-1px)}
+.stat-card.sc-active{border-color:var(--accent)!important;background:var(--accent-bg)!important}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;opacity:0;transition:opacity .15s}
+.stat-card.sc-active::before,.stat-card:hover::before{opacity:1}
+.sc-total::before{background:var(--text3)}
+.sc-open::before{background:var(--accent)}
+.sc-rolling::before{background:var(--blue)}
+.sc-watch::before{background:var(--amber)}
+.sc-fit::before{background:var(--gold)}
+.stat-num{font-family:var(--mono);font-size:28px;font-weight:500;line-height:1}
+.cg{color:var(--accent)}.cb{color:var(--blue)}.ca{color:var(--amber)}.cgo{color:var(--gold)}
+.stat-lbl{font-size:10px;color:var(--text3);margin-top:4px;text-transform:uppercase;letter-spacing:.07em}
+.stat-hint{font-size:10px;color:var(--accent);margin-top:3px;opacity:0;transition:opacity .2s}
+.stat-card:hover .stat-hint{opacity:1}
+
+/* FILTER ROW */
+.filter-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;align-items:center}
+.flabel{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;white-space:nowrap;font-weight:500}
+.fpill{font-size:11px;padding:5px 12px;border-radius:20px;border:1px solid var(--border2);background:var(--bg2);color:var(--text2);cursor:pointer;font-family:var(--sans);transition:all .12s;white-space:nowrap;font-weight:500}
+.fpill:hover{border-color:var(--accent);color:var(--accent)}
+.fpill.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.divider{width:1px;height:20px;background:var(--border2);margin:0 3px;flex-shrink:0}
+.si-input{background:var(--bg2);border:1px solid var(--border2);border-radius:8px;padding:7px 12px;font-size:12px;color:var(--text);font-family:var(--sans);outline:none;min-width:200px}
+.si-input:focus{border-color:var(--accent)}
+.si-input::placeholder{color:var(--text3)}
+.spacer{flex:1;min-width:8px}
+.add-btn{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--sans);white-space:nowrap;transition:all .15s}
+.add-btn:hover{background:var(--accent2);transform:translateY(-1px)}
+.results-meta{font-size:11px;color:var(--text3);margin-bottom:12px;font-style:italic}
+
+/* TABLE */
+.table-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow)}
+.thead{display:grid;grid-template-columns:2.2fr 1fr 0.9fr 0.8fr .6fr .55fr .5fr 90px;padding:9px 16px;border-bottom:1px solid var(--border);background:var(--bg3)}
+.th{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em}
+.prow{display:grid;grid-template-columns:2.2fr 1fr 0.9fr 0.8fr .6fr .55fr .5fr 90px;padding:13px 16px;border-bottom:1px solid var(--border);align-items:center;transition:background .1s}
+.prow:last-child{border-bottom:none}
+.prow:hover{background:var(--bg3)}
+.pname{font-size:13px;font-weight:500;line-height:1.3}
+.porg{font-size:11px;color:var(--text2);margin-top:2px}
+.plink{font-size:10px;color:var(--blue);text-decoration:none;margin-top:3px;display:inline-block}
+.plink:hover{text-decoration:underline}
+.tags{display:flex;flex-wrap:wrap;gap:3px;margin-top:5px}
+.tag{font-size:10px;padding:2px 6px;border-radius:4px;background:var(--bg3);color:var(--text2);border:1px solid var(--border)}
+.cell{font-size:12px;color:var(--text2)}
+.mono{font-family:var(--mono);font-size:11px}
+
+/* FIT TIERS */
+.fit-tier{font-size:10px;padding:3px 8px;border-radius:4px;font-weight:600;display:inline-block;border:1px solid;letter-spacing:.02em}
+.ft-best{background:#e6f4ed;color:#1d6a45;border-color:rgba(29,106,69,.25)}
+.ft-strong{background:#e7eef8;color:#1a4fa8;border-color:rgba(26,79,168,.25)}
+.ft-good{background:#fdf3d8;color:#8a5e00;border-color:rgba(138,94,0,.25)}
+.ft-partial{background:#fdeee8;color:#b33a1a;border-color:rgba(179,58,26,.25)}
+.ft-stretch{background:var(--bg3);color:var(--text3);border-color:var(--border2)}
+
+/* BADGES */
+.badge{font-size:10px;padding:3px 9px;border-radius:20px;font-weight:500;display:inline-block;border:1px solid}
+.b-open{background:var(--accent-bg);color:var(--accent);border-color:rgba(29,106,69,.2)}
+.b-rolling{background:var(--blue-bg);color:var(--blue);border-color:rgba(26,79,168,.2)}
+.b-watch{background:var(--amber-bg);color:var(--amber);border-color:rgba(138,94,0,.2)}
+.b-closed{background:var(--bg3);color:var(--text3);border-color:var(--border)}
+
+/* ACTION BUTTONS */
+.abts{display:flex;gap:4px}
+.bsm{font-size:10px;padding:4px 9px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);cursor:pointer;font-family:var(--sans);transition:all .1s}
+.bsm:hover{border-color:var(--accent);color:var(--accent)}
+.bsm.del:hover{border-color:var(--red);color:var(--red)}
+
+/* SECTION HEADER */
+.sech{margin-bottom:20px}
+.sech h2{font-family:var(--serif);font-size:24px;font-weight:400;letter-spacing:-0.3px}
+.sech p{font-size:12px;color:var(--text3);margin-top:4px}
+
+/* INFO TIP */
+.itip{font-size:12px;color:var(--text2);background:var(--blue-bg);border:1px solid rgba(26,79,168,.15);border-left:3px solid var(--blue);border-radius:0 8px 8px 0;padding:11px 14px;margin-bottom:18px;line-height:1.65}
+.itip strong{color:var(--blue)}
+
+/* ALUMNI GRID */
+.agrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.acard{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow)}
+.acard:hover{border-color:var(--border2)}
+.ahead{display:flex;align-items:center;gap:11px;margin-bottom:10px}
+.avatar{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;flex-shrink:0;font-family:var(--mono)}
+.aname{font-size:14px;font-weight:500}
+.arole{font-size:11px;color:var(--text2);margin-top:1px}
+.stag{font-size:10px;padding:3px 8px;border-radius:4px;font-weight:500;border:1px solid;display:inline-block}
+.esade{background:var(--blue-bg);color:var(--blue);border-color:rgba(26,79,168,.2)}
+.hec{background:var(--coral-bg);color:var(--coral);border-color:rgba(179,58,26,.2)}
+.cs{font-size:10px;padding:3px 8px;border-radius:4px;font-weight:500;border:1px solid;display:inline-block}
+.c-id{background:var(--bg3);color:var(--text3);border-color:var(--border2)}
+.c-rc{background:var(--amber-bg);color:var(--amber);border-color:rgba(138,94,0,.2)}
+.c-rp{background:var(--blue-bg);color:var(--blue);border-color:rgba(26,79,168,.2)}
+.c-cf{background:var(--teal-bg);color:var(--teal);border-color:rgba(13,107,107,.2)}
+.c-rf{background:var(--accent-bg);color:var(--accent);border-color:rgba(29,106,69,.2)}
+.anotes{font-size:11px;color:var(--text3);margin-top:8px;line-height:1.6}
+.afoot{margin-top:11px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.li-btn{font-size:11px;padding:5px 11px;border-radius:6px;background:var(--blue-bg);border:1px solid rgba(26,79,168,.2);color:var(--blue);cursor:pointer;text-decoration:none;font-family:var(--sans);display:inline-block;transition:all .12s}
+.li-btn:hover{background:var(--blue);color:#fff}
+.gbtn{font-size:11px;padding:5px 10px;border-radius:6px;background:var(--bg3);border:1px solid var(--border2);color:var(--text2);cursor:pointer;font-family:var(--sans)}
+.gbtn:hover{background:var(--bg4)}
+
+/* KANBAN — 6 columns including Rejected */
+.kanban{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
+.kcol{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:13px;min-height:220px;box-shadow:var(--shadow)}
+.khd{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;margin-bottom:11px;display:flex;align-items:center;justify-content:space-between}
+.kct{font-family:var(--mono);font-size:10px;background:var(--bg3);padding:2px 6px;border-radius:8px;color:var(--text3);font-weight:400}
+.apcard{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:6px;cursor:pointer;transition:all .1s}
+.apcard:hover{border-color:var(--border2);background:var(--bg4)}
+.apct{font-size:12px;font-weight:500;line-height:1.3}
+.apco{font-size:11px;color:var(--text2);margin-top:2px}
+.apnx{font-size:10px;color:var(--accent);margin-top:5px}
+.apdl{font-family:var(--mono);font-size:10px;color:var(--text3);margin-top:3px}
+
+/* DEADLINES */
+.dllist{display:flex;flex-direction:column;gap:8px}
+.dlitem{display:flex;align-items:center;gap:16px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:13px 16px;box-shadow:var(--shadow)}
+.dldate{font-family:var(--mono);font-size:12px;color:var(--accent);min-width:115px;font-weight:500}
+.dlname{font-size:13px;font-weight:500;flex:1}
+.dlorg{font-size:11px;color:var(--text2);margin-top:1px}
+.dldays{font-family:var(--mono);font-size:12px;font-weight:500;min-width:80px;text-align:right}
+.dldays.urg{color:var(--coral)}.dldays.soon{color:var(--amber)}.dldays.ok{color:var(--teal)}
+.dltype{font-size:10px;padding:2px 8px;border-radius:4px;background:var(--bg3);color:var(--text3);border:1px solid var(--border)}
+
+/* AI FIT PAGE */
+.ai-hero{background:linear-gradient(135deg,#1d6a45 0%,#0f4530 60%,#0a2e1f 100%);border-radius:16px;padding:36px 40px;color:#fff;margin-bottom:24px;position:relative;overflow:hidden}
+.ai-hero::before{content:'';position:absolute;top:-40px;right:-40px;width:280px;height:280px;border-radius:50%;background:rgba(255,255,255,0.04);pointer-events:none}
+.ai-hero h2{font-family:var(--serif);font-size:28px;font-weight:400;font-style:italic;margin-bottom:6px}
+.ai-hero p{font-size:13px;opacity:.75;max-width:560px;line-height:1.65}
+.ai-steps{display:flex;gap:8px;margin-top:18px;flex-wrap:wrap}
+.ai-step{display:flex;align-items:center;gap:7px;font-size:11px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);padding:6px 12px;border-radius:20px}
+.ai-step-num{width:18px;height:18px;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;font-family:var(--mono);flex-shrink:0}
+
+.upload-zone{border:2px dashed var(--border2);border-radius:var(--radius);padding:40px;text-align:center;cursor:pointer;transition:all .15s;background:var(--bg2);margin-bottom:20px;position:relative}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--accent);background:var(--accent-bg)}
+.upload-zone.has-file{border-color:var(--accent);border-style:solid;background:var(--accent-bg)}
+.uz-icon{font-size:32px;margin-bottom:12px;display:block}
+.uz-title{font-family:var(--serif);font-size:16px;font-weight:400;margin-bottom:6px}
+.uz-sub{font-size:12px;color:var(--text3)}
+.uz-file-name{font-family:var(--mono);font-size:12px;color:var(--accent);margin-top:8px;font-weight:500}
+.upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+
+.ai-controls{display:flex;gap:10px;margin-bottom:24px;align-items:center;flex-wrap:wrap}
+.analyze-btn{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:10px 22px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--sans);transition:all .15s;display:flex;align-items:center;gap:8px}
+.analyze-btn:hover:not(:disabled){background:var(--accent2);transform:translateY(-1px)}
+.analyze-btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.ai-note{font-size:11px;color:var(--text3);line-height:1.6;max-width:520px}
+
+/* TIER RESULTS */
+.tier-section{margin-bottom:20px}
+.tier-header{display:flex;align-items:center;gap:10px;margin-bottom:10px;padding:10px 14px;border-radius:8px;border-left:4px solid}
+.tier-header.t-best{background:var(--accent-bg);border-color:var(--accent)}
+.tier-header.t-strong{background:var(--blue-bg);border-color:var(--blue)}
+.tier-header.t-achievable{background:var(--amber-bg);border-color:var(--amber)}
+.tier-header.t-longshot{background:var(--coral-bg);border-color:var(--coral)}
+.tier-header.t-notfit{background:var(--bg3);border-color:var(--text3)}
+.tier-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.td-best{background:var(--accent)}.td-strong{background:var(--blue)}.td-achievable{background:var(--amber)}.td-longshot{background:var(--coral)}.td-notfit{background:var(--text3)}
+.tier-label{font-size:13px;font-weight:600;flex:1}
+.tier-count{font-family:var(--mono);font-size:11px;color:var(--text3)}
+.tier-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:8px}
+.tier-card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:13px 15px;box-shadow:var(--shadow)}
+.tc-name{font-size:13px;font-weight:500;margin-bottom:2px}
+.tc-org{font-size:11px;color:var(--text2);margin-bottom:6px}
+.tc-reason{font-size:11px;color:var(--text2);line-height:1.6}
+.tc-tags{display:flex;gap:4px;flex-wrap:wrap;margin-top:7px;align-items:center}
+
+/* RESUME REVIEW */
+.review-panel{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:22px;box-shadow:var(--shadow);margin-top:24px}
+.rp-header{display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+.rp-header h3{font-family:var(--serif);font-size:18px;font-weight:400}
+.suggestion-item{display:flex;gap:12px;padding:13px 0;border-bottom:1px solid var(--border)}
+.suggestion-item:last-child{border-bottom:none}
+.si-num{width:24px;height:24px;border-radius:50%;background:var(--accent-bg);color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;font-family:var(--mono);flex-shrink:0;margin-top:1px}
+.si-title{font-size:13px;font-weight:500;margin-bottom:3px}
+.si-text{font-size:12px;color:var(--text2);line-height:1.65}
+.si-priority{font-size:10px;padding:2px 7px;border-radius:4px;display:inline-block;margin-top:5px;font-weight:500}
+.sip-high{background:var(--coral-bg);color:var(--coral);border:1px solid rgba(179,58,26,.2)}
+.sip-med{background:var(--amber-bg);color:var(--amber);border:1px solid rgba(138,94,0,.2)}
+.sip-low{background:var(--accent-bg);color:var(--accent);border:1px solid rgba(29,106,69,.2)}
+.profile-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;margin-bottom:20px;box-shadow:var(--shadow)}
+.profile-box-label{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px}
+.profile-box-text{font-size:14px;line-height:1.65;color:var(--text);font-family:var(--serif);font-style:italic}
+
+/* PAYWALL */
+.paywall-overlay{position:fixed;inset:0;background:rgba(24,24,15,0.6);z-index:500;display:none;align-items:center;justify-content:center;backdrop-filter:blur(6px)}
+.paywall-overlay.open{display:flex}
+.paywall-box{background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:40px;width:480px;max-width:95vw;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.2)}
+.pw-logo{width:52px;height:52px;background:linear-gradient(135deg,#1d6a45,#0f4530);border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 18px;font-size:22px}
+.pw-title{font-family:var(--serif);font-size:26px;font-weight:400;font-style:italic;margin-bottom:8px;letter-spacing:-0.3px}
+.pw-sub{font-size:13px;color:var(--text2);line-height:1.65;margin-bottom:24px}
+.pw-price{font-family:var(--mono);font-size:40px;font-weight:500;color:var(--accent);margin-bottom:4px}
+.pw-price-note{font-size:11px;color:var(--text3);margin-bottom:24px}
+.pw-features{text-align:left;background:var(--bg3);border-radius:10px;padding:16px 18px;margin-bottom:24px;display:flex;flex-direction:column;gap:8px}
+.pw-feat{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--text2)}
+.pw-feat-icon{color:var(--accent);font-weight:700;flex-shrink:0}
+.pw-cta{width:100%;background:linear-gradient(135deg,#1d6a45,#0f4530);color:#fff;border:none;border-radius:10px;padding:14px;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--sans);transition:all .15s;margin-bottom:10px}
+.pw-cta:hover{opacity:.9;transform:translateY(-1px)}
+.pw-skip{font-size:11px;color:var(--text3);cursor:pointer;background:none;border:none;font-family:var(--sans);text-decoration:underline}
+.pw-skip:hover{color:var(--text2)}
+
+/* LOADING */
+.spin-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px;gap:14px}
+.spinner{width:36px;height:36px;border:3px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin-label{font-size:13px;color:var(--text2);font-style:italic;font-family:var(--serif)}
+
+/* MODAL */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:200;display:none;align-items:center;justify-content:center;backdrop-filter:blur(3px)}
+.overlay.open{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:16px;padding:26px;width:580px;max-height:90vh;overflow-y:auto;position:relative;box-shadow:var(--shadow-md)}
+.mtitle{font-family:var(--serif);font-size:20px;margin-bottom:18px;font-weight:400}
+.mclose{position:absolute;top:14px;right:16px;background:none;border:none;font-size:20px;color:var(--text3);cursor:pointer;width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:6px}
+.mclose:hover{background:var(--bg3);color:var(--text)}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+.full{grid-column:1/-1}
+.fg label{display:block;font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px}
+.fg input,.fg select,.fg textarea{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:7px;padding:8px 11px;font-size:13px;color:var(--text);font-family:var(--sans);outline:none;transition:border-color .12s}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--accent);background:var(--bg2)}
+.fg textarea{height:68px;resize:vertical}
+.mfoot{display:flex;gap:9px;justify-content:flex-end;margin-top:20px;border-top:1px solid var(--border);padding-top:16px}
+.bcn{background:var(--bg3);border:1px solid var(--border2);color:var(--text2);border-radius:7px;padding:8px 18px;font-size:13px;cursor:pointer;font-family:var(--sans)}
+.bcn:hover{background:var(--bg4)}
+.bsv{background:var(--accent);border:none;color:#fff;border-radius:7px;padding:8px 18px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--sans)}
+.bsv:hover{background:var(--accent2)}
+
+/* MISC */
+.empty{text-align:center;padding:40px 24px;color:var(--text3);font-size:13px;font-style:italic}
+.toast{position:fixed;bottom:22px;right:22px;background:var(--text);color:var(--bg2);padding:9px 18px;border-radius:8px;font-size:13px;font-weight:500;z-index:300;transform:translateY(50px);opacity:0;transition:all .2s;pointer-events:none}
+.toast.show{transform:translateY(0);opacity:1}
+
+/* ONBOARDING MODAL */
+.onboard-overlay{position:fixed;inset:0;background:rgba(24,24,15,0.7);z-index:600;display:none;align-items:center;justify-content:center;backdrop-filter:blur(8px)}
+.onboard-overlay.open{display:flex}
+.onboard-box{background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:40px;width:520px;max-width:95vw;box-shadow:0 20px 60px rgba(0,0,0,0.25)}
+.ob-logo{width:48px;height:48px;background:linear-gradient(135deg,#1d6a45,#0f4530);border-radius:12px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;font-size:20px}
+.ob-title{font-family:var(--serif);font-size:24px;font-weight:400;font-style:italic;margin-bottom:6px;letter-spacing:-0.3px}
+.ob-sub{font-size:13px;color:var(--text2);line-height:1.65;margin-bottom:24px}
+.ob-field{margin-bottom:16px}
+.ob-field label{display:block;font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px}
+.ob-field input{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:10px 13px;font-size:13px;color:var(--text);font-family:var(--sans);outline:none;transition:border-color .12s}
+.ob-field input:focus{border-color:var(--accent);background:var(--bg2)}
+.ob-schools{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.ob-school-btn{font-size:12px;padding:7px 14px;border-radius:8px;border:1.5px solid var(--border2);background:var(--bg3);color:var(--text2);cursor:pointer;font-family:var(--sans);transition:all .12s;font-weight:500}
+.ob-school-btn.sel{border-color:var(--accent);background:var(--accent-bg);color:var(--accent)}
+.ob-cta{width:100%;background:linear-gradient(135deg,#1d6a45,#0f4530);color:#fff;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--sans);transition:all .15s;margin-top:8px}
+.ob-cta:hover{opacity:.9;transform:translateY(-1px)}
+.ob-skip{display:block;text-align:center;font-size:11px;color:var(--text3);cursor:pointer;background:none;border:none;font-family:var(--sans);margin-top:12px;text-decoration:underline}
+.ob-skip:hover{color:var(--text2)}
+
+/* ICS / REMINDER BUTTON */
+.ics-btn{font-size:10px;padding:4px 10px;border-radius:6px;border:1px solid rgba(13,107,107,.25);background:var(--teal-bg);color:var(--teal);cursor:pointer;font-family:var(--sans);transition:all .1s;white-space:nowrap}
+.ics-btn:hover{background:var(--teal);color:#fff}
+.dlitem-actions{display:flex;gap:6px;margin-left:auto;flex-shrink:0}
+.ali-search-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;margin-bottom:24px}
+.ali-search-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow)}
+.ali-sc-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px}
+.ali-sc-name{font-size:13px;font-weight:500;line-height:1.3}
+.ali-sc-org{font-size:11px;color:var(--text2);margin-top:1px}
+.ali-sc-school-badges{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px}
+.ali-sc-links{display:flex;gap:5px;flex-wrap:wrap}
+.ali-sc-links a{font-size:11px;padding:5px 10px;border-radius:6px;background:var(--blue-bg);border:1px solid rgba(26,79,168,.2);color:var(--blue);cursor:pointer;text-decoration:none;font-family:var(--sans);display:inline-block;transition:all .12s;white-space:nowrap}
+.ali-sc-links a:hover{background:var(--blue);color:#fff}
+.ali-sc-tip{font-size:10px;color:var(--text3);margin-top:7px;line-height:1.5;font-style:italic}
+.ali-section-hd{font-family:var(--serif);font-size:16px;font-weight:400;margin-bottom:12px;margin-top:4px;color:var(--text)}
+.ali-section-sub{font-size:11px;color:var(--text3);margin-top:2px;margin-bottom:14px}
+
+/* VERIFIED BADGE */
+.verified-badge{display:inline-flex;align-items:center;gap:4px;font-size:9px;padding:2px 7px;border-radius:10px;font-weight:600;letter-spacing:.03em;border:1px solid;white-space:nowrap}
+.vb-fresh{background:var(--accent-bg);color:var(--accent);border-color:rgba(29,106,69,.2)}
+.vb-recent{background:var(--blue-bg);color:var(--blue);border-color:rgba(26,79,168,.2)}
+.vb-stale{background:var(--amber-bg);color:var(--amber);border-color:rgba(138,94,0,.2)}
+
+/* GAP ANALYSIS */
+.gap-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;margin-bottom:20px}
+.gap-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;box-shadow:var(--shadow)}
+.gap-card-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:8px}
+.gap-bar-wrap{height:6px;background:var(--bg3);border-radius:3px;overflow:hidden;margin:6px 0 4px}
+.gap-bar{height:100%;border-radius:3px;transition:width .4s}
+.gap-bar.strong{background:var(--accent)}
+.gap-bar.medium{background:var(--amber)}
+.gap-bar.weak{background:var(--coral)}
+.gap-strength{font-size:11px;font-weight:600}
+.gs-strong{color:var(--accent)}.gs-medium{color:var(--amber)}.gs-weak{color:var(--coral)}
+.gap-note{font-size:10px;color:var(--text3);line-height:1.5;margin-top:4px}
+.gap-programs{font-size:10px;color:var(--blue);margin-top:5px;font-style:italic}
+
+/* LANDING PAGE */
+.landing-overlay{position:fixed;inset:0;background:var(--bg);z-index:700;display:none;overflow-y:auto}
+.landing-overlay.open{display:block}
+.lp-wrap{max-width:900px;margin:0 auto;padding:60px 32px}
+.lp-logo{display:flex;align-items:center;gap:12px;margin-bottom:48px}
+.lp-mark{width:40px;height:40px;background:var(--accent);border-radius:10px;display:flex;align-items:center;justify-content:center}
+.lp-brand{font-family:var(--serif);font-size:22px;font-weight:500}
+.lp-brand span{color:var(--accent);font-style:italic}
+.lp-hero{margin-bottom:56px}
+.lp-eyebrow{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.12em;color:var(--accent);margin-bottom:14px}
+.lp-title{font-family:var(--serif);font-size:52px;font-weight:300;line-height:1.1;letter-spacing:-1px;margin-bottom:20px}
+.lp-title em{color:var(--accent);font-style:italic}
+.lp-sub{font-size:16px;color:var(--text2);line-height:1.7;max-width:600px;margin-bottom:36px}
+.lp-cta-row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.lp-cta{background:var(--accent);color:#fff;border:none;border-radius:10px;padding:14px 28px;font-size:15px;font-weight:600;cursor:pointer;font-family:var(--sans);transition:all .15s;letter-spacing:-.01em}
+.lp-cta:hover{background:var(--accent2);transform:translateY(-2px)}
+.lp-cta-sec{background:transparent;border:1.5px solid var(--border2);color:var(--text2);border-radius:10px;padding:14px 24px;font-size:14px;cursor:pointer;font-family:var(--sans);transition:all .15s}
+.lp-cta-sec:hover{border-color:var(--accent);color:var(--accent)}
+.lp-stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;padding:32px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);margin-bottom:56px}
+.lp-stat-n{font-family:var(--serif);font-size:40px;font-weight:300;color:var(--accent);letter-spacing:-1px}
+.lp-stat-l{font-size:12px;color:var(--text2);margin-top:4px;line-height:1.5}
+.lp-features{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-bottom:56px}
+.lp-feat{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:22px}
+.lp-feat-icon{font-size:22px;margin-bottom:12px}
+.lp-feat-title{font-size:14px;font-weight:600;margin-bottom:6px}
+.lp-feat-text{font-size:12px;color:var(--text2);line-height:1.65}
+.lp-trust{background:var(--accent-bg);border:1px solid rgba(29,106,69,.15);border-radius:var(--radius);padding:24px 28px;display:flex;align-items:center;gap:20px}
+.lp-trust-icon{font-size:28px;flex-shrink:0}
+.lp-trust-text{font-size:13px;color:var(--text2);line-height:1.65}
+.lp-trust-text strong{color:var(--text)}
+</style>
+</head>
+<body>
+
+<!-- LANDING PAGE -->
+<div class="landing-overlay" id="landing-overlay">
+  <div class="lp-wrap">
+    <div class="lp-logo">
+      <div class="lp-mark"><span style="color:#fff;font-size:16px;font-weight:700">L</span></div>
+      <div class="lp-brand">LDP <span>Scout</span></div>
+    </div>
+    <div class="lp-hero">
+      <div class="lp-eyebrow">MBA Leadership Development Programs</div>
+      <div class="lp-title">Build your personalised<br><em>LDP recruiting dashboard</em></div>
+      <div class="lp-sub">The only tool built for MBA students tracking and applying to Leadership Development Programs across Europe, UAE, and global markets — with AI-powered fit analysis, alumni discovery, and deadline tracking.</div>
+      <div class="lp-cta-row">
+        <button class="lp-cta" onclick="enterApp()">Get Started Free →</button>
+        <button class="lp-cta-sec" onclick="enterApp()">Explore the tracker</button>
+      </div>
+    </div>
+    <div class="lp-stats-row">
+      <div><div class="lp-stat-n">42</div><div class="lp-stat-l">Curated leadership programs<br>with verified links</div></div>
+      <div><div class="lp-stat-n">5</div><div class="lp-stat-l">AI-powered fit tiers<br>matched to your resume</div></div>
+      <div><div class="lp-stat-n">15+</div><div class="lp-stat-l">Pre-loaded alumni<br>search cards (ESADE + HEC)</div></div>
+      <div><div class="lp-stat-n">100%</div><div class="lp-stat-l">Local — your data<br>never leaves your browser</div></div>
+    </div>
+    <div class="lp-features">
+      <div class="lp-feat">
+        <div class="lp-feat-icon">✦</div>
+        <div class="lp-feat-title">AI Resume Fit Scan</div>
+        <div class="lp-feat-text">Upload your CV and get instant tier rankings across all 42 programs — Best Fit to Long Shot — with specific reasoning and structured resume gap analysis by category.</div>
+      </div>
+      <div class="lp-feat">
+        <div class="lp-feat-icon">🎓</div>
+        <div class="lp-feat-title">Alumni Network Discovery</div>
+        <div class="lp-feat-text">Smart LinkedIn search cards for every program, personalised to your school. Find the right people inside target firms before applications open.</div>
+      </div>
+      <div class="lp-feat">
+        <div class="lp-feat-icon">📋</div>
+        <div class="lp-feat-title">Application Kanban</div>
+        <div class="lp-feat-text">Track every application from Networking → Offer with a full kanban board, deadline reminders, and one-click calendar exports.</div>
+      </div>
+      <div class="lp-feat">
+        <div class="lp-feat-icon">🔍</div>
+        <div class="lp-feat-title">42 Curated Programs</div>
+        <div class="lp-feat-text">42 hand-picked programs across Europe, UAE, and global markets — each with verified career page links, visa sponsorship data, and last-verified timestamps.</div>
+      </div>
+      <div class="lp-feat">
+        <div class="lp-feat-icon">📅</div>
+        <div class="lp-feat-title">Deadline Tracker</div>
+        <div class="lp-feat-text">All upcoming deadlines sorted by urgency — with ICS calendar export that adds 7-day and 1-day reminders automatically.</div>
+      </div>
+      <div class="lp-feat">
+        <div class="lp-feat-icon">🔒</div>
+        <div class="lp-feat-title">100% Private</div>
+        <div class="lp-feat-text">Everything saved in your browser's local storage. No accounts, no tracking, no servers. Your resume analysis stays on your device.</div>
+      </div>
+    </div>
+    <div class="lp-trust">
+      <div class="lp-trust-icon">✅</div>
+      <div class="lp-trust-text"><strong>Built for the real MBA recruiting workflow.</strong> Program data verified May 2026 — sourced from official careers pages, MBA-Exchange rankings, and ESADE/HEC careers office intel. Designed by an ESADE MBA student, for MBA students actively recruiting.</div>
+    </div>
+    <div style="text-align:center;margin-top:40px">
+      <button class="lp-cta" onclick="enterApp()" style="padding:16px 36px;font-size:16px">Open LDP Scout →</button>
+    </div>
+  </div>
+</div>
+
+<!-- PAYWALL -->
+<div class="paywall-overlay" id="paywall-overlay">
+  <div class="paywall-box">
+    <div class="pw-logo">✦</div>
+    <div class="pw-title">Unlock LDP Scout</div>
+    <div class="pw-sub">The only tool built for MBA students tracking Leadership Development Programs across Europe, UAE, and global markets.</div>
+    <div class="pw-price">€5</div>
+    <div class="pw-price-note">one-time · lifetime access · no subscription</div>
+    <div class="pw-features">
+      <div class="pw-feat"><span class="pw-feat-icon">✓</span> 42 curated leadership programs with verified career links</div>
+      <div class="pw-feat"><span class="pw-feat-icon">✓</span> AI resume scanner — tier-ranked fit across all programs</div>
+      <div class="pw-feat"><span class="pw-feat-icon">✓</span> Personalised resume coaching for each application</div>
+      <div class="pw-feat"><span class="pw-feat-icon">✓</span> Alumni tracker (ESADE + HEC Paris network)</div>
+      <div class="pw-feat"><span class="pw-feat-icon">✓</span> Application kanban + deadline tracker</div>
+      <div class="pw-feat"><span class="pw-feat-icon">✓</span> All data saved locally — nothing leaves your browser</div>
+    </div>
+    <button class="pw-cta" onclick="unlockApp()">Pay €5 &amp; Get Full Access →</button><br>
+    <button class="pw-skip" onclick="dismissPaywall()">Continue without AI features</button>
+  </div>
+</div>
+
+<!-- ONBOARDING MODAL -->
+<div class="onboard-overlay" id="onboard-overlay">
+  <div class="onboard-box">
+    <div class="ob-logo">🚀</div>
+    <div class="ob-title">Build your recruiting dashboard</div>
+    <div class="ob-sub">Tell us which schools you attended and we'll personalise your alumni network, surface the right program connections, and set up your recruiting tracker. Takes 30 seconds.</div>
+    <div class="ob-field">
+      <label>Your Name</label>
+      <input id="ob-name" placeholder="e.g. Shrey Singhal" autocomplete="name">
+    </div>
+    <div class="ob-field">
+      <label>Email (for calendar reminders)</label>
+      <input id="ob-email" type="email" placeholder="you@school.edu" autocomplete="email">
+    </div>
+    <div class="ob-field">
+      <label>Your MBA School(s) — select all that apply</label>
+      <div class="ob-schools" id="ob-schools">
+        <button class="ob-school-btn" data-school="esade" onclick="toggleSchool(this)">ESADE</button>
+        <button class="ob-school-btn" data-school="hec" onclick="toggleSchool(this)">HEC Paris</button>
+        <button class="ob-school-btn" data-school="insead" onclick="toggleSchool(this)">INSEAD</button>
+        <button class="ob-school-btn" data-school="lbs" onclick="toggleSchool(this)">LBS</button>
+        <button class="ob-school-btn" data-school="iese" onclick="toggleSchool(this)">IESE</button>
+        <button class="ob-school-btn" data-school="ie" onclick="toggleSchool(this)">IE</button>
+        <button class="ob-school-btn" data-school="oxford" onclick="toggleSchool(this)">Oxford Saïd</button>
+        <button class="ob-school-btn" data-school="cambridge" onclick="toggleSchool(this)">Cambridge Judge</button>
+        <button class="ob-school-btn" data-school="bocconi" onclick="toggleSchool(this)">SDA Bocconi</button>
+        <button class="ob-school-btn" data-school="mannheim" onclick="toggleSchool(this)">Mannheim</button>
+        <button class="ob-school-btn" data-school="wbs" onclick="toggleSchool(this)">Warwick</button>
+        <button class="ob-school-btn" data-school="other" onclick="toggleSchool(this)">Other</button>
+      </div>
+    </div>
+    <button class="ob-cta" onclick="saveOnboarding()">Build My Dashboard →</button>
+    <button class="ob-skip" onclick="skipOnboarding()">Skip for now</button>
+  </div>
+</div>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-mark"><span style="color:#fff;font-size:14px;font-weight:700">L</span></div>
+    <div class="brand-name">LDP <span>Scout</span></div>
+  </div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showPage('programs')">Programs</button>
+    <button class="nav-tab" onclick="showPage('aifit')">✦ AI Fit Scan</button>
+    <button class="nav-tab" onclick="showPage('alumni')">Alumni Network</button>
+    <button class="nav-tab" onclick="showPage('applications')">My Applications</button>
+    <button class="nav-tab" onclick="showPage('deadlines')">Deadlines</button>
+  </div>
+  <div class="topbar-right">
+    <div class="date-lbl" id="today-lbl"></div>
+    <div class="pro-badge" id="pro-badge" onclick="document.getElementById('paywall-overlay').classList.add('open')">✦ Pro</div>
+  </div>
+</div>
+
+<div class="main">
+
+<!-- PROGRAMS PAGE -->
+<div class="page active" id="page-programs">
+  <div class="stat-row" id="prog-stats"></div>
+  <div class="filter-row">
+    <input class="si-input" id="prog-search" type="text" placeholder="Search programs, firms, keywords..." oninput="renderPrograms()">
+    <div class="divider"></div>
+    <span class="flabel">Geo</span>
+    <button class="fpill on" data-geo="all"    onclick="setF('geo',this)">All</button>
+    <button class="fpill"    data-geo="europe" onclick="setF('geo',this)">Europe</button>
+    <button class="fpill"    data-geo="uae"    onclick="setF('geo',this)">UAE/Gulf</button>
+    <button class="fpill"    data-geo="global" onclick="setF('geo',this)">Global</button>
+    <div class="divider"></div>
+    <span class="flabel">Function</span>
+    <button class="fpill on" data-fn="all"        onclick="setF('fn',this)">All</button>
+    <button class="fpill"    data-fn="operations" onclick="setF('fn',this)">Operations</button>
+    <button class="fpill"    data-fn="finance"    onclick="setF('fn',this)">Finance</button>
+    <button class="fpill"    data-fn="strategy"   onclick="setF('fn',this)">Strategy</button>
+    <button class="fpill"    data-fn="consulting" onclick="setF('fn',this)">Consulting</button>
+    <button class="fpill"    data-fn="investing"  onclick="setF('fn',this)">Investments</button>
+    <div class="divider"></div>
+    <span class="flabel">Status</span>
+    <button class="fpill on" data-st="all"     onclick="setF('st',this)">All</button>
+    <button class="fpill"    data-st="open"    onclick="setF('st',this)">Open</button>
+    <button class="fpill"    data-st="rolling" onclick="setF('st',this)">Rolling</button>
+    <button class="fpill"    data-st="watch"   onclick="setF('st',this)">Watch</button>
+    <div class="divider"></div>
+    <button class="fpill" id="visa-pill" onclick="toggleVisaFilter(this)">✓ Visa Only</button>
+    <div class="spacer"></div>
+    <button class="add-btn" onclick="openM('prog')">+ Add Program</button>
+  </div>
+  <div class="results-meta" id="prog-meta"></div>
+  <div class="table-wrap">
+    <div class="thead">
+      <div class="th">Program / Organisation</div>
+      <div class="th">Function · Sector</div>
+      <div class="th">Location</div>
+      <div class="th">Deadline</div>
+      <div class="th">Status</div>
+      <div class="th">Fit</div>
+      <div class="th">Visa</div>
+      <div class="th">Actions</div>
+    </div>
+    <div id="prog-list"></div>
+  </div>
+</div>
+
+<!-- ALUMNI PAGE -->
+<div class="page" id="page-alumni">
+  <div class="sech"><h2>Alumni Network</h2><p>Find the right people inside target firms — then reach out before applications open</p></div>
+
+  <!-- SCHOOL SELECTOR + SEARCH -->
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin-bottom:16px;box-shadow:var(--shadow)">
+    <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+      <div>
+        <div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Your School</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap" id="alumni-school-selector">
+          <!-- rendered by JS -->
+        </div>
+      </div>
+      <div style="width:1px;height:36px;background:var(--border);flex-shrink:0"></div>
+      <div style="flex:1;min-width:200px">
+        <div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Filter Programs</div>
+        <input class="si-input" id="alumni-prog-search" type="text" placeholder="e.g. Siemens, Finance, Roche, Healthcare..." oninput="renderAlumniSearch()" style="width:100%;min-width:0">
+      </div>
+    </div>
+    <div style="margin-top:10px;font-size:11px;color:var(--text3);line-height:1.6">
+      <strong style="color:var(--text2)">How to use:</strong> Pick your school above. For each program below, use <span style="color:var(--blue);font-weight:500">① Company</span> to find people currently at that firm, or <span style="color:var(--accent);font-weight:500">② School Alumni</span> to find graduates from your school. Use separate filters for company name and role — do not mix them. Add anyone you find using the "+ Add Contact" button below.
+    </div>
+  </div>
+
+  <div class="ali-search-grid" id="alumni-search-cards"></div>
+
+  <!-- DIVIDER -->
+  <div style="border-top:1px solid var(--border);margin:28px 0 20px"></div>
+
+  <!-- MANUAL TRACKER -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px">
+    <div>
+      <div style="font-family:var(--serif);font-size:16px;font-weight:400">My Contact Tracker</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:2px">People you've identified, reached out to, or spoken with</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <input class="si-input" id="alumni-search" type="text" placeholder="Search name, firm, program..." oninput="renderAlumni()" style="min-width:180px">
+      <button class="fpill on" data-ast="all" onclick="setF('ast',this)">All</button>
+      <button class="fpill" data-ast="identified" onclick="setF('ast',this)">Identified</button>
+      <button class="fpill" data-ast="reached" onclick="setF('ast',this)">Reached</button>
+      <button class="fpill" data-ast="replied" onclick="setF('ast',this)">Replied</button>
+      <button class="fpill" data-ast="coffee" onclick="setF('ast',this)">Coffee ☕</button>
+      <button class="add-btn" onclick="openM('alumni')">+ Add Contact</button>
+    </div>
+  </div>
+  <div class="agrid" id="alumni-list"></div>
+</div>
+
+<!-- APPLICATIONS PAGE -->
+<div class="page" id="page-applications">
+  <div class="sech"><h2>My Applications</h2><p id="app-sub"></p></div>
+  <div class="filter-row" style="margin-bottom:18px">
+    <input class="si-input" id="app-search" type="text" placeholder="Search applications..." oninput="renderApplications()">
+    <div class="spacer"></div>
+    <button class="add-btn" onclick="openM('app')">+ Log Application</button>
+  </div>
+  <div class="kanban" id="app-kanban"></div>
+</div>
+
+<!-- DEADLINES PAGE -->
+<div class="page" id="page-deadlines">
+  <div class="sech"><h2>Upcoming Deadlines</h2><p>Sorted by urgency — prioritise items in red. Click 📅 to export a reminder to your calendar.</p></div>
+  <div class="dllist" id="dl-list"></div>
+</div>
+
+<!-- AI FIT PAGE -->
+<div class="page" id="page-aifit">
+  <div class="ai-hero">
+    <h2>AI Resume Fit Scanner</h2>
+    <p>Upload your résumé and get an instant tier-ranked fit analysis across all tracked programs — with specific reasoning per program and structured resume coaching.</p>
+    <div class="ai-steps">
+      <div class="ai-step"><div class="ai-step-num">1</div>Upload resume (PDF, DOCX, or text)</div>
+      <div class="ai-step"><div class="ai-step-num">2</div>Matched against all <span id="prog-count"></span> programs in the tracker</div>
+      <div class="ai-step"><div class="ai-step-num">3</div>Get ranked results, gap analysis &amp; coaching</div>
+    </div>
+  </div>
+  <div class="upload-zone" id="upload-zone">
+    <input type="file" accept=".pdf,.txt,.doc,.docx" onchange="handleFileUpload(event)" id="resume-file-input">
+    <span class="uz-icon">📄</span>
+    <div class="uz-title">Drop your resume here or click to browse</div>
+    <div class="uz-sub">PDF, DOCX, or plain text · Max 5MB</div>
+    <div class="uz-file-name" id="file-name-display" style="display:none"></div>
+  </div>
+  <div class="ai-controls">
+    <button class="analyze-btn" id="analyze-btn" onclick="runAIAnalysis()" disabled>
+      ✦ Analyse My Fit
+    </button>
+    <div class="ai-note" id="ai-status-note">Upload your resume above to unlock analysis. Your résumé is processed via a secure proxy — never stored, never shared.</div>
+  </div>
+  <div id="ai-results"></div>
+</div>
+
+</div><!-- /main -->
+
+<!-- PROGRAM MODAL -->
+<div class="overlay" id="ov-prog">
+<div class="modal">
+  <button class="mclose" onclick="closeM('prog')">×</button>
+  <div class="mtitle">Add / Edit Program</div>
+  <div class="fgrid">
+    <div class="fg full"><label>Program Name</label><input id="pi-name" placeholder="e.g. Amazon Pathways Operations Program"></div>
+    <div class="fg"><label>Organisation</label><input id="pi-org" placeholder="Amazon"></div>
+    <div class="fg"><label>Careers Page URL</label><input id="pi-url" placeholder="https://..."></div>
+    <div class="fg"><label>Geography</label>
+      <select id="pi-geo"><option value="europe">Europe</option><option value="uae">UAE / Gulf</option><option value="global">Global</option></select></div>
+    <div class="fg"><label>Location</label><input id="pi-loc" placeholder="London, UK"></div>
+    <div class="fg"><label>Function</label>
+      <select id="pi-fn"><option value="strategy">Strategy</option><option value="finance">Finance</option><option value="operations">Operations</option><option value="consulting">Consulting</option><option value="general">General Management</option><option value="investing">Investments / PE</option></select></div>
+    <div class="fg"><label>Sector</label>
+      <select id="pi-sector"><option value="tech">Technology</option><option value="finance">Financial Services</option><option value="consumer">Consumer / FMCG</option><option value="healthcare">Healthcare</option><option value="logistics">Logistics / Supply Chain</option><option value="energy">Energy</option><option value="sovereign">Sovereign / DFI</option><option value="industrial">Industrial</option><option value="other">Other</option></select></div>
+    <div class="fg"><label>Status</label>
+      <select id="pi-status"><option value="open">Open now</option><option value="rolling">Rolling</option><option value="watch">Watch — prep now</option><option value="closed">Closed</option></select></div>
+    <div class="fg"><label>Deadline Date</label><input id="pi-deadline" type="date"></div>
+    <div class="fg"><label>Deadline Note</label><input id="pi-dlnote" placeholder="e.g. Rolling — apply early"></div>
+    <div class="fg"><label>Fit Score (1–5)</label>
+      <select id="pi-fit"><option value="5">★★★★★ Perfect</option><option value="4" selected>★★★★ Strong</option><option value="3">★★★ Good</option><option value="2">★★ Partial</option><option value="1">★ Stretch</option></select></div>
+    <div class="fg full"><label>Notes</label><textarea id="pi-notes" placeholder="Key notes, next steps, alumni contacts..."></textarea></div>
+    <div class="fg"><label>Visa Sponsorship</label>
+      <select id="pi-visa"><option value="">Unknown</option><option value="yes">✓ Yes — sponsors visas</option><option value="no">No sponsorship</option></select></div>
+    <div class="fg full"><label>Tags (comma separated)</label><input id="pi-tags" placeholder="MBA, Rotational, Finance"></div>
+  </div>
+  <div class="mfoot"><button class="bcn" onclick="closeM('prog')">Cancel</button><button class="bsv" onclick="saveProg()">Save Program</button></div>
+</div>
+</div>
+
+<!-- ALUMNI MODAL -->
+<div class="overlay" id="ov-alumni">
+<div class="modal">
+  <button class="mclose" onclick="closeM('alumni')">×</button>
+  <div class="mtitle">Add Alumni Contact</div>
+  <div class="fgrid">
+    <div class="fg"><label>Full Name</label><input id="ai-name" placeholder="Jane Smith"></div>
+    <div class="fg"><label>School</label><select id="ai-school"><option value="esade">ESADE</option><option value="hec">HEC Paris</option><option value="insead">INSEAD</option><option value="lbs">LBS</option><option value="iese">IESE</option><option value="ie">IE</option><option value="oxford">Oxford Saïd</option><option value="cambridge">Cambridge Judge</option><option value="bocconi">SDA Bocconi</option><option value="mannheim">Mannheim</option><option value="wbs">Warwick</option><option value="other">Other</option><option value="both">Multiple schools</option></select></div>
+    <div class="fg"><label>Firm / Company</label><input id="ai-firm" placeholder="Amazon"></div>
+    <div class="fg"><label>Role / Title</label><input id="ai-role" placeholder="Pathways Operations Manager"></div>
+    <div class="fg full"><label>LinkedIn Profile URL</label><input id="ai-li" placeholder="https://linkedin.com/in/username"></div>
+    <div class="fg"><label>Linked Program</label><input id="ai-prog" placeholder="Amazon Pathways"></div>
+    <div class="fg"><label>Location</label><input id="ai-loc" placeholder="London, UK"></div>
+    <div class="fg full"><label>Contact Status</label>
+      <select id="ai-status"><option value="identified">Identified — not reached out yet</option><option value="reached">Reached out</option><option value="replied">Replied</option><option value="coffee">Coffee chat done</option><option value="referred">Referred / Endorsed</option></select></div>
+    <div class="fg full"><label>Notes</label><textarea id="ai-notes" placeholder="How you found them, what was discussed, next step..."></textarea></div>
+  </div>
+  <div class="mfoot"><button class="bcn" onclick="closeM('alumni')">Cancel</button><button class="bsv" onclick="saveAlumni()">Save Contact</button></div>
+</div>
+</div>
+
+<!-- APPLICATION MODAL -->
+<div class="overlay" id="ov-app">
+<div class="modal">
+  <button class="mclose" onclick="closeM('app')">×</button>
+  <div class="mtitle">Log Application</div>
+  <div class="fgrid">
+    <div class="fg full"><label>Program / Role</label><input id="aps-name" placeholder="Amazon Pathways Operations LDP"></div>
+    <div class="fg"><label>Organisation</label><input id="aps-org" placeholder="Amazon"></div>
+    <div class="fg"><label>Geography</label><input id="aps-geo" placeholder="EU / UAE"></div>
+    <div class="fg"><label>Stage</label>
+      <select id="aps-status"><option value="networking">Networking</option><option value="drafting">Drafting</option><option value="applied">Applied</option><option value="interview">Interview</option><option value="offer">Offer 🎉</option><option value="rejected">Rejected</option></select></div>
+    <div class="fg"><label>Started / Applied On</label><input id="aps-date" type="date"></div>
+    <div class="fg"><label>Deadline</label><input id="aps-deadline" type="date"></div>
+    <div class="fg full"><label>Next Step</label><input id="aps-next" placeholder="e.g. Submit cover letter by May 20"></div>
+    <div class="fg full"><label>Alumni Contact</label><input id="aps-contact" placeholder="Name of alumni you've networked with"></div>
+    <div class="fg full"><label>Notes</label><textarea id="aps-notes" placeholder="Interview notes, tailoring notes, referrals..."></textarea></div>
+  </div>
+  <div class="mfoot">
+    <button class="bcn" onclick="closeM('app')">Cancel</button>
+    <button class="bcn" style="color:var(--red);border-color:rgba(192,57,43,.3)" onclick="delCurrentApp()">Delete</button>
+    <button class="bsv" onclick="saveApp()">Save</button>
+  </div>
+</div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script>
+// ═══════════════ DATA ═══════════════
+const DP = [
+  {id:1,name:"Amazon Pathways Operations LDP",org:"Amazon",geo:"global",loc:"EU · UAE · India",fn:"operations",sector:"tech",status:"rolling",deadline:"",dlnote:"Rolling — no fixed deadline, apply early",fit:5,visa:true,tags:["MBA","Operations","Rotational"],notes:"3-year career accelerator for MBA graduates. Recruits fall for following year. Strong fit: operations background, 3+ yrs exp. Language skills required for EU postings.",url:"https://www.amazon.jobs/content/en/career-programs/pathways"},
+  {id:2,name:"Microsoft Aspire Experience (MBA)",org:"Microsoft",geo:"global",loc:"Dublin · Amsterdam · Dubai",fn:"strategy",sector:"tech",status:"watch",deadline:"2026-10-01",dlnote:"Opens Sep–Oct annually",fit:4,visa:true,tags:["MBA","Product","Strategy"],notes:"Strong Dublin and Dubai presence. Search 'Microsoft Aspire' on LinkedIn for current cohort members. Targets MBA generalists with a product/strategy orientation.",url:"https://careers.microsoft.com"},
+  {id:3,name:"Estée Lauder Senior Program Associate",org:"Estée Lauder",geo:"global",loc:"Global (EU · US · Asia)",fn:"general",sector:"consumer",status:"watch",deadline:"2026-09-30",dlnote:"Sep 1–Sep 30 annually",fit:3,visa:false,tags:["MBA","Consumer","Rotational"],notes:"24-month, 4 rotations for MBA grads 5+ yrs exp. Finance, brand, strategy tracks.",url:"https://www.elcompanies.com/en/careers/students/full-time-programs"},
+  {id:4,name:"Santander CIB Graduate Program",org:"Santander",geo:"europe",loc:"Spain · UK · Netherlands",fn:"finance",sector:"finance",status:"watch",deadline:"2026-08-01",dlnote:"Opens Aug 2026",fit:4,visa:false,tags:["IB","CIB","Graduate"],notes:"12-month IB immersion. Madrid, London, Paris offices. Strong ESADE network connection.",url:"https://www.santander.com/en/careers"},
+  {id:5,name:"DHL Consulting LDP",org:"DHL",geo:"europe",loc:"Bonn, Germany",fn:"consulting",sector:"logistics",status:"rolling",deadline:"",dlnote:"Rolling — check Bonn openings",fit:5,visa:false,tags:["Consulting","Logistics","Strategy"],notes:"Strategy & consulting rotational. Strong supply chain + strategy angle. Bonn-based.",url:"https://careers.dhl.com"},
+  {id:6,name:"Unilever Future Leaders Programme",org:"Unilever",geo:"europe",loc:"UK · Netherlands · Global",fn:"general",sector:"consumer",status:"open",deadline:"2026-06-30",dlnote:"Varies by country — check now",fit:3,visa:false,tags:["FMCG","General Mgmt","Rotational"],notes:"Finance, supply chain, strategy tracks. ESADE alumni in Unilever Spain worth contacting.",url:"https://careers.unilever.com/uflp"},
+  {id:7,name:"BCG Associate (Full-time MBA)",org:"BCG",geo:"europe",loc:"London · Dubai · Amsterdam",fn:"consulting",sector:"finance",status:"open",deadline:"",dlnote:"Rolling for MBA hires",fit:4,visa:true,tags:["Strategy Consulting","MBA"],notes:"Structured mentorship + clear progression. Strong ESADE + HEC placement history.",url:"https://careers.bcg.com"},
+  {id:8,name:"Mastercard MBA Leadership Program",org:"Mastercard",geo:"uae",loc:"UAE · Europe",fn:"strategy",sector:"finance",status:"watch",deadline:"2026-10-15",dlnote:"Opens Sep–Oct annually",fit:4,visa:false,tags:["Fintech","Strategy","MBA"],notes:"Rotational 2-year program. Dubai & London offices hire. Fintech angle aligns well.",url:"https://careers.mastercard.com"},
+  {id:9,name:"Mubadala Graduate Programme",org:"Mubadala",geo:"uae",loc:"Abu Dhabi, UAE",fn:"investing",sector:"sovereign",status:"watch",deadline:"",dlnote:"Watch LinkedIn & careers page",fit:5,visa:false,tags:["Sovereign Wealth","PE/VC","UAE"],notes:"Top UAE sovereign fund. PE/VC + healthcare angle is strong fit. Very competitive — limited spots.",url:"https://www.mubadala.com/en/careers/student"},
+  {id:10,name:"Chalhoub Group Management Associate",org:"Chalhoub Group",geo:"uae",loc:"Dubai · GCC",fn:"general",sector:"consumer",status:"open",deadline:"",dlnote:"Rolling",fit:3,visa:false,tags:["Luxury Retail","GCC","Rotational"],notes:"Luxury retail conglomerate. Strategy, brand, retail ops rotations across GCC.",url:"https://chalhoubgroup.com/careers"},
+  {id:11,name:"Maersk Commercial Graduate Programme",org:"Maersk",geo:"europe",loc:"Copenhagen · Global",fn:"operations",sector:"logistics",status:"open",deadline:"2026-07-15",dlnote:"Rolling intake — check openings",fit:4,visa:true,tags:["Logistics","Supply Chain","Rotational"],notes:"2-year rotational. Strong supply chain + operations angle. Copenhagen HQ with global postings.",url:"https://www.maersk.com/careers/students-and-graduates"},
+  {id:12,name:"IFC / World Bank Young Professionals",org:"IFC / World Bank",geo:"global",loc:"Washington / Global",fn:"investing",sector:"sovereign",status:"watch",deadline:"2027-02-01",dlnote:"Typically Jan–Feb each year",fit:5,visa:true,tags:["Impact Investing","DFI","MBA"],notes:"Development finance LDP. PE/VC + impact investing background is standout fit. CFA Level II valued.",url:"https://www.ifc.org/en/careers/ypp"},
+  {id:13,name:"Temasek / GIC Graduate Programme",org:"Temasek/GIC",geo:"global",loc:"Singapore (Australia pathway)",fn:"investing",sector:"sovereign",status:"watch",deadline:"2026-10-01",dlnote:"Opens Sep–Oct annually",fit:4,visa:false,tags:["Sovereign Fund","PE/VC","Investments"],notes:"PE/VC background is strong fit. Also a pathway into Australia market.",url:"https://www.temasek.com.sg/en/career"},
+  {id:14,name:"Noon.com Strategy & Operations",org:"Noon",geo:"uae",loc:"Dubai, UAE",fn:"operations",sector:"tech",status:"rolling",deadline:"",dlnote:"Rolling — LinkedIn-driven",fit:4,visa:false,tags:["E-commerce","Quick Commerce","Ops"],notes:"Quick commerce and ops background is directly relevant. Strong ops + strategy fit.",url:"https://noon.com/uae-en/careers/"},
+  {id:15,name:"Siemens XPS Leadership Program",org:"Siemens",geo:"global",loc:"Munich, Germany · Global",fn:"strategy",sector:"tech",status:"open",deadline:"",dlnote:"Rolling — applications open",fit:5,visa:true,tags:["2-Year","MBA","Tech","Non-rotational"],notes:"2-year direct-entry (non-rotational). Full-time role + leadership training, mentorship, global networking. Ranked #1 Industrial LDP (MBA-Exchange 2025). Good for EU visa holders.",url:"https://www.siemens.com/en-us/company/jobs/growth-careers/siemens-xps-leadership-program/"},
+  {id:16,name:"Siemens Finance Excellence Program",org:"Siemens",geo:"europe",loc:"Munich, Germany · Global",fn:"finance",sector:"tech",status:"open",deadline:"",dlnote:"Rolling — check Siemens careers",fit:5,visa:true,tags:["Finance","3 Rotations","MBA","CFO track"],notes:"24-month, 3 rotations across Siemens finance. Munich HQ + international assignment. Targets future CFOs. CFA + finance background is ideal fit. Ranked top Finance LDP (MBA-Exchange 2024/2025).",url:"https://www.siemens.com/en-us/company/jobs/growth-careers/finance-excellence-program/"},
+  {id:17,name:"Roche Business Perspectives",org:"Roche",geo:"europe",loc:"Basel, Switzerland · Global",fn:"general",sector:"healthcare",status:"open",deadline:"2026-09-01",dlnote:"Annual intake — Sept 1 start. Assessment centre mid-May 2026.",fit:4,visa:true,tags:["Healthcare","Rotational","MBA","4 Rotations"],notes:"2-year rotational, up to 4 assignments of 6–8 months. Pharma, Diagnostics, Group functions. Requires MBA + 3–5 yrs exp. Application includes 4-slide presentation. Up to 12 spots.",url:"https://careers.roche.com/global/en/business-perspectives-at-roche"},
+  {id:18,name:"Samsung Global Strategy Group (GSG)",org:"Samsung",geo:"global",loc:"Seoul, South Korea",fn:"strategy",sector:"tech",status:"rolling",deadline:"",dlnote:"Recruits mid-year for next cohort",fit:3,visa:false,tags:["Internal Consulting","MBA","Strategy"],notes:"Elite internal strategy consulting arm of Samsung. Seoul-based. Strong strategy/consulting background required.",url:"https://www.sgsg.samsung.com"},
+  {id:19,name:"J&J IRDP (Intl Recruitment & Dev)",org:"Johnson & Johnson",geo:"global",loc:"EMEA · APAC · Americas",fn:"general",sector:"healthcare",status:"open",deadline:"",dlnote:"Rolling — multiple intakes globally",fit:5,visa:false,tags:["Healthcare","MBA","Multi-function","IRDP"],notes:"J&J's flagship MBA LDP. Available across EMEA (Spain, UK, France, Netherlands, Germany). Non-rotational but accelerated. Ranked #1 globally by MBA-Exchange. Strong ESADE → J&J Spain pipeline.",url:"https://www.careers.jnj.com/en/student-opportunities/leadership-development-programs/"},
+  {id:20,name:"Bayer Leadership Development Program",org:"Bayer",geo:"europe",loc:"Leverkusen, Germany · Global",fn:"general",sector:"healthcare",status:"watch",deadline:"",dlnote:"Watch careers.bayer.com",fit:4,visa:true,tags:["Healthcare","Pharma","Rotational","MBA"],notes:"Rotational program across Bayer's Pharma, Crop Science, Consumer Health. Germany HQ + international assignments.",url:"https://careers.bayer.com/en"},
+  {id:21,name:"Hilti Outperformer (Global Mgmt Dev)",org:"Hilti",geo:"global",loc:"Schaan, Liechtenstein · Global",fn:"general",sector:"industrial",status:"open",deadline:"",dlnote:"Rolling — continuous recruitment",fit:4,visa:true,tags:["General Mgmt","Rotational","MBA","IMD"],notes:"Prestigious rotational program with IMD Business School qualification included. Commercial + operational track. 120+ countries. Strong fit for general management aspirants.",url:"https://careers.hilti.com/en/students-and-recent-graduates"},
+  {id:22,name:"PwC Strategy& MBA Associate",org:"PwC Strategy&",geo:"europe",loc:"London · Amsterdam · Dubai",fn:"consulting",sector:"finance",status:"open",deadline:"",dlnote:"Rolling — check pwc.com/strategand",fit:4,visa:true,tags:["Consulting","Strategy","MBA","MBB-Adjacent"],notes:"Strategy& is PwC's strategy consulting arm — MBB-adjacent calibre. Strong ESADE/HEC placement. London, Amsterdam, Dubai offices hire MBA Associates. Finance + ops background is a strong angle.",url:"https://www.strategyand.pwc.com/gx/en/careers.html"},
+  {id:23,name:"Emerson Europe Rotational MBA",org:"Emerson",geo:"europe",loc:"Europe (multiple countries)",fn:"operations",sector:"industrial",status:"open",deadline:"",dlnote:"Rolling — check Emerson careers",fit:4,visa:true,tags:["Operations","Industrial","Rotational","MBA"],notes:"Europe-focused rotational MBA program. Emerson consistently top-5 LDP employer globally. Strong ops, supply chain, tech angle.",url:"https://www.emerson.com/en-us/careers"},
+  {id:24,name:"WEF Global Leadership Fellows (GLFP)",org:"World Economic Forum",geo:"global",loc:"Geneva, Switzerland",fn:"strategy",sector:"sovereign",status:"watch",deadline:"2026-10-01",dlnote:"Annual — typically Sep/Oct deadline",fit:5,visa:false,tags:["Impact","Policy","MBA","Global"],notes:"Highly selective 3-year fellowship at WEF Geneva. Strong fit: impact investing, PE/VC, emerging markets. Network 12+ months in advance. Requires strong policy/systems thinking angle.",url:"https://www.weforum.org/about/fellows/"},
+  {id:25,name:"Sanofi Management Associate Program",org:"Sanofi",geo:"global",loc:"Paris, France · Global",fn:"general",sector:"healthcare",status:"open",deadline:"",dlnote:"Rolling — check jobs.sanofi.com",fit:5,visa:true,tags:["Healthcare","MBA","Commercial","Rotational"],notes:"#1 Healthcare LDP and #1 Management LDP globally (MBA-Exchange 2025). Rotational across commercial, market access, strategy. Paris HQ + global.",url:"https://jobs.sanofi.com/en/early-talent"},
+  {id:26,name:"Emerson MBA Leadership Program",org:"Emerson",geo:"global",loc:"St. Louis, USA · Europe",fn:"operations",sector:"industrial",status:"open",deadline:"",dlnote:"Rolling — check emerson.com/careers",fit:5,visa:true,tags:["Operations","Industrial","MBA","Full-time"],notes:"#1 Industrial Products LDP (MBA-Exchange 2024). Consistently top-3 most-viewed employer globally. Full-time MBA leadership role.",url:"https://www.emerson.com/en-us/careers"},
+  {id:27,name:"Schneider Electric Sustainability LDP",org:"Schneider Electric",geo:"global",loc:"Paris, France · Global",fn:"strategy",sector:"energy",status:"open",deadline:"",dlnote:"Rolling — check se.com/careers",fit:4,visa:true,tags:["Sustainability","Energy","MBA","Rotational"],notes:"#1 Energy LDP and #1 Rotational program globally (MBA-Exchange 2025). Sustainability + digital transformation focus. Paris HQ. Strong ESG angle.",url:"https://www.se.com/ww/en/about-us/careers/"},
+  {id:28,name:"Novo Nordisk Intl Ops Graduate",org:"Novo Nordisk",geo:"global",loc:"Copenhagen, Denmark",fn:"operations",sector:"healthcare",status:"open",deadline:"",dlnote:"Rolling — check novonordisk.com",fit:4,visa:true,tags:["Operations","Healthcare","Pharma","Rotational"],notes:"Top 4 Operations LDP (MBA-Exchange 2025). International graduate program across supply chain and operations. Copenhagen HQ.",url:"https://www.novonordisk.com/careers.html"},
+  {id:29,name:"Samsara Global Operations Rotation",org:"Samsara",geo:"global",loc:"San Francisco, USA",fn:"operations",sector:"tech",status:"open",deadline:"",dlnote:"Rolling — check samsara.com/careers",fit:3,visa:false,tags:["Operations","Tech","IoT","MBA"],notes:"#1 Operations LDP (MBA-Exchange 2025). Industrial IoT / fleet tech. US-based fast-riser in LDP rankings.",url:"https://www.samsara.com/company/careers"},
+  {id:30,name:"Philips Full-Time Operations LDP",org:"Philips",geo:"europe",loc:"Amsterdam, Netherlands",fn:"operations",sector:"healthcare",status:"watch",deadline:"",dlnote:"Watch careers.philips.com",fit:4,visa:true,tags:["Operations","Healthcare","MBA","Netherlands"],notes:"Top 7 Operations LDP (MBA-Exchange 2025). Amsterdam-based. Healthcare + supply chain + ops angle. EU work authorisation relevant.",url:"https://www.careers.philips.com"},
+  {id:31,name:"Arkema MBA Leadership Development",org:"Arkema",geo:"europe",loc:"Paris, France · Global",fn:"general",sector:"industrial",status:"open",deadline:"",dlnote:"Rolling — check arkema.com/careers",fit:4,visa:true,tags:["Industrial","MBA","Rotational","France"],notes:"Top 4 Rotational and top 7 Industrial LDP (MBA-Exchange 2025). French specialty chemicals. Paris HQ. Strong ESADE + HEC France connection.",url:"https://www.arkema.com/global/en/careers/"},
+  {id:32,name:"Vanguard MBA Development Program",org:"Vanguard",geo:"global",loc:"Malvern, PA, USA",fn:"finance",sector:"finance",status:"open",deadline:"",dlnote:"Rolling — check vanguardjobs.com",fit:3,visa:false,tags:["Finance","Asset Management","MBA","Rotational"],notes:"#1 Finance LDP globally (MBA-Exchange 2025). Asset management focus. US-headquartered.",url:"https://www.vanguardjobs.com"},
+  {id:33,name:"J&J Finance MBA LDP (FLDP)",org:"Johnson & Johnson",geo:"global",loc:"New Jersey, USA · Global",fn:"finance",sector:"healthcare",status:"open",deadline:"",dlnote:"Rolling — separate from IRDP track",fit:4,visa:false,tags:["Finance","Healthcare","MBA","4-Year"],notes:"4-year rotational finance program. Covers treasury, business development, supply chain finance, R&D finance. CFA Level II is a strong differentiator. Separate from J&J IRDP.",url:"https://www.careers.jnj.com/en/student-opportunities/leadership-development-programs/"},
+  {id:34,name:"Kraft Heinz MBA Leadership Program",org:"Kraft Heinz",geo:"global",loc:"Chicago, USA · Global",fn:"general",sector:"consumer",status:"watch",deadline:"2026-09-01",dlnote:"Annual — opens mid-year",fit:3,visa:false,tags:["Consumer","FMCG","MBA","Strategy"],notes:"Top 4 Consumer LDP and top Finance LDP (MBA-Exchange 2025). Strategy + finance focus.",url:"https://careers.kraftheinzcompany.com"},
+  {id:35,name:"Cartier Aspire (Richemont) Rotational",org:"Cartier (Richemont)",geo:"global",loc:"Geneva · Paris · Global",fn:"general",sector:"consumer",status:"open",deadline:"",dlnote:"Rolling — check careers.richemont.com",fit:4,visa:false,tags:["Luxury","Consumer","MBA","Rotational"],notes:"Top 2 Consumer LDP (MBA-Exchange 2025). Luxury goods rotational. Geneva and Paris-based.",url:"https://careers.richemont.com"},
+  {id:36,name:"Abbott MBA Commercial LDP",org:"Abbott",geo:"global",loc:"Chicago, USA · Global",fn:"general",sector:"healthcare",status:"open",deadline:"",dlnote:"Rolling — check abbott.com/careers",fit:3,visa:false,tags:["Healthcare","MBA","Commercial","Medical Devices"],notes:"#1 Sales & Marketing LDP (MBA-Exchange 2025). Commercial leadership across medical devices and diagnostics.",url:"https://www.abbott.com/careers.html"},
+  {id:37,name:"Admiral Group MBA Future Leaders",org:"Admiral Group",geo:"europe",loc:"Cardiff, UK",fn:"strategy",sector:"finance",status:"open",deadline:"",dlnote:"Rolling — check jobs.admiral.com",fit:3,visa:false,tags:["Insurance","Finance","MBA","UK"],notes:"Top 10 Europe LDP and top Financial Services LDP (MBA-Exchange 2025). Group Strategy Manager track. Smaller firm = faster progression.",url:"https://jobs.admiral.com"},
+  {id:38,name:"BASF MBA Leadership Development",org:"BASF",geo:"europe",loc:"Ludwigshafen, Germany",fn:"general",sector:"industrial",status:"open",deadline:"",dlnote:"Rolling — check basf.com/careers",fit:4,visa:true,tags:["Industrial","Chemicals","MBA","Rotational"],notes:"#1 Industrial Products LDP (MBA-Exchange 2025, multiple years). 3 rotations of 8 months including one international. Strong ESADE → Germany pipeline.",url:"https://www.basf.com/global/en/careers.html"},
+  {id:39,name:"ThermoFisher Scientific MBA Program",org:"ThermoFisher",geo:"global",loc:"Waltham, USA · Global",fn:"general",sector:"healthcare",status:"open",deadline:"",dlnote:"Rolling — check thermofisher.com/careers",fit:3,visa:true,tags:["Healthcare","Life Sciences","MBA","Commercial"],notes:"Top 5 Healthcare LDP (MBA-Exchange 2024/2025). Life sciences tools + diagnostics. Commercial and operations tracks.",url:"https://jobs.thermofisher.com"},
+  {id:40,name:"CFO Insights Leadership Program (MBA Graduate)",org:"CFO Insights",geo:"europe",loc:"UK · Europe",fn:"finance",sector:"finance",status:"open",deadline:"",dlnote:"Rolling — check cfoi.co.uk",fit:4,visa:false,tags:["Finance","MBA","Leadership","CFO Track"],notes:"#1 Financial Services LDP globally (MBA-Exchange 2025). Fast-track CFO development program. Finance modeling, FP&A, strategic finance. Strong CFA Level II alignment.",url:"https://www.cfoi.co.uk"},
+  {id:41,name:"AB InBev Global MBA Program",org:"AB InBev",geo:"global",loc:"Global (Belgium · Brazil · USA)",fn:"general",sector:"consumer",status:"watch",deadline:"2026-09-01",dlnote:"Annual — opens mid-year",fit:3,visa:true,tags:["Consumer","FMCG","MBA","Rotational","#1 Global"],notes:"#1 ranked LDP globally (MBA-Exchange 2025). Three rotations tied to global strategic pillars. Highly competitive. HEC Paris has placement history.",url:"https://www.ab-inbev.com/career/global-management-trainee-programs"},
+  {id:42,name:"Arkema Top Start International Business Leader",org:"Arkema",geo:"europe",loc:"Paris, France · Global",fn:"general",sector:"industrial",status:"open",deadline:"",dlnote:"Rolling — check arkema.com/careers",fit:4,visa:true,tags:["Industrial","MBA","Rotational","France","Top Start"],notes:"Top Start: 18-month international rotational for MBAs. Paris HQ. Specialty chemicals. ESADE + HEC France alumni network strong. Top 4 Rotational LDP (MBA-Exchange 2025).",url:"https://www.arkema.com/global/en/careers/"}
+];
+
+const DA = [
+  {id:1,name:"[Find via LinkedIn]",school:"esade",firm:"Amazon",role:"Pathways Operations Manager",loc:"EU / UK",status:"identified",prog:"Amazon Pathways",li:"https://www.linkedin.com/school/esade/people/?keywords=amazon",notes:"Search ESADE alumni → 'amazon'. Target people who joined in last 2 years."},
+  {id:2,name:"[Find via LinkedIn]",school:"hec",firm:"BCG",role:"Associate / Consultant",loc:"Dubai / London",status:"identified",prog:"BCG",li:"https://www.linkedin.com/school/hec-paris/people/?keywords=bcg",notes:"HEC Paris alumni filtered by 'bcg'. Filter further by Dubai or London."},
+  {id:3,name:"[Find via LinkedIn]",school:"esade",firm:"IFC / World Bank",role:"Young Professional",loc:"Washington / Global",status:"identified",prog:"IFC YPP",li:"https://www.linkedin.com/school/esade/people/?keywords=IFC",notes:"Search ESADE alumni at IFC. Impact investing background is a strong opener."},
+  {id:4,name:"[Find via LinkedIn]",school:"hec",firm:"Mubadala",role:"Investment Associate",loc:"Abu Dhabi",status:"identified",prog:"Mubadala Graduate",li:"https://www.linkedin.com/school/hec-paris/people/?keywords=mubadala",notes:"HEC Paris has strong MENA alumni. Reach out 6–8 weeks before apps open."},
+  {id:5,name:"[Find via LinkedIn]",school:"esade",firm:"Santander",role:"Graduate Analyst",loc:"Madrid / London",status:"identified",prog:"Santander CIB",li:"https://www.linkedin.com/school/esade/people/?keywords=santander",notes:"ESADE has direct pipeline to Santander Spain. Check ESADE careers office for warm intros."},
+  {id:6,name:"[Find via LinkedIn]",school:"hec",firm:"Mastercard",role:"MBA Leadership Program",loc:"Dubai / Paris",status:"identified",prog:"Mastercard MBA LDP",li:"https://www.linkedin.com/school/hec-paris/people/?keywords=mastercard",notes:"Search HEC alumni at Mastercard in UAE / Europe. Fintech + strategy is a strong common thread."},
+  {id:7,name:"[Find via LinkedIn]",school:"esade",firm:"Maersk",role:"Commercial Graduate",loc:"Copenhagen / BCN",status:"identified",prog:"Maersk Commercial",li:"https://www.linkedin.com/school/esade/people/?keywords=maersk",notes:"Maersk has recruited from ESADE. Target alumni in supply chain or commercial strategy."},
+  {id:8,name:"[Find via LinkedIn]",school:"hec",firm:"Microsoft",role:"Aspire Experience MBA",loc:"Paris / Dublin",status:"identified",prog:"Microsoft Aspire",li:"https://www.linkedin.com/school/hec-paris/people/?keywords=microsoft",notes:"HEC has strong Microsoft Europe placement. Look for people who started in last 2 years."},
+  {id:9,name:"[Find via LinkedIn]",school:"esade",firm:"Siemens",role:"XPS / FEP Program",loc:"Munich / Europe",status:"identified",prog:"Siemens XPS / FEP",li:"https://www.linkedin.com/school/esade/people/?keywords=siemens",notes:"Siemens actively recruits from European schools. Great for EU visa holders. Check both XPS and FEP programs."},
+  {id:10,name:"[Find via LinkedIn]",school:"hec",firm:"Roche",role:"Business Perspectives",loc:"Basel / Global",status:"identified",prog:"Roche Business Perspectives",li:"https://www.linkedin.com/school/hec-paris/people/?keywords=roche",notes:"HEC Paris has strong Roche alumni network. Application requires a 4-slide case presentation. Programme starts Sept 1 annually."},
+  {id:11,name:"[Find via LinkedIn]",school:"esade",firm:"Johnson & Johnson",role:"IRDP Participant",loc:"Spain / EMEA",status:"identified",prog:"J&J IRDP",li:"https://www.linkedin.com/school/esade/people/?keywords=johnson+johnson",notes:"J&J IRDP has strong ESADE Spain presence. Warm intro via ESADE careers office is likely possible."},
+  {id:12,name:"[Find via LinkedIn]",school:"hec",firm:"AB InBev",role:"Global MBA Program",loc:"Global",status:"identified",prog:"AB InBev Global MBA",li:"https://www.linkedin.com/school/hec-paris/people/?keywords=ab+inbev",notes:"AB InBev is #1 globally ranked LDP. HEC Paris has placement history."},
+  {id:13,name:"[Find via LinkedIn]",school:"esade",firm:"Emerson",role:"Europe Rotational MBA",loc:"Europe",status:"identified",prog:"Emerson Europe Rotational",li:"https://www.linkedin.com/school/esade/people/?keywords=emerson",notes:"Emerson consistently top-5 LDP employer. Search 'emerson' in ESADE alumni for European cohort members."},
+  {id:14,name:"[Find via LinkedIn]",school:"hec",firm:"World Economic Forum",role:"Global Leadership Fellow",loc:"Geneva, Switzerland",status:"identified",prog:"WEF GLFP",li:"https://www.linkedin.com/school/hec-paris/people/?keywords=world+economic+forum",notes:"WEF GLFP is highly selective. HEC Paris has alumni in Geneva. Network 12+ months in advance."},
+  {id:15,name:"[Find via LinkedIn]",school:"esade",firm:"Sanofi",role:"Management Associate",loc:"Paris / Global",status:"identified",prog:"Sanofi MAP",li:"https://www.linkedin.com/school/esade/people/?keywords=sanofi",notes:"Sanofi is #1 globally (MBA-Exchange 2025). Strong ESADE Spain pipeline. Healthcare background is a standout angle."}
+];
+
+// ═══════════════ STATE ═══════════════
+let progs = JSON.parse(localStorage.getItem('ldps_progs')||'null')||JSON.parse(JSON.stringify(DP));
+let alum  = JSON.parse(localStorage.getItem('ldps_alum') ||'null')||JSON.parse(JSON.stringify(DA));
+let apps  = JSON.parse(localStorage.getItem('ldps_apps') ||'[]');
+let userProfile = JSON.parse(localStorage.getItem('ldps_profile')||'null');
+let selectedSchools = userProfile?.schools||[];
+let eId   = {prog:null,alumni:null,app:null};
+let F     = {geo:'all',fn:'all',st:'all',asc:'all',ast:'all'};
+let resumeText = '';
+let isUnlocked = localStorage.getItem('ldps_unlocked')==='true';
+
+function persist(){
+  localStorage.setItem('ldps_progs',JSON.stringify(progs));
+  localStorage.setItem('ldps_alum', JSON.stringify(alum));
+  localStorage.setItem('ldps_apps', JSON.stringify(apps));
+}
+
+// ═══════════════ ONBOARDING ═══════════════
+const SCHOOL_LABELS={esade:'ESADE',hec:'HEC Paris',insead:'INSEAD',lbs:'LBS',iese:'IESE',ie:'IE Business',oxford:'Oxford Saïd',cambridge:'Cambridge Judge',bocconi:'SDA Bocconi',mannheim:'Mannheim',wbs:'Warwick',other:'Other'};
+const SCHOOL_LI_IDS={esade:'esade',hec:'hec-paris',insead:'insead',lbs:'london-business-school',iese:'iese-business-school',ie:'ie-business-school',oxford:'said-business-school',cambridge:'cambridge-judge-business-school',bocconi:'sda-bocconi-school-of-management',mannheim:'mannheim-business-school',wbs:'warwick-business-school',other:null};
+
+function toggleSchool(btn){
+  btn.classList.toggle('sel');
+  const s=btn.getAttribute('data-school');
+  if(btn.classList.contains('sel')){if(!selectedSchools.includes(s))selectedSchools.push(s);}
+  else{selectedSchools=selectedSchools.filter(x=>x!==s);}
+}
+
+function saveOnboarding(){
+  const name=document.getElementById('ob-name').value.trim();
+  const email=document.getElementById('ob-email').value.trim();
+  if(!name){alert('Please enter your name.');return;}
+  userProfile={name,email,schools:selectedSchools};
+  localStorage.setItem('ldps_profile',JSON.stringify(userProfile));
+  document.getElementById('onboard-overlay').classList.remove('open');
+  applyProfile();
+  toast(`Welcome, ${name.split(' ')[0]}! ✓`);
+}
+
+function skipOnboarding(){
+  localStorage.setItem('ldps_ob_skipped','1');
+  document.getElementById('onboard-overlay').classList.remove('open');
+}
+
+function applyProfile(){
+  if(!userProfile) return;
+  // Update topbar greeting
+  const lbl=document.getElementById('today-lbl');
+  if(lbl&&userProfile.name) lbl.title=`Signed in as ${userProfile.name}`;
+  // Update alumni tip
+  const schools=userProfile.schools||[];
+  if(schools.length){
+    const names=schools.map(s=>SCHOOL_LABELS[s]||s).join(', ');
+    const tip=document.getElementById('alumni-tip');
+    if(tip) tip.innerHTML=`<strong>Personalised for:</strong> ${names}. Each LinkedIn button below searches your school's alumni directory for that company and program. Log people you find using "+ Add Contact". Reach out 6–8 weeks before applications open.`;
+  }
+  renderSchoolPills();
+  renderAlumniSearch();
+}
+
+// ═══════════════ PAYWALL ═══════════════
+function unlockApp(){
+  // Production: trigger Stripe checkout here
+  isUnlocked=true;
+  localStorage.setItem('ldps_unlocked','true');
+  document.getElementById('paywall-overlay').classList.remove('open');
+  const badge=document.getElementById('pro-badge');
+  badge.textContent='✦ Pro ✓';
+  badge.style.background='linear-gradient(135deg,#0f4530,#1d6a45)';
+  toast('✦ Access unlocked — welcome to LDP Scout Pro!');
+}
+function dismissPaywall(){
+  localStorage.setItem('ldps_dismissed','1');
+  document.getElementById('paywall-overlay').classList.remove('open');
+}
+
+// ═══════════════ NAV ═══════════════
+const PAGE_ORDER=['programs','aifit','alumni','applications','deadlines'];
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  const idx=PAGE_ORDER.indexOf(id);
+  const tabs=document.querySelectorAll('.nav-tab');
+  if(idx>=0&&tabs[idx]) tabs[idx].classList.add('active');
+  if(id==='aifit'&&!isUnlocked){document.getElementById('paywall-overlay').classList.add('open');return;}
+  ({programs:renderPrograms,alumni:()=>{renderSchoolPills();renderAlumniSearch();renderAlumni();},applications:renderApplications,deadlines:renderDeadlines,aifit:()=>{}})[id]?.();
+}
+
+function enterApp(){
+  document.getElementById('landing-overlay').classList.remove('open');
+  localStorage.setItem('ldps_seen_landing','1');
+  // Show onboarding after landing if first visit
+  if(!userProfile&&!localStorage.getItem('ldps_ob_skipped')){
+    setTimeout(()=>{document.getElementById('onboard-overlay').classList.add('open');},300);
+  } else {
+    applyProfile();
+  }
+}
+
+// ═══════════════ FILTERS ═══════════════
+function setF(dim,btn){
+  F[dim]=btn.getAttribute('data-'+dim);
+  document.querySelectorAll('[data-'+dim+']').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  (dim==='asc'||dim==='ast')?renderAlumni():renderPrograms();
+}
+
+// Clickable stat cards
+function statClick(status){
+  if(F.st===status){
+    F.st='all';
+    document.querySelectorAll('[data-st]').forEach(b=>{b.classList.remove('on');if(b.getAttribute('data-st')==='all')b.classList.add('on');});
+  } else {
+    F.st=status;
+    document.querySelectorAll('[data-st]').forEach(b=>{b.classList.remove('on');if(b.getAttribute('data-st')===status)b.classList.add('on');});
+  }
+  renderPrograms();
+}
+function toggleVisaFilter(btn){
+  window._visaOnly = !window._visaOnly;
+  btn.classList.toggle('on', window._visaOnly);
+  renderPrograms();
+}
+
+function fitClick(){
+  // toggle high-fit filter using a simple flag
+  window._fitOnly = !window._fitOnly;
+  renderPrograms();
+}
+function clearAll(){
+  F={geo:'all',fn:'all',st:'all',asc:'all',ast:'all'};
+  window._fitOnly=false;
+  window._visaOnly=false;
+  const vp=document.getElementById('visa-pill');if(vp)vp.classList.remove('on');
+  document.querySelectorAll('[data-geo]').forEach(b=>{b.classList.remove('on');if(b.getAttribute('data-geo')==='all')b.classList.add('on');});
+  document.querySelectorAll('[data-fn]').forEach(b=>{b.classList.remove('on');if(b.getAttribute('data-fn')==='all')b.classList.add('on');});
+  document.querySelectorAll('[data-st]').forEach(b=>{b.classList.remove('on');if(b.getAttribute('data-st')==='all')b.classList.add('on');});
+  document.getElementById('prog-search').value='';
+  renderPrograms();
+}
+
+// Verified badge helper
+const VERIFIED_DATE = 'May 2026';
+function verifiedBadge(p){
+  // All built-in programs are verified May 2026; user-added have no verified date
+  if(p.id && p.id <= 42 && p.id >= 1){
+    return `<span class="verified-badge vb-fresh" title="Data verified ${VERIFIED_DATE} — sourced from official careers pages">✓ Verified ${VERIFIED_DATE}</span>`;
+  }
+  return '';
+}
+
+function renderPrograms(){
+  const q=(document.getElementById('prog-search')||{}).value?.toLowerCase()||'';
+  let list=progs.filter(p=>{
+    if(F.geo!=='all'&&p.geo!==F.geo) return false;
+    if(F.fn!=='all'&&p.fn!==F.fn) return false;
+    if(F.st!=='all'&&p.status!==F.st) return false;
+    if(window._fitOnly&&(+p.fit||0)<4) return false;
+    if(window._visaOnly&&!p.visa) return false;
+    if(q&&!p.name.toLowerCase().includes(q)&&!p.org.toLowerCase().includes(q)&&!(p.notes||'').toLowerCase().includes(q)) return false;
+    return true;
+  });
+
+  const sm={open:['b-open','Open'],rolling:['b-rolling','Rolling'],watch:['b-watch','Watch'],closed:['b-closed','Closed']};
+  const fitTier=(n,p)=>{
+    if(p.aiTier){
+      const map={BEST_FIT:['ft-best','Best Fit'],STRONG_FIT:['ft-strong','Strong'],ACHIEVABLE:['ft-good','Achievable'],LONG_SHOT:['ft-partial','Long Shot'],NOT_FIT:['ft-stretch','Not a Fit']};
+      const [cls,lbl]=map[p.aiTier]||['ft-stretch','—'];
+      return `<span class="fit-tier ${cls}" title="${p.aiReason||''}">✦ ${lbl}</span>`;
+    }
+    if(n>=5) return '<span class="fit-tier ft-best">Best Fit</span>';
+    if(n>=4) return '<span class="fit-tier ft-strong">Strong</span>';
+    if(n>=3) return '<span class="fit-tier ft-good">Good</span>';
+    if(n>=2) return '<span class="fit-tier ft-partial">Partial</span>';
+    return '<span class="fit-tier ft-stretch">Stretch</span>';
+  };
+
+  document.getElementById('prog-meta').textContent=
+    list.length===progs.length?`Showing all ${progs.length} programs`:`Showing ${list.length} of ${progs.length} programs`;
+
+  document.getElementById('prog-list').innerHTML=list.length===0
+    ?'<div class="empty">No programs match your filters. <button onclick="clearAll()" style="background:none;border:none;color:var(--blue);cursor:pointer;text-decoration:underline">Clear all filters</button></div>'
+    :list.map(p=>{
+      const [bc,bl]=sm[p.status]||['b-closed','—'];
+      const dl=p.deadline?new Date(p.deadline).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):(p.dlnote||'—');
+      return `<div class="prow">
+        <div>
+          <div class="pname">${p.url?`<a href="${p.url}" target="_blank" rel="noopener noreferrer" style="color:var(--text);text-decoration:none;border-bottom:1px solid var(--border2);padding-bottom:1px" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--text)'">${p.name}</a>`:p.name}</div>
+          <div class="porg">${p.org}</div>
+          <div class="tags">${(p.tags||[]).map(t=>`<span class="tag">${t}</span>`).join('')}${p.visa?`<span class="tag" style="background:var(--teal-bg);color:var(--teal);border-color:rgba(13,107,107,.25)">✓ Visa</span>`:''}${verifiedBadge(p)}</div>
+        </div>
+        <div class="cell">${cap(p.fn)} · ${cap(p.sector)}</div>
+        <div class="cell">${p.loc||p.geo}</div>
+        <div class="cell mono" style="font-size:10px;line-height:1.5">${dl}</div>
+        <div><span class="badge ${bc}">${bl}</span></div>
+        <div>${fitTier(+p.fit||3,p)}</div>
+        <div>${p.visa?`<span style="font-size:11px;color:var(--teal);font-weight:600">✓ Yes</span>`:`<span style="font-size:11px;color:var(--text3)">—</span>`}</div>
+        <div class="abts">
+          <button class="bsm" onclick="editP(${p.id})">Edit</button>
+          <button class="bsm del" onclick="delP(${p.id})">Del</button>
+        </div>
+      </div>`;
+    }).join('');
+
+  // Stats — with active state
+  const open=progs.filter(p=>p.status==='open').length;
+  const rolling=progs.filter(p=>p.status==='rolling').length;
+  const watch=progs.filter(p=>p.status==='watch').length;
+  const highFit=progs.filter(p=>(+p.fit||0)>=4).length;
+  const fitActive=window._fitOnly?'sc-active':'';
+
+  document.getElementById('prog-stats').innerHTML=`
+    <div class="stat-card sc-total ${F.geo==='all'&&F.fn==='all'&&F.st==='all'&&!window._fitOnly?'':'sc-active'}" onclick="clearAll()" title="Click to clear all filters">
+      <div class="stat-num">${progs.length}</div>
+      <div class="stat-lbl">Total Programs</div>
+      <div class="stat-hint">Clear filters</div>
+    </div>
+    <div class="stat-card sc-open ${F.st==='open'?'sc-active':''}" onclick="statClick('open')" title="Filter: Open now">
+      <div class="stat-num cg">${open}</div>
+      <div class="stat-lbl">Open Now</div>
+      <div class="stat-hint">Click to filter</div>
+    </div>
+    <div class="stat-card sc-rolling ${F.st==='rolling'?'sc-active':''}" onclick="statClick('rolling')" title="Filter: Rolling">
+      <div class="stat-num cb">${rolling}</div>
+      <div class="stat-lbl">Rolling</div>
+      <div class="stat-hint">Click to filter</div>
+    </div>
+    <div class="stat-card sc-watch ${F.st==='watch'?'sc-active':''}" onclick="statClick('watch')" title="Filter: Watch / prep">
+      <div class="stat-num ca">${watch}</div>
+      <div class="stat-lbl">Watch / Prep</div>
+      <div class="stat-hint">Click to filter</div>
+    </div>
+    <div class="stat-card sc-fit ${fitActive}" onclick="fitClick()" title="Filter: High-fit programs only">
+      <div class="stat-num cgo">${highFit}</div>
+      <div class="stat-lbl">★★★★+ Fit</div>
+      <div class="stat-hint">Click to filter</div>
+    </div>`;
+}
+
+// ═══════════════ ALUMNI SEARCH (dynamic) ═══════════════
+// active school for alumni search (single selection)
+let activeAlumniSchool = null;
+
+function renderSchoolPills(){
+  const schools = (userProfile?.schools||[]);
+  const container = document.getElementById('alumni-school-selector');
+  if(!container) return;
+
+  // Set default active school if not set
+  if(!activeAlumniSchool && schools.length) activeAlumniSchool = schools[0];
+
+  const allSchools = Object.keys(SCHOOL_LABELS);
+  // Show user's schools first, then a divider, then option to pick others
+  const mySchools = schools.length ? schools : ['esade','hec','insead','lbs','iese'];
+
+  container.innerHTML = mySchools.map(s => `
+    <button class="ob-school-btn ${activeAlumniSchool===s?'sel':''}"
+      onclick="setAlumniSchool('${s}')" style="padding:5px 12px;font-size:11px">
+      ${SCHOOL_LABELS[s]||s}
+    </button>`).join('') +
+    `<button class="ob-school-btn" style="padding:5px 12px;font-size:11px;color:var(--text3)"
+      onclick="document.getElementById('onboard-overlay').classList.add('open')">
+      + Other school
+    </button>`;
+}
+
+function setAlumniSchool(school){
+  activeAlumniSchool = school;
+  renderSchoolPills();
+  renderAlumniSearch();
+}
+
+function renderAlumniSearch(){
+  const container = document.getElementById('alumni-search-cards');
+  if(!container) return;
+  const q = (document.getElementById('alumni-prog-search')||{}).value?.toLowerCase()||'';
+  const school = activeAlumniSchool;
+  const slug = school ? SCHOOL_LI_IDS[school] : null;
+  const schoolLabel = school ? (SCHOOL_LABELS[school]||school) : null;
+
+  const filtered = progs.filter(p => {
+    if(!q) return true;
+    return p.name.toLowerCase().includes(q) ||
+      p.org.toLowerCase().includes(q) ||
+      (p.fn||'').includes(q) ||
+      (p.sector||'').includes(q) ||
+      (p.tags||[]).some(t=>t.toLowerCase().includes(q));
+  });
+
+  if(!filtered.length){
+    container.innerHTML='<div class="empty" style="grid-column:1/-1">No programs match. Try a broader search.</div>';
+    return;
+  }
+
+  container.innerHTML = filtered.map(p => {
+    const org = encodeURIComponent(p.org);
+    const roleKw = p.name.replace(/MBA|LDP|Leadership Development Program|Programme|Program/gi,'').trim().split(' ').slice(0,4).join(' ');
+    const role = encodeURIComponent(roleKw);
+
+    // Approach 1: Company LinkedIn page → Employees tab
+    const companyUrl = `https://www.linkedin.com/search/results/people/?keywords=${org}`;
+    const roleUrl = `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(p.org+' '+roleKw)}`;
+
+    // Approach 2: School alumni page
+    let schoolHtml = '';
+    if(slug){
+      const byCompany = `https://www.linkedin.com/school/${slug}/people/?keywords=${org}`;
+      const byRole = `https://www.linkedin.com/school/${slug}/people/?keywords=${role}`;
+      schoolHtml = `
+        <a href="${byCompany}" target="_blank" rel="noopener noreferrer"
+          style="display:inline-flex;align-items:center;gap:5px;font-size:11px;padding:5px 11px;border-radius:6px;background:var(--accent-bg);border:1px solid rgba(29,106,69,.2);color:var(--accent);text-decoration:none;font-family:var(--sans);transition:all .12s"
+          onmouseover="this.style.background='var(--accent)';this.style.color='#fff'"
+          onmouseout="this.style.background='var(--accent-bg)';this.style.color='var(--accent)'">
+          Filter by company
+        </a>
+        <a href="${byRole}" target="_blank" rel="noopener noreferrer"
+          style="display:inline-flex;align-items:center;gap:5px;font-size:11px;padding:5px 11px;border-radius:6px;background:var(--accent-bg);border:1px solid rgba(29,106,69,.2);color:var(--accent);text-decoration:none;font-family:var(--sans);transition:all .12s"
+          onmouseover="this.style.background='var(--accent)';this.style.color='#fff'"
+          onmouseout="this.style.background='var(--accent-bg)';this.style.color='var(--accent)'">
+          Filter by role
+        </a>`;
+    } else {
+      schoolHtml = `<span style="font-size:11px;color:var(--text3);font-style:italic">
+        <button onclick="document.getElementById('onboard-overlay').classList.add('open')"
+          style="background:none;border:none;color:var(--blue);cursor:pointer;font-size:11px;text-decoration:underline;padding:0">Select your school above</button>
+        to see alumni links</span>`;
+    }
+
+    return `<div class="ali-search-card">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:10px">
+        <div>
+          <div style="font-size:13px;font-weight:500;line-height:1.3">
+            ${p.url?`<a href="${p.url}" target="_blank" rel="noopener noreferrer" style="color:var(--text);text-decoration:none;border-bottom:1px solid var(--border2)" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text)'">${p.name}</a>`:p.name}
+          </div>
+          <div style="font-size:11px;color:var(--text2);margin-top:2px">${p.org} · ${p.loc||p.geo}</div>
+        </div>
+        <span class="badge ${p.status==='open'?'b-open':p.status==='rolling'?'b-rolling':'b-watch'}" style="flex-shrink:0;font-size:10px">${cap(p.status)}</span>
+      </div>
+
+      <div style="background:var(--blue-bg);border:1px solid rgba(26,79,168,.12);border-radius:8px;padding:10px;margin-bottom:8px">
+        <div style="font-size:10px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px">① Company Search</div>
+        <div style="font-size:10px;color:var(--text3);margin-bottom:6px">Find anyone currently working at ${p.org}</div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap">
+          <a href="${companyUrl}" target="_blank" rel="noopener noreferrer" class="li-btn" style="font-size:10px;padding:4px 10px">Search by company name →</a>
+          <a href="${roleUrl}" target="_blank" rel="noopener noreferrer" class="li-btn" style="font-size:10px;padding:4px 10px">Search by company + role →</a>
+        </div>
+      </div>
+
+      <div style="background:var(--accent-bg);border:1px solid rgba(29,106,69,.12);border-radius:8px;padding:10px">
+        <div style="font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px">② ${schoolLabel||'School'} Alumni</div>
+        <div style="font-size:10px;color:var(--text3);margin-bottom:6px">Find ${schoolLabel||'your school'} graduates at ${p.org}</div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap">${schoolHtml}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════ ALUMNI ═══════════════
+function renderAlumni(){
+  const q=(document.getElementById('alumni-search')||{}).value?.toLowerCase()||'';
+  const list=alum.filter(a=>{
+    if(F.ast!=='all'&&a.status!==F.ast) return false;
+    if(q&&!a.name.toLowerCase().includes(q)&&!a.firm.toLowerCase().includes(q)&&!(a.prog||'').toLowerCase().includes(q)) return false;
+    return true;
+  });
+  const smap={identified:['c-id','Identified'],reached:['c-rc','Reached out'],replied:['c-rp','Replied ✓'],coffee:['c-cf','Coffee chat ☕'],referred:['c-rf','Referred 🌟']};
+  const avc=['#1a4fa8','#b33a1a','#1d6a45','#5a3a9a','#0d6b6b'];
+  const ini=n=>n.replace(/[\[\]]/g,'').split(' ').filter(Boolean).map(w=>w[0]||'').join('').substring(0,2).toUpperCase()||'?';
+  const sbadge=s=>{
+    const label=SCHOOL_LABELS[s]||s;
+    const cls=['esade','hec'].includes(s)?`stag ${s}`:'stag esade';
+    const style=['esade','hec'].includes(s)?'':`style="background:var(--teal-bg);color:var(--teal);border-color:rgba(13,107,107,.2)"`;
+    if(s==='both') return `<span class="stag esade">ESADE</span> <span class="stag hec">HEC Paris</span>`;
+    return `<span class="${cls}" ${style}>${label}</span>`;
+  };
+  document.getElementById('alumni-list').innerHTML=list.length===0
+    ?'<div class="empty" style="grid-column:1/-1">No contacts found. Use the LinkedIn search cards above to find alumni, then add them here.</div>'
+    :list.map((a,i)=>{
+      const [sc,sl]=smap[a.status]||['c-id','Identified'];
+      return `<div class="acard">
+        <div class="ahead">
+          <div class="avatar" style="background:${avc[i%5]}18;color:${avc[i%5]};border:1px solid ${avc[i%5]}25">${ini(a.name)}</div>
+          <div><div class="aname">${a.name}</div><div class="arole">${a.role} · <strong>${a.firm}</strong></div></div>
+        </div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:7px">${sbadge(a.school)}<span class="cs ${sc}">${sl}</span></div>
+        ${a.loc?`<div style="font-size:11px;color:var(--text3);margin-bottom:3px">📍 ${a.loc}${a.prog?' · '+a.prog:''}</div>`:''}
+        ${a.notes?`<div class="anotes">${a.notes}</div>`:''}
+        <div class="afoot">
+          ${a.li?`<a class="li-btn" href="${a.li}" target="_blank" rel="noopener noreferrer">Open LinkedIn →</a>`:''}
+          <button class="gbtn" onclick="editA(${a.id})">Edit</button>
+          <button class="gbtn" style="color:var(--red)" onclick="delA(${a.id})">Remove</button>
+        </div>
+      </div>`;
+    }).join('');
+}
+
+// ═══════════════ APPLICATIONS ═══════════════
+function renderApplications(){
+  const q=(document.getElementById('app-search')||{}).value?.toLowerCase()||'';
+  const fa=apps.filter(a=>!q||a.name.toLowerCase().includes(q)||(a.org||'').toLowerCase().includes(q));
+  const act=apps.filter(a=>!['offer','rejected'].includes(a.status)).length;
+  document.getElementById('app-sub').textContent=`${act} active · ${apps.length} total tracked`;
+  const stages=[
+    {key:'networking',label:'Networking',   color:'var(--blue)'},
+    {key:'drafting',  label:'Drafting',     color:'var(--purple)'},
+    {key:'applied',   label:'Applied',      color:'var(--amber)'},
+    {key:'interview', label:'Interview 🎤', color:'var(--accent)'},
+    {key:'offer',     label:'Offer 🎉',     color:'var(--teal)'},
+    {key:'rejected',  label:'Rejected',     color:'var(--text3)'}
+  ];
+  document.getElementById('app-kanban').innerHTML=stages.map(s=>{
+    const cards=fa.filter(a=>a.status===s.key);
+    return `<div class="kcol">
+      <div class="khd" style="color:${s.color}">${s.label}<span class="kct">${cards.length}</span></div>
+      ${cards.length===0?`<div style="font-size:11px;color:var(--text3);text-align:center;padding-top:14px;padding-bottom:8px">—</div>`:''}
+      ${cards.map(a=>`<div class="apcard" onclick="editAp(${a.id})">
+        <div class="apct">${a.name}</div>
+        <div class="apco">${a.org||''}${a.geo?' · '+a.geo:''}</div>
+        ${a.next?`<div class="apnx">→ ${a.next}</div>`:''}
+        ${a.contact?`<div style="font-size:10px;color:var(--text3);margin-top:4px">👤 ${a.contact}</div>`:''}
+        ${a.deadline?`<div class="apdl">Due: ${new Date(a.deadline).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</div>`:''}
+      </div>`).join('')}
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════ DEADLINES ═══════════════
+function renderDeadlines(){
+  const today=new Date();today.setHours(0,0,0,0);
+  const items=[
+    ...progs.filter(p=>p.deadline).map(p=>({name:p.name,org:p.org,date:new Date(p.deadline),type:'program',deadline:p.deadline})),
+    ...apps.filter(a=>a.deadline).map(a=>({name:a.name,org:a.org||'',date:new Date(a.deadline),type:'application',deadline:a.deadline}))
+  ].filter(i=>i.date>=today).sort((a,b)=>a.date-b.date);
+  document.getElementById('dl-list').innerHTML=items.length===0
+    ?'<div class="empty">No upcoming deadlines tracked. Add deadline dates to your programs and applications.</div>'
+    :items.map(i=>{
+      const d=Math.round((i.date-today)/86400000);
+      const cls=d<=14?'urg':d<=45?'soon':'ok';
+      const lbl=d===0?'TODAY!':d===1?'1 day':`${d} days`;
+      return `<div class="dlitem">
+        <div class="dldate">${i.date.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</div>
+        <div style="flex:1"><div class="dlname">${i.name}</div><div class="dlorg">${i.org}</div></div>
+        <span class="dltype">${i.type}</span>
+        <div class="dldays ${cls}">${lbl}</div>
+        <div class="dlitem-actions">
+          <button class="ics-btn" onclick="downloadICS(${JSON.stringify(i).replace(/"/g,'&quot;')})" title="Add to calendar">📅 Remind me</button>
+        </div>
+      </div>`;
+    }).join('');
+}
+
+function downloadICS(item){
+  const dl=new Date(item.deadline);
+  // Generate two reminders: 7 days before and day before
+  const fmt=d=>{
+    const s=d.toISOString().replace(/[-:]/g,'').split('.')[0]+'Z';
+    return s;
+  };
+  const uid=`ldpscout-${Date.now()}@ldpscout.app`;
+  const now=fmt(new Date());
+  const due=fmt(dl);
+  // Day before
+  const dayBefore=new Date(dl);dayBefore.setDate(dayBefore.getDate()-1);
+  // 7 days before
+  const weekBefore=new Date(dl);weekBefore.setDate(weekBefore.getDate()-7);
+
+  const ics=`BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//LDP Scout//LDP Deadline//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+BEGIN:VEVENT
+UID:${uid}
+DTSTART;VALUE=DATE:${dl.toISOString().split('T')[0].replace(/-/g,'')}
+DTEND;VALUE=DATE:${dl.toISOString().split('T')[0].replace(/-/g,'')}
+DTSTAMP:${now}
+SUMMARY:DEADLINE: ${item.name} (${item.org})
+DESCRIPTION:LDP application deadline for ${item.name} at ${item.org}. Type: ${item.type}. Tracked via LDP Scout.
+BEGIN:VALARM
+TRIGGER:-P7D
+ACTION:DISPLAY
+DESCRIPTION:7 days until: ${item.name} deadline
+END:VALARM
+BEGIN:VALARM
+TRIGGER:-P1D
+ACTION:DISPLAY
+DESCRIPTION:Tomorrow: ${item.name} deadline — final check!
+END:VALARM
+BEGIN:VALARM
+TRIGGER:PT0S
+ACTION:DISPLAY
+DESCRIPTION:TODAY: ${item.name} deadline
+END:VALARM
+END:VEVENT
+END:VCALENDAR`;
+
+  const blob=new Blob([ics],{type:'text/calendar;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`ldp-deadline-${item.org.toLowerCase().replace(/\s+/g,'-')}.ics`;
+  a.click();
+  toast('📅 Calendar file downloaded — open it to add to your calendar');
+}
+
+// ═══════════════ AI FILE PARSING (PDF.js + Mammoth) ═══════════════
+async function extractTextFromFile(file){
+  const type = file.type;
+  const name = file.name.toLowerCase();
+
+  // Plain text
+  if(type === 'text/plain' || name.endsWith('.txt')){
+    return await file.text();
+  }
+
+  // DOCX — via mammoth.js
+  if(type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || name.endsWith('.docx')){
+    if(typeof mammoth === 'undefined') throw new Error('DOCX parser not loaded. Please refresh and try again.');
+    const arrayBuffer = await file.arrayBuffer();
+    const result = await mammoth.extractRawText({arrayBuffer});
+    return result.value;
+  }
+
+  // PDF — via pdf.js
+  if(type === 'application/pdf' || name.endsWith('.pdf')){
+    if(typeof pdfjsLib === 'undefined') throw new Error('PDF parser not loaded. Please refresh and try again.');
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({data: arrayBuffer}).promise;
+    let text = '';
+    for(let i = 1; i <= pdf.numPages; i++){
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      text += content.items.map(item => item.str).join(' ') + '\n';
+    }
+    return text;
+  }
+
+  // Legacy .doc — attempt text extraction fallback
+  if(name.endsWith('.doc')){
+    throw new Error('Legacy .doc format not supported. Please save as .docx or .pdf and try again.');
+  }
+
+  throw new Error('Unsupported file format. Please upload PDF, DOCX, or TXT.');
+}
+
+async function handleFileUpload(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  if(file.size > 5*1024*1024){alert('File too large — please use a file under 5MB.');return;}
+
+  const nd = document.getElementById('file-name-display');
+  const uz = document.getElementById('upload-zone');
+  const statusNote = document.getElementById('ai-status-note');
+
+  nd.textContent = '⏳ Parsing ' + file.name + '...';
+  nd.style.display = 'block';
+  uz.classList.add('has-file');
+  document.getElementById('analyze-btn').disabled = true;
+  statusNote.textContent = 'Reading your resume...';
+
+  try {
+    const text = await extractTextFromFile(file);
+
+    if(!text || text.trim().length < 200){
+      throw new Error('Could not extract enough text from this file. Try a different format or check the file is not scanned/image-based.');
+    }
+
+    resumeText = text.trim();
+    nd.textContent = '✓ ' + file.name + ` (${Math.round(text.length/1000)}k chars extracted)`;
+    document.getElementById('analyze-btn').disabled = false;
+    statusNote.textContent = `✓ ${file.name} ready — ${pdf_format_label(file)} · Click "Analyse My Fit" to start`;
+
+  } catch(err){
+    nd.textContent = '⚠ ' + err.message;
+    nd.style.color = 'var(--coral)';
+    statusNote.textContent = err.message;
+    document.getElementById('analyze-btn').disabled = true;
+    uz.classList.remove('has-file');
+  }
+}
+
+function pdf_format_label(file){
+  const n = file.name.toLowerCase();
+  if(n.endsWith('.pdf')) return 'PDF parsed via pdf.js';
+  if(n.endsWith('.docx')) return 'DOCX parsed via mammoth.js';
+  return 'Text file';
+}
+
+// drag and drop
+const uzEl=document.getElementById('upload-zone');
+uzEl.addEventListener('dragover',e=>{e.preventDefault();uzEl.classList.add('drag');});
+uzEl.addEventListener('dragleave',()=>uzEl.classList.remove('drag'));
+uzEl.addEventListener('drop',e=>{
+  e.preventDefault();uzEl.classList.remove('drag');
+  const f=e.dataTransfer.files[0];
+  if(f) handleFileUpload({target:{files:e.dataTransfer.files}});
+});
+
+async function runAIAnalysis(){
+  if(!isUnlocked){document.getElementById('paywall-overlay').classList.add('open');return;}
+  if(!resumeText){alert('Please upload your resume first.');return;}
+
+  // Restore key from session if available
+  if(!window.LDP_API_KEY) window.LDP_API_KEY = sessionStorage.getItem('ldp_key')||'';
+
+  // Vercel proxy handles the API key — no key needed in the browser
+  window.LDP_PROXY_URL = 'https://ldp-proxy.vercel.app/api/scan';
+
+  const btn=document.getElementById('analyze-btn');
+  btn.disabled=true;btn.textContent='Analysing...';
+  document.getElementById('ai-results').innerHTML=`<div class="spin-wrap"><div class="spinner"></div><div class="spin-label">Matching your profile against ${progs.length} leadership programs...</div></div>`;
+
+  // Compress program summaries tightly to stay within token budget
+  const progSummary=progs.map(p=>`${p.id}|${p.name}|${p.org}|${p.fn}|${p.sector}|${p.geo}|${p.status}`).join('\n');
+
+  const sys=`You are an expert MBA career advisor specialising in Leadership Development Programs. Analyse the resume and categorise EVERY program into one of 5 tiers. Reference actual experience from the resume — be specific, not generic.
+
+TIERS: BEST_FIT (direct match, apply now) | STRONG_FIT (solid match, tailor and apply) | ACHIEVABLE (relevant but needs positioning) | LONG_SHOT (gaps exist, worth trying with network) | NOT_FIT (structural mismatch, skip)
+
+GAP ANALYSIS — rate each on: "Strong" (clear evidence) | "Medium" (some evidence) | "Weak" (gap):
+leadership_evidence | international_exposure | operations_depth | quantitative_rigor | cross_functional | entrepreneurial_impact
+
+PROGRAM COACHING: each suggestion must name which specific programs it helps most (max 3).
+
+CRITICAL: Respond ONLY with raw valid JSON. No markdown. No code fences. No explanation before or after. The response must start with { and end with }.
+
+Schema:
+{"profile_summary":"string","tiers":{"BEST_FIT":[{"id":N,"reason":"string"}],"STRONG_FIT":[...],"ACHIEVABLE":[...],"LONG_SHOT":[...],"NOT_FIT":[{"id":N,"reason":"string"}]},"gap_analysis":{"leadership_evidence":{"rating":"Strong","evidence":"string","tip":"string"},"international_exposure":{"rating":"Medium","evidence":"string","tip":"string"},"operations_depth":{"rating":"Strong","evidence":"string","tip":"string"},"quantitative_rigor":{"rating":"Medium","evidence":"string","tip":"string"},"cross_functional":{"rating":"Weak","evidence":"string","tip":"string"},"entrepreneurial_impact":{"rating":"Strong","evidence":"string","tip":"string"}},"suggestions":[{"title":"string","body":"string","priority":"high","helps_programs":"Program A, Program B"}]}
+
+Rules: Every program ID must appear in exactly one tier. Include exactly 6 suggestions. Keep reason fields under 30 words each.`;
+
+  // Resume: cap at 4000 chars to leave ample room for programs + response
+  const resumeSnippet = resumeText.substring(0, 4000);
+  const usr=`RESUME:\n${resumeSnippet}\n\nPROGRAMS (ID|Name|Org|Function|Sector|Geo|Status):\n${progSummary}`;
+
+  try{
+    const res = await fetch('https://ldp-proxy.vercel.app/api/scan',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-haiku-4-5-20251001',
+        max_tokens:8000,
+        system:sys,
+        messages:[{role:'user',content:usr}]
+      })
+    });
+
+    if(!res.ok){
+      const errText = await res.text();
+      throw new Error(`Server error ${res.status}: ${errText.substring(0,200)}`);
+    }
+
+    const data = await res.json();
+    if(data.error) throw new Error(typeof data.error === 'object' ? JSON.stringify(data.error) : data.error);
+
+    const raw = data.content?.filter(b=>b.type==='text').map(b=>b.text).join('') || '';
+
+    // Robust JSON extraction — strips markdown fences, finds the JSON object
+    let clean = raw.trim();
+    // Remove markdown code fences if present
+    clean = clean.replace(/^```(?:json)?\s*/i,'').replace(/\s*```\s*$/,'').trim();
+    // Find first { and last } in case model adds preamble/postamble
+    const firstBrace = clean.indexOf('{');
+    const lastBrace = clean.lastIndexOf('}');
+    if(firstBrace === -1 || lastBrace === -1) throw new Error('AI returned an unexpected response format. Please try again.');
+    clean = clean.substring(firstBrace, lastBrace + 1);
+
+    let parsed;
+    try {
+      parsed = JSON.parse(clean);
+    } catch(jsonErr) {
+      // Last resort: try to fix common truncation issues
+      console.error('JSON parse failed, raw response:', raw.substring(0,500));
+      throw new Error(`Response parsing failed. The AI response may have been cut off. Try again — this is usually a one-off issue. (Detail: ${jsonErr.message})`);
+    }
+
+    renderAIResults(parsed);
+  }catch(err){
+    document.getElementById('ai-results').innerHTML=`<div class="empty">
+      <div style="font-size:24px;margin-bottom:12px">⚠️</div>
+      <div style="font-weight:500;margin-bottom:6px">Error: ${err.message}</div>
+      <button onclick="runAIAnalysis()" style="margin-top:12px;padding:8px 16px;background:var(--accent);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:12px">Try Again</button>
+    </div>`;
+  }
+  btn.disabled=false;btn.textContent='✦ Re-analyse';
+}
+
+function showApiKeyPrompt(){
+  document.getElementById('ai-results').innerHTML=`
+    <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);padding:28px;max-width:520px;margin:0 auto;text-align:center;box-shadow:var(--shadow-md)">
+      <div style="font-size:28px;margin-bottom:12px">🔑</div>
+      <div style="font-family:var(--serif);font-size:18px;margin-bottom:8px">API Key Required</div>
+      <div style="font-size:13px;color:var(--text2);line-height:1.65;margin-bottom:20px">
+        To run the AI scanner, you need an Anthropic API key. Get one free at 
+        <a href="https://console.anthropic.com" target="_blank" style="color:var(--blue)">console.anthropic.com</a> 
+        — a typical analysis costs ~$0.01.
+      </div>
+      <input id="api-key-input" type="password" placeholder="sk-ant-..." 
+        style="width:100%;padding:10px 13px;border:1px solid var(--border2);border-radius:8px;font-family:var(--mono);font-size:12px;background:var(--bg3);outline:none;margin-bottom:12px">
+      <button onclick="setApiKey()" 
+        style="width:100%;padding:11px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--sans)">
+        Save Key &amp; Analyse →
+      </button>
+      <div style="font-size:10px;color:var(--text3);margin-top:10px">Your key is stored only in this browser session — never saved permanently.</div>
+    </div>`;
+}
+
+function setApiKey(){
+  const key=document.getElementById('api-key-input').value.trim();
+  if(!key||!key.startsWith('sk-')){alert('Please enter a valid Anthropic API key (starts with sk-)');return;}
+  window.LDP_API_KEY=key;
+  sessionStorage.setItem('ldp_key',key);
+  toast('Key saved ✓ — running analysis...');
+  setTimeout(()=>runAIAnalysis(),300);
+}
+
+function syncAIResultsToPrograms(result){
+  // Map tier to fit score
+  const tierScore={BEST_FIT:5,STRONG_FIT:4,ACHIEVABLE:3,LONG_SHOT:2,NOT_FIT:1};
+  Object.entries(tierScore).forEach(([tier,score])=>{
+    (result.tiers[tier]||[]).forEach(item=>{
+      const prog=progs.find(p=>p.id==item.id);
+      if(prog){
+        prog.fit=score;
+        prog.aiTier=tier;
+        prog.aiReason=item.reason;
+      }
+    });
+  });
+  persist();
+  toast('✦ AI results synced to Programs tab');
+}
+
+function renderAIResults(result){
+  syncAIResultsToPrograms(result);
+  const pm={};progs.forEach(p=>{pm[p.id]=p;});
+  const sm={open:'b-open',rolling:'b-rolling',watch:'b-watch',closed:'b-closed'};
+  const tiers=[
+    {key:'BEST_FIT',    label:'🟢 Best Fit',    cls:'t-best',       dot:'td-best',      desc:'Direct match — apply now'},
+    {key:'STRONG_FIT',  label:'🔵 Strong Fit',  cls:'t-strong',     dot:'td-strong',    desc:'Solid match — tailor and apply confidently'},
+    {key:'ACHIEVABLE',  label:'🟡 Achievable',  cls:'t-achievable', dot:'td-achievable',desc:'Relevant experience, needs strategic positioning'},
+    {key:'LONG_SHOT',   label:'🟠 Long Shot',   cls:'t-longshot',   dot:'td-longshot',  desc:'Gaps exist — worth trying with strong network'},
+    {key:'NOT_FIT',     label:'⚪ Not a Fit',   cls:'t-notfit',     dot:'td-notfit',    desc:'Structural mismatch — focus energy elsewhere'},
+  ];
+  let html='';
+
+  // Profile summary
+  if(result.profile_summary){
+    html+=`<div class="profile-box"><div class="profile-box-label">Your Profile Summary</div><div class="profile-box-text">${result.profile_summary}</div></div>`;
+  }
+
+  // Gap analysis grid
+  if(result.gap_analysis){
+    const gapLabels={
+      leadership_evidence:{label:'Leadership Evidence',icon:'👥'},
+      international_exposure:{label:'International Exposure',icon:'🌍'},
+      operations_depth:{label:'Operations Depth',icon:'⚙️'},
+      quantitative_rigor:{label:'Quantitative Rigor',icon:'📊'},
+      cross_functional:{label:'Cross-functional Mgmt',icon:'🔀'},
+      entrepreneurial_impact:{label:'Entrepreneurial Impact',icon:'🚀'}
+    };
+    const ratingPct={Strong:90,Medium:55,Weak:20};
+
+    html+=`<div class="review-panel" style="margin-bottom:20px">
+      <div class="rp-header"><div style="font-size:20px">📋</div><h3>Resume Gap Analysis — Recruiting Dimensions</h3></div>
+      <div class="gap-grid">
+        ${Object.entries(gapLabels).map(([key,meta])=>{
+          const g=result.gap_analysis[key];
+          if(!g) return '';
+          const pct=ratingPct[g.rating]||50;
+          const barCls=g.rating==='Strong'?'strong':g.rating==='Medium'?'medium':'weak';
+          const strCls=g.rating==='Strong'?'gs-strong':g.rating==='Medium'?'gs-medium':'gs-weak';
+          return `<div class="gap-card">
+            <div class="gap-card-label">${meta.icon} ${meta.label}</div>
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <div class="gap-bar-wrap" style="flex:1;margin-right:10px"><div class="gap-bar ${barCls}" style="width:${pct}%"></div></div>
+              <span class="gap-strength ${strCls}">${g.rating}</span>
+            </div>
+            ${g.evidence?`<div class="gap-note">✓ ${g.evidence}</div>`:''}
+            ${g.tip?`<div class="gap-note" style="color:var(--accent);margin-top:3px">→ ${g.tip}</div>`:''}
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }
+
+  // Tier results
+  tiers.forEach(tc=>{
+    const items=(result.tiers||{})[tc.key]||[];
+    if(!items.length) return;
+    html+=`<div class="tier-section">
+      <div class="tier-header ${tc.cls}">
+        <div class="tier-dot ${tc.dot}"></div>
+        <div class="tier-label">${tc.label}</div>
+        <div style="font-size:11px;color:var(--text2);flex:1;margin-left:8px">${tc.desc}</div>
+        <div class="tier-count">${items.length} program${items.length!==1?'s':''}</div>
+      </div>
+      <div class="tier-grid">
+        ${items.map(item=>{
+          const p=pm[item.id];if(!p) return '';
+          return `<div class="tier-card">
+            <div class="tc-name">${p.name}</div>
+            <div class="tc-org">${p.org} · ${p.loc||p.geo}</div>
+            <div class="tc-reason">${item.reason}</div>
+            <div class="tc-tags">
+              <span class="badge ${sm[p.status]||'b-closed'}" style="font-size:10px">${cap(p.status)}</span>
+              ${(p.tags||[]).slice(0,2).map(t=>`<span class="tag">${t}</span>`).join('')}
+              ${p.url?`<a href="${p.url}" target="_blank" rel="noopener noreferrer" class="plink" style="margin-top:0">Apply ↗</a>`:''}
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  });
+
+  // Suggestions with program-specific highlights
+  if(result.suggestions?.length){
+    const pc={high:'sip-high',medium:'sip-med',low:'sip-low'};
+    const pl={high:'High priority',medium:'Medium priority',low:'Nice to have'};
+    html+=`<div class="review-panel">
+      <div class="rp-header"><div style="font-size:20px">✏️</div><h3>Resume Coaching — Program-Specific Suggestions</h3></div>
+      ${result.suggestions.map((s,i)=>`<div class="suggestion-item">
+        <div class="si-num">${i+1}</div>
+        <div style="flex:1">
+          <div class="si-title">${s.title}</div>
+          <div class="si-text">${s.body}</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;align-items:center">
+            <span class="si-priority ${pc[s.priority]||'sip-med'}">${pl[s.priority]||'Medium priority'}</span>
+            ${s.helps_programs?`<span style="font-size:10px;color:var(--text3);font-style:italic">Helps most for: <strong style="color:var(--blue);font-style:normal">${s.helps_programs}</strong></span>`:''}
+          </div>
+        </div>
+      </div>`).join('')}
+    </div>`;
+  }
+
+  document.getElementById('ai-results').innerHTML=html;
+}
+
+// ═══════════════ MODALS ═══════════════
+function openM(type,data={}){
+  eId[type==='prog'?'prog':type==='alumni'?'alumni':'app']=data.id||null;
+  if(type==='prog'){
+    sv('pi-name',data.name||'');sv('pi-org',data.org||'');sv('pi-url',data.url||'');
+    sv('pi-geo',data.geo||'europe');sv('pi-loc',data.loc||'');sv('pi-fn',data.fn||'strategy');
+    sv('pi-sector',data.sector||'other');sv('pi-status',data.status||'watch');
+    sv('pi-deadline',data.deadline||'');sv('pi-dlnote',data.dlnote||'');
+    sv('pi-fit',String(data.fit||'4'));sv('pi-notes',data.notes||'');
+    sv('pi-tags',(data.tags||[]).join(', '));
+    sv('pi-visa',data.visa?'yes':'');
+  }
+  if(type==='alumni'){
+    sv('ai-name',data.name||'');sv('ai-school',data.school||'esade');
+    sv('ai-firm',data.firm||'');sv('ai-role',data.role||'');sv('ai-li',data.li||'');
+    sv('ai-prog',data.prog||'');sv('ai-loc',data.loc||'');sv('ai-status',data.status||'identified');
+    sv('ai-notes',data.notes||'');
+  }
+  if(type==='app'){
+    sv('aps-name',data.name||'');sv('aps-org',data.org||'');sv('aps-geo',data.geo||'');
+    sv('aps-status',data.status||'networking');
+    sv('aps-date',data.date||new Date().toISOString().split('T')[0]);
+    sv('aps-deadline',data.deadline||'');sv('aps-next',data.next||'');
+    sv('aps-contact',data.contact||'');sv('aps-notes',data.notes||'');
+  }
+  document.getElementById('ov-'+type).classList.add('open');
+}
+function closeM(type){document.getElementById('ov-'+type).classList.remove('open');}
+function sv(id,val){const e=document.getElementById(id);if(e)e.value=val;}
+function gv(id){const e=document.getElementById(id);return e?e.value.trim():'';}
+
+// ═══════════════ SAVE ═══════════════
+function saveProg(){
+  const p={id:eId.prog||Date.now(),name:gv('pi-name'),org:gv('pi-org'),url:gv('pi-url'),geo:gv('pi-geo'),
+    loc:gv('pi-loc'),fn:gv('pi-fn'),sector:gv('pi-sector'),status:gv('pi-status'),
+    deadline:gv('pi-deadline'),dlnote:gv('pi-dlnote'),fit:gv('pi-fit'),notes:gv('pi-notes'),
+    visa:gv('pi-visa')==='yes',
+    tags:gv('pi-tags').split(',').map(t=>t.trim()).filter(Boolean)};
+  if(!p.name){alert('Program name required.');return;}
+  if(eId.prog){const i=progs.findIndex(x=>x.id===eId.prog);i>=0?progs[i]=p:progs.push(p);}
+  else progs.push(p);
+  persist();closeM('prog');renderPrograms();toast('Program saved ✓');
+}
+function saveAlumni(){
+  const a={id:eId.alumni||Date.now(),name:gv('ai-name'),school:gv('ai-school'),firm:gv('ai-firm'),
+    role:gv('ai-role'),li:gv('ai-li'),prog:gv('ai-prog'),loc:gv('ai-loc'),status:gv('ai-status'),notes:gv('ai-notes')};
+  if(!a.name){alert('Name required.');return;}
+  if(eId.alumni){const i=alum.findIndex(x=>x.id===eId.alumni);i>=0?alum[i]=a:alum.push(a);}
+  else alum.push(a);
+  persist();closeM('alumni');renderAlumni();toast('Contact saved ✓');
+}
+function saveApp(){
+  const a={id:eId.app||Date.now(),name:gv('aps-name'),org:gv('aps-org'),geo:gv('aps-geo'),
+    status:gv('aps-status'),date:gv('aps-date'),deadline:gv('aps-deadline'),
+    next:gv('aps-next'),contact:gv('aps-contact'),notes:gv('aps-notes')};
+  if(!a.name){alert('Program/role name required.');return;}
+  if(eId.app){const i=apps.findIndex(x=>x.id===eId.app);i>=0?apps[i]=a:apps.push(a);}
+  else apps.push(a);
+  persist();closeM('app');renderApplications();toast('Application saved ✓');
+}
+
+// ═══════════════ EDIT / DELETE ═══════════════
+function editP(id){openM('prog',progs.find(p=>p.id===id)||{});}
+function delP(id){if(confirm('Remove this program?')){progs=progs.filter(p=>p.id!==id);persist();renderPrograms();toast('Removed');}}
+function editA(id){openM('alumni',alum.find(a=>a.id===id)||{});}
+function delA(id){if(confirm('Remove this contact?')){alum=alum.filter(a=>a.id!==id);persist();renderAlumni();toast('Removed');}}
+function editAp(id){openM('app',apps.find(a=>a.id===id)||{});}
+function delCurrentApp(){
+  if(eId.app&&confirm('Delete this application?')){
+    apps=apps.filter(a=>a.id!==eId.app);
+    persist();closeM('app');renderApplications();toast('Application deleted');
+  }
+}
+
+// ═══════════════ HELPERS ═══════════════
+function cap(s){return s?s.charAt(0).toUpperCase()+s.slice(1):'';}
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
+
+// Close modals on outside click
+document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open');}));
+
+// Init
+document.getElementById('today-lbl').textContent=new Date().toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
+if(isUnlocked){const b=document.getElementById('pro-badge');b.textContent='✦ Pro ✓';}
+if(!isUnlocked&&!localStorage.getItem('ldps_dismissed')){setTimeout(()=>{document.getElementById('paywall-overlay').classList.add('open');},900);}
+
+// Show landing page on first visit
+if(!localStorage.getItem('ldps_seen_landing')){
+  document.getElementById('landing-overlay').classList.add('open');
+}
+
+// Show onboarding if first visit and no landing page shown
+if(!userProfile&&!localStorage.getItem('ldps_ob_skipped')){
+  if(localStorage.getItem('ldps_seen_landing')){
+    setTimeout(()=>{document.getElementById('onboard-overlay').classList.add('open');},400);
+  }
+} else {
+  applyProfile();
+}
+
+window._fitOnly=false;
+window._visaOnly=false;
+if(userProfile?.schools?.length) activeAlumniSchool=userProfile.schools[0];
+renderPrograms();
+// Set dynamic program count
+const pcEl=document.getElementById('prog-count');
+if(pcEl) pcEl.textContent=progs.length;
+</script>
+</body>
+</html>
