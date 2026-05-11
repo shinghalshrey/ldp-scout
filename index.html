@@ -81,9 +81,9 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 
 /* TABLE */
 .table-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow)}
-.thead{display:grid;grid-template-columns:2.2fr 1fr 0.9fr 0.8fr .6fr .55fr .5fr 90px;padding:9px 16px;border-bottom:1px solid var(--border);background:var(--bg3)}
+.thead{display:grid;grid-template-columns:2.2fr 1fr 0.9fr 0.8fr .6fr .7fr .5fr 70px;padding:9px 16px;border-bottom:1px solid var(--border);background:var(--bg3)}
 .th{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em}
-.prow{display:grid;grid-template-columns:2.2fr 1fr 0.9fr 0.8fr .6fr .55fr .5fr 90px;padding:13px 16px;border-bottom:1px solid var(--border);align-items:center;transition:background .1s}
+.prow{display:grid;grid-template-columns:2.2fr 1fr 0.9fr 0.8fr .6fr .7fr .5fr 70px;padding:13px 16px;border-bottom:1px solid var(--border);align-items:center;transition:background .1s}
 .prow:last-child{border-bottom:none}
 .prow:hover{background:var(--bg3)}
 .pname{font-size:13px;font-weight:500;line-height:1.3}
@@ -298,9 +298,46 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 .ob-skip:hover{color:var(--text2)}
 
 /* ICS / REMINDER BUTTON */
-.ics-btn{font-size:10px;padding:4px 10px;border-radius:6px;border:1px solid rgba(13,107,107,.25);background:var(--teal-bg);color:var(--teal);cursor:pointer;font-family:var(--sans);transition:all .1s;white-space:nowrap}
+.ics-btn{font-size:10px;padding:4px 8px;border-radius:6px;border:1px solid rgba(13,107,107,.25);background:var(--teal-bg);color:var(--teal);cursor:pointer;font-family:var(--sans);transition:all .1s;white-space:nowrap}
 .ics-btn:hover{background:var(--teal);color:#fff}
 .dlitem-actions{display:flex;gap:6px;margin-left:auto;flex-shrink:0}
+
+/* ICS CHOICE MODAL */
+.ics-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:400;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.ics-modal-overlay.open{display:flex}
+.ics-modal{background:var(--bg2);border:1px solid var(--border2);border-radius:16px;padding:28px;width:460px;max-width:95vw;box-shadow:var(--shadow-md)}
+.ics-modal h3{font-family:var(--serif);font-size:18px;font-weight:400;margin-bottom:6px}
+.ics-modal-sub{font-size:12px;color:var(--text2);line-height:1.65;margin-bottom:20px}
+.ics-how{background:var(--blue-bg);border:1px solid rgba(26,79,168,.12);border-left:3px solid var(--blue);border-radius:0 8px 8px 0;padding:10px 14px;margin-bottom:20px;font-size:11px;color:var(--text2);line-height:1.65}
+.ics-how strong{color:var(--blue)}
+.ics-options{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.ics-opt{border:1.5px solid var(--border2);border-radius:10px;padding:16px;cursor:pointer;background:var(--bg3);transition:all .15s;text-align:center}
+.ics-opt:hover{border-color:var(--accent);background:var(--accent-bg)}
+.ics-opt-icon{font-size:22px;margin-bottom:8px}
+.ics-opt-title{font-size:13px;font-weight:600;margin-bottom:4px}
+.ics-opt-desc{font-size:10px;color:var(--text3);line-height:1.5}
+.ics-cancel{font-size:12px;color:var(--text3);background:none;border:none;cursor:pointer;font-family:var(--sans);text-decoration:underline;display:block;margin:0 auto}
+
+/* FIT PROMPT BANNER */
+.fit-prompt-banner{display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,var(--accent-bg),#f0faf5);border:1px solid rgba(29,106,69,.2);border-radius:10px;padding:11px 16px;margin-bottom:16px;cursor:pointer;transition:all .15s}
+.fit-prompt-banner:hover{border-color:var(--accent);box-shadow:var(--shadow)}
+.fpb-icon{font-size:18px;flex-shrink:0}
+.fpb-text{flex:1;font-size:12px;color:var(--text2);line-height:1.5}
+.fpb-text strong{color:var(--accent)}
+.fpb-cta{font-size:11px;padding:5px 12px;background:var(--accent);color:#fff;border-radius:6px;font-weight:600;white-space:nowrap;flex-shrink:0}
+
+/* SCHOOL DROPDOWN */
+.school-select-wrap{position:relative}
+.school-search-input{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:9px 13px;font-size:13px;color:var(--text);font-family:var(--sans);outline:none;transition:border-color .12s}
+.school-search-input:focus{border-color:var(--accent);background:var(--bg2)}
+.school-dropdown{position:absolute;top:100%;left:0;right:0;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;box-shadow:var(--shadow-md);z-index:50;max-height:220px;overflow-y:auto;display:none;margin-top:3px}
+.school-dropdown.open{display:block}
+.school-opt{padding:9px 13px;font-size:13px;cursor:pointer;color:var(--text);transition:background .1s;border-bottom:1px solid var(--border)}
+.school-opt:last-child{border-bottom:none}
+.school-opt:hover,.school-opt.highlighted{background:var(--accent-bg);color:var(--accent)}
+.selected-schools{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.selected-school-tag{display:inline-flex;align-items:center;gap:5px;font-size:11px;padding:4px 10px;border-radius:20px;background:var(--accent-bg);color:var(--accent);border:1px solid rgba(29,106,69,.2);font-weight:500}
+.selected-school-tag button{background:none;border:none;color:var(--accent);cursor:pointer;padding:0;font-size:13px;line-height:1;margin-left:1px}
 .ali-search-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;margin-bottom:24px}
 .ali-search-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow)}
 .ali-sc-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px}
@@ -468,20 +505,11 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
       <input id="ob-email" type="email" placeholder="you@school.edu" autocomplete="email">
     </div>
     <div class="ob-field">
-      <label>Your MBA School(s) — select all that apply</label>
-      <div class="ob-schools" id="ob-schools">
-        <button class="ob-school-btn" data-school="esade" onclick="toggleSchool(this)">ESADE</button>
-        <button class="ob-school-btn" data-school="hec" onclick="toggleSchool(this)">HEC Paris</button>
-        <button class="ob-school-btn" data-school="insead" onclick="toggleSchool(this)">INSEAD</button>
-        <button class="ob-school-btn" data-school="lbs" onclick="toggleSchool(this)">LBS</button>
-        <button class="ob-school-btn" data-school="iese" onclick="toggleSchool(this)">IESE</button>
-        <button class="ob-school-btn" data-school="ie" onclick="toggleSchool(this)">IE</button>
-        <button class="ob-school-btn" data-school="oxford" onclick="toggleSchool(this)">Oxford Saïd</button>
-        <button class="ob-school-btn" data-school="cambridge" onclick="toggleSchool(this)">Cambridge Judge</button>
-        <button class="ob-school-btn" data-school="bocconi" onclick="toggleSchool(this)">SDA Bocconi</button>
-        <button class="ob-school-btn" data-school="mannheim" onclick="toggleSchool(this)">Mannheim</button>
-        <button class="ob-school-btn" data-school="wbs" onclick="toggleSchool(this)">Warwick</button>
-        <button class="ob-school-btn" data-school="other" onclick="toggleSchool(this)">Other</button>
+      <label>Your MBA School(s) — search and select all that apply</label>
+      <div class="school-select-wrap" id="ob-school-wrap">
+        <input class="school-search-input" id="ob-school-search" placeholder="Type school name, e.g. ESADE, LBS, INSEAD..." autocomplete="off" oninput="filterSchoolDropdown()" onfocus="openSchoolDropdown()" onblur="setTimeout(closeSchoolDropdown,200)">
+        <div class="school-dropdown" id="ob-school-dropdown"></div>
+        <div class="selected-schools" id="ob-selected-schools"></div>
       </div>
     </div>
     <button class="ob-cta" onclick="saveOnboarding()">Build My Dashboard →</button>
@@ -513,6 +541,11 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 <!-- PROGRAMS PAGE -->
 <div class="page active" id="page-programs">
   <div class="stat-row" id="prog-stats"></div>
+  <div class="fit-prompt-banner" onclick="showPage('aifit')" title="Go to AI Fit Scan">
+    <div class="fpb-icon">✦</div>
+    <div class="fpb-text"><strong>Fit column powered by AI.</strong> Upload your résumé on the AI Fit Scan tab to get personalised tier rankings, gap analysis, and coaching across all programs — results sync back here automatically.</div>
+    <div class="fpb-cta">Scan My Résumé →</div>
+  </div>
   <div class="filter-row">
     <input class="si-input" id="prog-search" type="text" placeholder="Search programs, firms, keywords..." oninput="renderPrograms()">
     <div class="divider"></div>
@@ -548,8 +581,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
       <div class="th">Location</div>
       <div class="th">Deadline</div>
       <div class="th">Status</div>
-      <div class="th">Fit</div>
-      <div class="th">Visa</div>
+      <div class="th">Fit ✦</div>
+      <div class="th">📅 Remind</div>
       <div class="th">Actions</div>
     </div>
     <div id="prog-list"></div>
@@ -558,50 +591,50 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 
 <!-- ALUMNI PAGE -->
 <div class="page" id="page-alumni">
-  <div class="sech"><h2>Alumni Network</h2><p>Find the right people inside target firms — then reach out before applications open</p></div>
+  <div class="sech"><h2>Alumni Network</h2><p>Find the right people inside target firms — then reach out before applications open.</p></div>
+
+  <div class="itip" style="margin-bottom:16px">
+    <strong>How to network effectively using this page:</strong><br>
+    <strong style="color:var(--text)">① Find people</strong> — Use the LinkedIn links below to find alumni at each firm. Search by company first, then filter by role. Target people who joined in the last 2–3 years.<br>
+    <strong style="color:var(--text)">② Reach out on LinkedIn</strong> — Send a short note (3–4 sentences). Mention your shared school, your background, and one specific thing about their program. Ask for a 20-minute call.<br>
+    <strong style="color:var(--text)">③ Timing</strong> — Reach out 6–8 weeks before applications open. Log contacts in My Applications once you've spoken.
+  </div>
 
   <!-- SCHOOL SELECTOR + SEARCH -->
-  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin-bottom:16px;box-shadow:var(--shadow)">
-    <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
-      <div>
-        <div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Your School</div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap" id="alumni-school-selector">
-          <!-- rendered by JS -->
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px 18px;margin-bottom:16px;box-shadow:var(--shadow);display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+    <div style="flex-shrink:0">
+      <div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Search as alumni of</div>
+      <div style="position:relative" id="alumni-school-wrap">
+        <div style="display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:7px 12px;cursor:pointer;min-width:220px" onclick="toggleAlumniSchoolDrop()">
+          <span style="font-size:13px;flex:1" id="alumni-school-display">Select your school</span>
+          <span style="font-size:10px;color:var(--text3)">▾</span>
+        </div>
+        <div id="alumni-school-drop" style="display:none;position:absolute;top:calc(100% + 4px);left:0;min-width:280px;background:var(--bg2);border:1px solid var(--border2);border-radius:10px;box-shadow:var(--shadow-md);z-index:60;overflow:hidden">
+          <div style="padding:8px 10px;border-bottom:1px solid var(--border)">
+            <input id="alumni-school-filter" placeholder="Type to filter schools..." style="width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;padding:6px 10px;font-size:12px;font-family:var(--sans);outline:none;color:var(--text)" oninput="filterAlumniSchoolDrop()">
+          </div>
+          <div id="alumni-school-opts" style="max-height:220px;overflow-y:auto"></div>
         </div>
       </div>
-      <div style="width:1px;height:36px;background:var(--border);flex-shrink:0"></div>
-      <div style="flex:1;min-width:200px">
-        <div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Filter Programs</div>
-        <input class="si-input" id="alumni-prog-search" type="text" placeholder="e.g. Siemens, Finance, Roche, Healthcare..." oninput="renderAlumniSearch()" style="width:100%;min-width:0">
-      </div>
     </div>
-    <div style="margin-top:10px;font-size:11px;color:var(--text3);line-height:1.6">
-      <strong style="color:var(--text2)">How to use:</strong> Pick your school above. For each program below, use <span style="color:var(--blue);font-weight:500">① Company</span> to find people currently at that firm, or <span style="color:var(--accent);font-weight:500">② School Alumni</span> to find graduates from your school. Use separate filters for company name and role — do not mix them. Add anyone you find using the "+ Add Contact" button below.
+    <div style="width:1px;height:40px;background:var(--border);flex-shrink:0"></div>
+    <div style="flex:1;min-width:200px">
+      <div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Filter by program or firm</div>
+      <input class="si-input" id="alumni-prog-search" type="text" placeholder="e.g. Siemens, Roche, Finance, Healthcare..." oninput="renderAlumniSearch()" style="width:100%;min-width:0">
     </div>
   </div>
 
-  <div class="ali-search-grid" id="alumni-search-cards"></div>
-
-  <!-- DIVIDER -->
-  <div style="border-top:1px solid var(--border);margin:28px 0 20px"></div>
-
-  <!-- MANUAL TRACKER -->
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px">
-    <div>
-      <div style="font-family:var(--serif);font-size:16px;font-weight:400">My Contact Tracker</div>
-      <div style="font-size:11px;color:var(--text3);margin-top:2px">People you've identified, reached out to, or spoken with</div>
+  <!-- ALUMNI TABLE -->
+  <div class="table-wrap" id="alumni-table-wrap">
+    <div style="display:grid;grid-template-columns:2fr 1fr 1fr 140px 140px;padding:9px 16px;border-bottom:1px solid var(--border);background:var(--bg3)">
+      <div class="th">Program / Organisation</div>
+      <div class="th">Location · Status</div>
+      <div class="th">Function</div>
+      <div class="th">① Company Search</div>
+      <div class="th">② School Alumni</div>
     </div>
-    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-      <input class="si-input" id="alumni-search" type="text" placeholder="Search name, firm, program..." oninput="renderAlumni()" style="min-width:180px">
-      <button class="fpill on" data-ast="all" onclick="setF('ast',this)">All</button>
-      <button class="fpill" data-ast="identified" onclick="setF('ast',this)">Identified</button>
-      <button class="fpill" data-ast="reached" onclick="setF('ast',this)">Reached</button>
-      <button class="fpill" data-ast="replied" onclick="setF('ast',this)">Replied</button>
-      <button class="fpill" data-ast="coffee" onclick="setF('ast',this)">Coffee ☕</button>
-      <button class="add-btn" onclick="openM('alumni')">+ Add Contact</button>
-    </div>
+    <div id="alumni-search-rows"></div>
   </div>
-  <div class="agrid" id="alumni-list"></div>
 </div>
 
 <!-- APPLICATIONS PAGE -->
@@ -688,7 +721,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
   <div class="mtitle">Add Alumni Contact</div>
   <div class="fgrid">
     <div class="fg"><label>Full Name</label><input id="ai-name" placeholder="Jane Smith"></div>
-    <div class="fg"><label>School</label><select id="ai-school"><option value="esade">ESADE</option><option value="hec">HEC Paris</option><option value="insead">INSEAD</option><option value="lbs">LBS</option><option value="iese">IESE</option><option value="ie">IE</option><option value="oxford">Oxford Saïd</option><option value="cambridge">Cambridge Judge</option><option value="bocconi">SDA Bocconi</option><option value="mannheim">Mannheim</option><option value="wbs">Warwick</option><option value="other">Other</option><option value="both">Multiple schools</option></select></div>
+    <div class="fg"><label>School</label><select id="ai-school"></select></div>
     <div class="fg"><label>Firm / Company</label><input id="ai-firm" placeholder="Amazon"></div>
     <div class="fg"><label>Role / Title</label><input id="ai-role" placeholder="Pathways Operations Manager"></div>
     <div class="fg full"><label>LinkedIn Profile URL</label><input id="ai-li" placeholder="https://linkedin.com/in/username"></div>
@@ -728,6 +761,30 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- ICS REMINDER CHOICE MODAL -->
+<div class="ics-modal-overlay" id="ics-modal-overlay">
+  <div class="ics-modal">
+    <h3 id="ics-modal-title">Set a deadline reminder</h3>
+    <div class="ics-modal-sub" id="ics-modal-sub">Choose how many reminders you want for this deadline.</div>
+    <div class="ics-how">
+      <strong>How it works:</strong> Clicking either option downloads a single <code>.ics</code> calendar file. Open it and your calendar app (Google Calendar, Outlook, Apple Calendar) will import the event automatically — with your chosen reminders already built in. One file, all reminders.
+    </div>
+    <div class="ics-options">
+      <div class="ics-opt" onclick="confirmICS('multi')">
+        <div class="ics-opt-icon">🔔🔔🔔</div>
+        <div class="ics-opt-title">Multiple Reminders</div>
+        <div class="ics-opt-desc">Alerts at 30 days, 7 days, and 1 day before the deadline — recommended for important programs</div>
+      </div>
+      <div class="ics-opt" onclick="confirmICS('single')">
+        <div class="ics-opt-icon">🔔</div>
+        <div class="ics-opt-title">One Reminder</div>
+        <div class="ics-opt-desc">A single alert 7 days before the deadline — good for programs you're keeping an eye on</div>
+      </div>
+    </div>
+    <button class="ics-cancel" onclick="document.getElementById('ics-modal-overlay').classList.remove('open')">Cancel</button>
+  </div>
+</div>
 <script>
 // ═══════════════ DATA ═══════════════
 const DP = [
@@ -772,7 +829,13 @@ const DP = [
   {id:39,name:"ThermoFisher Scientific MBA Program",org:"ThermoFisher",geo:"global",loc:"Waltham, USA · Global",fn:"general",sector:"healthcare",status:"open",deadline:"",dlnote:"Rolling — check thermofisher.com/careers",fit:3,visa:true,tags:["Healthcare","Life Sciences","MBA","Commercial"],notes:"Top 5 Healthcare LDP (MBA-Exchange 2024/2025). Life sciences tools + diagnostics. Commercial and operations tracks.",url:"https://jobs.thermofisher.com"},
   {id:40,name:"CFO Insights Leadership Program (MBA Graduate)",org:"CFO Insights",geo:"europe",loc:"UK · Europe",fn:"finance",sector:"finance",status:"open",deadline:"",dlnote:"Rolling — check cfoi.co.uk",fit:4,visa:false,tags:["Finance","MBA","Leadership","CFO Track"],notes:"#1 Financial Services LDP globally (MBA-Exchange 2025). Fast-track CFO development program. Finance modeling, FP&A, strategic finance. Strong CFA Level II alignment.",url:"https://www.cfoi.co.uk"},
   {id:41,name:"AB InBev Global MBA Program",org:"AB InBev",geo:"global",loc:"Global (Belgium · Brazil · USA)",fn:"general",sector:"consumer",status:"watch",deadline:"2026-09-01",dlnote:"Annual — opens mid-year",fit:3,visa:true,tags:["Consumer","FMCG","MBA","Rotational","#1 Global"],notes:"#1 ranked LDP globally (MBA-Exchange 2025). Three rotations tied to global strategic pillars. Highly competitive. HEC Paris has placement history.",url:"https://www.ab-inbev.com/career/global-management-trainee-programs"},
-  {id:42,name:"Arkema Top Start International Business Leader",org:"Arkema",geo:"europe",loc:"Paris, France · Global",fn:"general",sector:"industrial",status:"open",deadline:"",dlnote:"Rolling — check arkema.com/careers",fit:4,visa:true,tags:["Industrial","MBA","Rotational","France","Top Start"],notes:"Top Start: 18-month international rotational for MBAs. Paris HQ. Specialty chemicals. ESADE + HEC France alumni network strong. Top 4 Rotational LDP (MBA-Exchange 2025).",url:"https://www.arkema.com/global/en/careers/"}
+  {id:42,name:"Arkema Top Start International Business Leader",org:"Arkema",geo:"europe",loc:"Paris, France · Global",fn:"general",sector:"industrial",status:"open",deadline:"",dlnote:"Rolling — check arkema.com/careers",fit:4,visa:true,tags:["Industrial","MBA","Rotational","France","Top Start"],notes:"Top Start: 18-month international rotational for MBAs. Paris HQ. Specialty chemicals. ESADE + HEC France alumni network strong. Top 4 Rotational LDP (MBA-Exchange 2025).",url:"https://www.arkema.com/global/en/careers/"},
+  {id:43,name:"Eli Lilly Connected MBA (cMBA) Program",org:"Eli Lilly",geo:"global",loc:"Indianapolis, USA · Europe · Asia",fn:"general",sector:"healthcare",status:"open",deadline:"",dlnote:"Rolling — multiple functions and geographies",fit:4,visa:true,tags:["Healthcare","Pharma","Rotational","MBA","Multi-function"],notes:"Eli Lilly's cMBA spans finance, marketing, operations, HR, and IT tracks across global geographies. Indianapolis HQ with international rotations. Strong pharma + healthcare background fit.",url:"https://www.lilly.com/careers/students-and-graduates"},
+  {id:44,name:"Galderma Finance Catalyst Program",org:"Galderma",geo:"europe",loc:"Zug, Switzerland · Global",fn:"finance",sector:"healthcare",status:"open",deadline:"",dlnote:"Rolling — check galderma.com/careers",fit:4,visa:false,tags:["Finance","Healthcare","Dermatology","MBA","Switzerland"],notes:"Finance-focused rotational at Galderma (world's largest pure-play dermatology company). Zug HQ. CFA + finance background is a strong differentiator. Fast-growing post-Nestlé spinoff.",url:"https://www.galderma.com/careers"},
+  {id:45,name:"Insud Pharma Leadership Development Program",org:"Insud Pharma",geo:"europe",loc:"Madrid, Spain · LATAM · EMEA",fn:"general",sector:"healthcare",status:"watch",deadline:"",dlnote:"Watch LinkedIn and insudpharma.com/careers",fit:3,visa:false,tags:["Healthcare","Pharma","MBA","Spain","LATAM"],notes:"Insud Pharma (Chemo Group) covers commercial, operations, and R&D tracks. Madrid-based with LATAM and EMEA exposure. Strong ESADE → Spain pharma pipeline.",url:"https://www.insudpharma.com/en/careers"},
+  {id:46,name:"Ipsen SPARK MBA Program",org:"Ipsen",geo:"europe",loc:"Paris, France · Global",fn:"general",sector:"healthcare",status:"open",deadline:"",dlnote:"Rolling — check ipsen.com/careers",fit:4,visa:true,tags:["Healthcare","Pharma","MBA","France","SPARK","Rotational"],notes:"2-year rotational for MBA graduates across commercial, medical affairs, and strategy. Paris HQ + global assignments. Oncology, rare diseases, neuroscience focus. Strong HEC Paris pipeline.",url:"https://www.ipsen.com/careers/"},
+  {id:47,name:"Novartis MBA Leadership Associate",org:"Novartis",geo:"global",loc:"Basel, Switzerland · Global",fn:"general",sector:"healthcare",status:"open",deadline:"",dlnote:"Rolling — check novartis.com/careers",fit:5,visa:true,tags:["Healthcare","Pharma","MBA","Switzerland","Leadership"],notes:"Novartis recruits MBAs into leadership associate roles across strategy, commercial, and business development. Basel HQ + global postings. Strong fit: PE/VC healthcare background, CFA Level II.",url:"https://www.novartis.com/careers"},
+  {id:48,name:"AstraZeneca MBA Graduate Program",org:"AstraZeneca",geo:"europe",loc:"Cambridge, UK · Global",fn:"general",sector:"healthcare",status:"open",deadline:"",dlnote:"Rolling — check astrazeneca.com/careers",fit:4,visa:true,tags:["Healthcare","Pharma","MBA","UK","Commercial"],notes:"Places MBAs across commercial, finance, and operations globally. Cambridge UK HQ. Strong oncology + rare disease portfolio. EU and UK postings available.",url:"https://careers.astrazeneca.com"}
 ];
 
 const DA = [
@@ -794,6 +857,16 @@ const DA = [
 ];
 
 // ═══════════════ STATE ═══════════════
+// Auto-migrate: if stored programs < built-in count, wipe cache and use fresh data
+(function migrateProgramCache(){
+  try {
+    const stored = JSON.parse(localStorage.getItem('ldps_progs'));
+    if(stored && stored.length < DP.length){
+      localStorage.removeItem('ldps_progs');
+    }
+  } catch(e){ localStorage.removeItem('ldps_progs'); }
+})();
+
 let progs = JSON.parse(localStorage.getItem('ldps_progs')||'null')||JSON.parse(JSON.stringify(DP));
 let alum  = JSON.parse(localStorage.getItem('ldps_alum') ||'null')||JSON.parse(JSON.stringify(DA));
 let apps  = JSON.parse(localStorage.getItem('ldps_apps') ||'[]');
@@ -811,14 +884,104 @@ function persist(){
 }
 
 // ═══════════════ ONBOARDING ═══════════════
-const SCHOOL_LABELS={esade:'ESADE',hec:'HEC Paris',insead:'INSEAD',lbs:'LBS',iese:'IESE',ie:'IE Business',oxford:'Oxford Saïd',cambridge:'Cambridge Judge',bocconi:'SDA Bocconi',mannheim:'Mannheim',wbs:'Warwick',other:'Other'};
-const SCHOOL_LI_IDS={esade:'esade',hec:'hec-paris',insead:'insead',lbs:'london-business-school',iese:'iese-business-school',ie:'ie-business-school',oxford:'said-business-school',cambridge:'cambridge-judge-business-school',bocconi:'sda-bocconi-school-of-management',mannheim:'mannheim-business-school',wbs:'warwick-business-school',other:null};
+const ALL_MBA_SCHOOLS = [
+  {key:'esade',label:'ESADE Business School',li:'esade'},
+  {key:'hec',label:'HEC Paris',li:'hec-paris'},
+  {key:'insead',label:'INSEAD',li:'insead'},
+  {key:'lbs',label:'London Business School (LBS)',li:'london-business-school'},
+  {key:'iese',label:'IESE Business School',li:'iese-business-school'},
+  {key:'ie',label:'IE Business School',li:'ie-business-school'},
+  {key:'oxford',label:'Oxford Saïd Business School',li:'said-business-school'},
+  {key:'cambridge',label:'Cambridge Judge Business School',li:'cambridge-judge-business-school'},
+  {key:'bocconi',label:'SDA Bocconi School of Management',li:'sda-bocconi-school-of-management'},
+  {key:'mannheim',label:'Mannheim Business School',li:'mannheim-business-school'},
+  {key:'wbs',label:'Warwick Business School',li:'warwick-business-school'},
+  {key:'imperial',label:'Imperial College Business School',li:'imperial-college-business-school'},
+  {key:'cranfield',label:'Cranfield School of Management',li:'cranfield-school-of-management'},
+  {key:'rsm',label:'Rotterdam School of Management (RSM)',li:'rotterdam-school-of-management'},
+  {key:'tias',label:'TIAS School for Business and Society',li:'tias-school-for-business-and-society'},
+  {key:'vlerick',label:'Vlerick Business School',li:'vlerick-business-school'},
+  {key:'alba',label:'ALBA Graduate Business School',li:'alba-graduate-business-school'},
+  {key:'edhec',label:'EDHEC Business School',li:'edhec-business-school'},
+  {key:'emlyon',label:'emlyon business school',li:'emlyon-business-school'},
+  {key:'grenoble',label:'Grenoble École de Management',li:'grenoble-ecole-de-management'},
+  {key:'skema',label:'SKEMA Business School',li:'skema-business-school'},
+  {key:'audencia',label:'Audencia Business School',li:'audencia'},
+  {key:'neoma',label:'NEOMA Business School',li:'neoma-business-school'},
+  {key:'kedge',label:'KEDGE Business School',li:'kedge-business-school'},
+  {key:'escp',label:'ESCP Business School',li:'escp-europe'},
+  {key:'ebs',label:'EBS Universität für Wirtschaft und Recht',li:'ebs-university'},
+  {key:'whu',label:'WHU – Otto Beisheim School of Management',li:'whu-otto-beisheim-school-of-management'},
+  {key:'hws',label:'HHL Leipzig Graduate School of Management',li:'hhl-leipzig-graduate-school-of-management'},
+  {key:'frankfurt',label:'Frankfurt School of Finance & Management',li:'frankfurt-school-of-finance-management'},
+  {key:'stgallen',label:'University of St. Gallen (HSG)',li:'university-of-st-gallen'},
+  {key:'imd',label:'IMD Business School',li:'imd-business-school'},
+  {key:'lisbon',label:'Nova SBE / Católica Lisbon',li:'nova-sbe'},
+  {key:'ceibs',label:'CEIBS (China Europe International Business School)',li:'ceibs'},
+  {key:'kellogg_mba',label:'Kellogg School of Management',li:'kellogg-school-of-management'},
+  {key:'wharton',label:'The Wharton School',li:'the-wharton-school'},
+  {key:'booth',label:'University of Chicago Booth',li:'university-of-chicago-booth-school-of-business'},
+  {key:'columbia',label:'Columbia Business School',li:'columbia-business-school'},
+  {key:'other',label:'Other / Not listed',li:null},
+];
+const SCHOOL_LABELS=Object.fromEntries(ALL_MBA_SCHOOLS.map(s=>[s.key,s.label]));
+const SCHOOL_LI_IDS=Object.fromEntries(ALL_MBA_SCHOOLS.map(s=>[s.key,s.li]));
 
-function toggleSchool(btn){
-  btn.classList.toggle('sel');
-  const s=btn.getAttribute('data-school');
-  if(btn.classList.contains('sel')){if(!selectedSchools.includes(s))selectedSchools.push(s);}
-  else{selectedSchools=selectedSchools.filter(x=>x!==s);}
+// ═══════════════ SCHOOL DROPDOWN ═══════════════
+function filterSchoolDropdown(){
+  const q = document.getElementById('ob-school-search').value.toLowerCase();
+  renderSchoolDropdown(q);
+  openSchoolDropdown();
+}
+function openSchoolDropdown(){
+  const dd = document.getElementById('ob-school-dropdown');
+  if(dd) { renderSchoolDropdown(document.getElementById('ob-school-search').value.toLowerCase()); dd.classList.add('open'); }
+}
+function closeSchoolDropdown(){
+  const dd = document.getElementById('ob-school-dropdown');
+  if(dd) dd.classList.remove('open');
+}
+function renderSchoolDropdown(q=''){
+  const dd = document.getElementById('ob-school-dropdown');
+  if(!dd) return;
+  const filtered = ALL_MBA_SCHOOLS.filter(s => !selectedSchools.includes(s.key) && (!q || s.label.toLowerCase().includes(q)));
+  dd.innerHTML = filtered.length === 0
+    ? `<div class="school-opt" style="color:var(--text3);cursor:default">No schools found — try a different name</div>`
+    : filtered.map(s => `<div class="school-opt" onclick="addSchool('${s.key}')">${s.label}</div>`).join('');
+}
+function addSchool(key){
+  if(!selectedSchools.includes(key)) selectedSchools.push(key);
+  document.getElementById('ob-school-search').value = '';
+  renderSchoolDropdown('');
+  renderSelectedSchools();
+  closeSchoolDropdown();
+}
+function removeSchool(key){
+  selectedSchools = selectedSchools.filter(s => s !== key);
+  renderSelectedSchools();
+  renderSchoolDropdown('');
+}
+function renderSelectedSchools(){
+  const el = document.getElementById('ob-selected-schools');
+  if(!el) return;
+  el.innerHTML = selectedSchools.map(s => `<span class="selected-school-tag">${SCHOOL_LABELS[s]||s}<button onclick="removeSchool('${s}')" title="Remove">×</button></span>`).join('');
+}
+// Legacy toggleSchool — kept for any remaining references
+function toggleSchool(btn){ addSchool(btn.getAttribute('data-school')); }
+
+// ═══════════════ ICS MODAL ═══════════════
+let _icsItem = null;
+function openICSModal(item){
+  _icsItem = item;
+  const title = document.getElementById('ics-modal-title');
+  const sub = document.getElementById('ics-modal-sub');
+  if(title) title.textContent = `Deadline reminder — ${item.name}`;
+  if(sub) sub.textContent = `${item.org} · ${new Date(item.deadline).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}`;
+  document.getElementById('ics-modal-overlay').classList.add('open');
+}
+function confirmICS(mode){
+  document.getElementById('ics-modal-overlay').classList.remove('open');
+  if(_icsItem) downloadICS(_icsItem, mode);
 }
 
 function saveOnboarding(){
@@ -829,7 +992,7 @@ function saveOnboarding(){
   localStorage.setItem('ldps_profile',JSON.stringify(userProfile));
   document.getElementById('onboard-overlay').classList.remove('open');
   applyProfile();
-  toast(`Welcome, ${name.split(' ')[0]}! ✓`);
+  toast(`Welcome, ${name.split(' ')[0]}! Dashboard ready ✓`);
 }
 
 function skipOnboarding(){
@@ -842,15 +1005,10 @@ function applyProfile(){
   // Update topbar greeting
   const lbl=document.getElementById('today-lbl');
   if(lbl&&userProfile.name) lbl.title=`Signed in as ${userProfile.name}`;
-  // Update alumni tip
-  const schools=userProfile.schools||[];
-  if(schools.length){
-    const names=schools.map(s=>SCHOOL_LABELS[s]||s).join(', ');
-    const tip=document.getElementById('alumni-tip');
-    if(tip) tip.innerHTML=`<strong>Personalised for:</strong> ${names}. Each LinkedIn button below searches your school's alumni directory for that company and program. Log people you find using "+ Add Contact". Reach out 6–8 weeks before applications open.`;
+  // Set active alumni school from profile if not already set
+  if(!activeAlumniSchool && userProfile.schools?.length){
+    activeAlumniSchool = userProfile.schools[0];
   }
-  renderSchoolPills();
-  renderAlumniSearch();
 }
 
 // ═══════════════ PAYWALL ═══════════════
@@ -879,7 +1037,7 @@ function showPage(id){
   const tabs=document.querySelectorAll('.nav-tab');
   if(idx>=0&&tabs[idx]) tabs[idx].classList.add('active');
   if(id==='aifit'&&!isUnlocked){document.getElementById('paywall-overlay').classList.add('open');return;}
-  ({programs:renderPrograms,alumni:()=>{renderSchoolPills();renderAlumniSearch();renderAlumni();},applications:renderApplications,deadlines:renderDeadlines,aifit:()=>{}})[id]?.();
+  ({programs:renderPrograms,alumni:()=>{initAlumniSchoolDrop();renderAlumniSearch();},applications:renderApplications,deadlines:renderDeadlines,aifit:()=>{}})[id]?.();
 }
 
 function enterApp(){
@@ -982,15 +1140,19 @@ function renderPrograms(){
       return `<div class="prow">
         <div>
           <div class="pname">${p.url?`<a href="${p.url}" target="_blank" rel="noopener noreferrer" style="color:var(--text);text-decoration:none;border-bottom:1px solid var(--border2);padding-bottom:1px" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--text)'">${p.name}</a>`:p.name}</div>
-          <div class="porg">${p.org}</div>
-          <div class="tags">${(p.tags||[]).map(t=>`<span class="tag">${t}</span>`).join('')}${p.visa?`<span class="tag" style="background:var(--teal-bg);color:var(--teal);border-color:rgba(13,107,107,.25)">✓ Visa</span>`:''}${verifiedBadge(p)}</div>
+          <div class="porg">${p.org}${p.visa?` <span style="font-size:10px;color:var(--teal);font-weight:600;margin-left:4px">✓ Visa</span>`:''}</div>
+          <div class="tags">${(p.tags||[]).map(t=>`<span class="tag">${t}</span>`).join('')}${verifiedBadge(p)}</div>
         </div>
         <div class="cell">${cap(p.fn)} · ${cap(p.sector)}</div>
         <div class="cell">${p.loc||p.geo}</div>
         <div class="cell mono" style="font-size:10px;line-height:1.5">${dl}</div>
         <div><span class="badge ${bc}">${bl}</span></div>
-        <div>${fitTier(+p.fit||3,p)}</div>
-        <div>${p.visa?`<span style="font-size:11px;color:var(--teal);font-weight:600">✓ Yes</span>`:`<span style="font-size:11px;color:var(--text3)">—</span>`}</div>
+        <div>
+          ${p.aiTier ? fitTier(+p.fit||3,p) : `<span onclick="showPage('aifit')" title="Scan your résumé to see your fit for this program" style="cursor:pointer;font-size:10px;color:var(--text3);border-bottom:1px dashed var(--border2)">Scan résumé</span>`}
+        </div>
+        <div>
+          ${p.deadline ? `<button class="ics-btn" onclick="openICSModal(${JSON.stringify({name:p.name,org:p.org,deadline:p.deadline,type:'program'}).replace(/"/g,'&quot;')})">📅 Set</button>` : `<span style="font-size:10px;color:var(--text3)">—</span>`}
+        </div>
         <div class="abts">
           <button class="bsm" onclick="editP(${p.id})">Edit</button>
           <button class="bsm del" onclick="delP(${p.id})">Del</button>
@@ -1033,41 +1195,75 @@ function renderPrograms(){
     </div>`;
 }
 
-// ═══════════════ ALUMNI SEARCH (dynamic) ═══════════════
-// active school for alumni search (single selection)
+// ═══════════════ ALUMNI TAB — SCHOOL DROPDOWN + TABLE ═══════════════
 let activeAlumniSchool = null;
 
-function renderSchoolPills(){
-  const schools = (userProfile?.schools||[]);
-  const container = document.getElementById('alumni-school-selector');
-  if(!container) return;
-
-  // Set default active school if not set
-  if(!activeAlumniSchool && schools.length) activeAlumniSchool = schools[0];
-
-  const allSchools = Object.keys(SCHOOL_LABELS);
-  // Show user's schools first, then a divider, then option to pick others
-  const mySchools = schools.length ? schools : ['esade','hec','insead','lbs','iese'];
-
-  container.innerHTML = mySchools.map(s => `
-    <button class="ob-school-btn ${activeAlumniSchool===s?'sel':''}"
-      onclick="setAlumniSchool('${s}')" style="padding:5px 12px;font-size:11px">
-      ${SCHOOL_LABELS[s]||s}
-    </button>`).join('') +
-    `<button class="ob-school-btn" style="padding:5px 12px;font-size:11px;color:var(--text3)"
-      onclick="document.getElementById('onboard-overlay').classList.add('open')">
-      + Other school
-    </button>`;
+function initAlumniSchoolDrop(){
+  // Set default from profile
+  if(!activeAlumniSchool && userProfile?.schools?.length){
+    activeAlumniSchool = userProfile.schools[0];
+  }
+  updateAlumniSchoolDisplay();
+  renderAlumniSchoolOpts('');
 }
 
-function setAlumniSchool(school){
-  activeAlumniSchool = school;
-  renderSchoolPills();
+function updateAlumniSchoolDisplay(){
+  const el = document.getElementById('alumni-school-display');
+  if(!el) return;
+  el.textContent = activeAlumniSchool ? (SCHOOL_LABELS[activeAlumniSchool]||activeAlumniSchool) : 'Select your school';
+  el.style.color = activeAlumniSchool ? 'var(--text)' : 'var(--text3)';
+}
+
+function toggleAlumniSchoolDrop(){
+  const drop = document.getElementById('alumni-school-drop');
+  if(!drop) return;
+  const open = drop.style.display !== 'none';
+  drop.style.display = open ? 'none' : 'block';
+  if(!open){
+    const fi = document.getElementById('alumni-school-filter');
+    if(fi){ fi.value=''; renderAlumniSchoolOpts(''); fi.focus(); }
+  }
+}
+
+function filterAlumniSchoolDrop(){
+  const q = (document.getElementById('alumni-school-filter')||{}).value||'';
+  renderAlumniSchoolOpts(q);
+}
+
+function renderAlumniSchoolOpts(q){
+  const container = document.getElementById('alumni-school-opts');
+  if(!container) return;
+  const filtered = ALL_MBA_SCHOOLS.filter(s => !q || s.label.toLowerCase().includes(q.toLowerCase()));
+  container.innerHTML = filtered.map(s => `
+    <div onclick="pickAlumniSchool('${s.key}')" style="padding:9px 14px;font-size:12px;cursor:pointer;color:${activeAlumniSchool===s.key?'var(--accent)':'var(--text)'};background:${activeAlumniSchool===s.key?'var(--accent-bg)':'transparent'};border-bottom:1px solid var(--border);transition:background .1s"
+      onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='${activeAlumniSchool===s.key?'var(--accent-bg)':'transparent'}'">
+      ${s.label}${activeAlumniSchool===s.key?' ✓':''}
+    </div>`).join('');
+}
+
+function pickAlumniSchool(key){
+  // Single selection — clicking the same school deselects, clicking another switches
+  activeAlumniSchool = (activeAlumniSchool === key) ? null : key;
+  document.getElementById('alumni-school-drop').style.display = 'none';
+  updateAlumniSchoolDisplay();
   renderAlumniSearch();
 }
 
+// Close dropdown when clicking outside
+document.addEventListener('click', e => {
+  const wrap = document.getElementById('alumni-school-wrap');
+  if(wrap && !wrap.contains(e.target)){
+    const drop = document.getElementById('alumni-school-drop');
+    if(drop) drop.style.display = 'none';
+  }
+});
+
+// Legacy — kept so init calls don't break
+function renderSchoolPills(){ initAlumniSchoolDrop(); }
+function setAlumniSchool(school){ pickAlumniSchool(school); }
+
 function renderAlumniSearch(){
-  const container = document.getElementById('alumni-search-cards');
+  const container = document.getElementById('alumni-search-rows');
   if(!container) return;
   const q = (document.getElementById('alumni-prog-search')||{}).value?.toLowerCase()||'';
   const school = activeAlumniSchool;
@@ -1084,111 +1280,51 @@ function renderAlumniSearch(){
   });
 
   if(!filtered.length){
-    container.innerHTML='<div class="empty" style="grid-column:1/-1">No programs match. Try a broader search.</div>';
+    container.innerHTML='<div class="empty">No programs match. Try a broader search.</div>';
     return;
   }
 
-  container.innerHTML = filtered.map(p => {
-    const org = encodeURIComponent(p.org);
-    const roleKw = p.name.replace(/MBA|LDP|Leadership Development Program|Programme|Program/gi,'').trim().split(' ').slice(0,4).join(' ');
-    const role = encodeURIComponent(roleKw);
+  const sm={open:'b-open',rolling:'b-rolling',watch:'b-watch',closed:'b-closed'};
 
-    // Approach 1: Company LinkedIn page → Employees tab
+  container.innerHTML = filtered.map((p,i) => {
+    const org = encodeURIComponent(p.org);
+    const roleKw = p.name.replace(/MBA|Leadership Development Program|Programme|Program/gi,'').trim().split(' ').slice(0,4).join(' ');
+    const role = encodeURIComponent(roleKw);
     const companyUrl = `https://www.linkedin.com/search/results/people/?keywords=${org}`;
     const roleUrl = `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(p.org+' '+roleKw)}`;
 
-    // Approach 2: School alumni page
-    let schoolHtml = '';
+    let schoolCell = '';
     if(slug){
       const byCompany = `https://www.linkedin.com/school/${slug}/people/?keywords=${org}`;
       const byRole = `https://www.linkedin.com/school/${slug}/people/?keywords=${role}`;
-      schoolHtml = `
-        <a href="${byCompany}" target="_blank" rel="noopener noreferrer"
-          style="display:inline-flex;align-items:center;gap:5px;font-size:11px;padding:5px 11px;border-radius:6px;background:var(--accent-bg);border:1px solid rgba(29,106,69,.2);color:var(--accent);text-decoration:none;font-family:var(--sans);transition:all .12s"
-          onmouseover="this.style.background='var(--accent)';this.style.color='#fff'"
-          onmouseout="this.style.background='var(--accent-bg)';this.style.color='var(--accent)'">
-          Filter by company
-        </a>
-        <a href="${byRole}" target="_blank" rel="noopener noreferrer"
-          style="display:inline-flex;align-items:center;gap:5px;font-size:11px;padding:5px 11px;border-radius:6px;background:var(--accent-bg);border:1px solid rgba(29,106,69,.2);color:var(--accent);text-decoration:none;font-family:var(--sans);transition:all .12s"
-          onmouseover="this.style.background='var(--accent)';this.style.color='#fff'"
-          onmouseout="this.style.background='var(--accent-bg)';this.style.color='var(--accent)'">
-          Filter by role
-        </a>`;
+      schoolCell = `<a href="${byCompany}" target="_blank" rel="noopener noreferrer" class="li-btn" style="font-size:10px;padding:3px 9px;display:block;margin-bottom:4px">By company →</a><a href="${byRole}" target="_blank" rel="noopener noreferrer" class="li-btn" style="font-size:10px;padding:3px 9px;display:block">By role →</a>`;
     } else {
-      schoolHtml = `<span style="font-size:11px;color:var(--text3);font-style:italic">
-        <button onclick="document.getElementById('onboard-overlay').classList.add('open')"
-          style="background:none;border:none;color:var(--blue);cursor:pointer;font-size:11px;text-decoration:underline;padding:0">Select your school above</button>
-        to see alumni links</span>`;
+      schoolCell = `<span style="font-size:10px;color:var(--text3);font-style:italic">Select school above</span>`;
     }
 
-    return `<div class="ali-search-card">
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:10px">
-        <div>
-          <div style="font-size:13px;font-weight:500;line-height:1.3">
-            ${p.url?`<a href="${p.url}" target="_blank" rel="noopener noreferrer" style="color:var(--text);text-decoration:none;border-bottom:1px solid var(--border2)" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text)'">${p.name}</a>`:p.name}
-          </div>
-          <div style="font-size:11px;color:var(--text2);margin-top:2px">${p.org} · ${p.loc||p.geo}</div>
-        </div>
-        <span class="badge ${p.status==='open'?'b-open':p.status==='rolling'?'b-rolling':'b-watch'}" style="flex-shrink:0;font-size:10px">${cap(p.status)}</span>
+    const bc = sm[p.status]||'b-closed';
+    const rowBg = i%2===0 ? '' : 'background:var(--bg3)';
+    return `<div style="display:grid;grid-template-columns:2fr 1fr 1fr 140px 140px;padding:11px 16px;border-bottom:1px solid var(--border);align-items:center;${rowBg}">
+      <div>
+        <div style="font-size:12px;font-weight:500">${p.url?`<a href="${p.url}" target="_blank" rel="noopener noreferrer" style="color:var(--text);text-decoration:none;border-bottom:1px solid var(--border2)" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text)'">${p.name}</a>`:p.name}</div>
+        <div style="font-size:11px;color:var(--text2);margin-top:2px">${p.org}</div>
       </div>
-
-      <div style="background:var(--blue-bg);border:1px solid rgba(26,79,168,.12);border-radius:8px;padding:10px;margin-bottom:8px">
-        <div style="font-size:10px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px">① Company Search</div>
-        <div style="font-size:10px;color:var(--text3);margin-bottom:6px">Find anyone currently working at ${p.org}</div>
-        <div style="display:flex;gap:5px;flex-wrap:wrap">
-          <a href="${companyUrl}" target="_blank" rel="noopener noreferrer" class="li-btn" style="font-size:10px;padding:4px 10px">Search by company name →</a>
-          <a href="${roleUrl}" target="_blank" rel="noopener noreferrer" class="li-btn" style="font-size:10px;padding:4px 10px">Search by company + role →</a>
-        </div>
+      <div>
+        <div style="font-size:11px;color:var(--text2)">${p.loc||p.geo}</div>
+        <span class="badge ${bc}" style="font-size:10px;margin-top:4px;display:inline-block">${cap(p.status)}</span>
       </div>
-
-      <div style="background:var(--accent-bg);border:1px solid rgba(29,106,69,.12);border-radius:8px;padding:10px">
-        <div style="font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px">② ${schoolLabel||'School'} Alumni</div>
-        <div style="font-size:10px;color:var(--text3);margin-bottom:6px">Find ${schoolLabel||'your school'} graduates at ${p.org}</div>
-        <div style="display:flex;gap:5px;flex-wrap:wrap">${schoolHtml}</div>
+      <div style="font-size:11px;color:var(--text2)">${cap(p.fn)}<br><span style="color:var(--text3)">${cap(p.sector)}</span></div>
+      <div>
+        <a href="${companyUrl}" target="_blank" rel="noopener noreferrer" class="li-btn" style="font-size:10px;padding:3px 9px;display:block;margin-bottom:4px">Company →</a>
+        <a href="${roleUrl}" target="_blank" rel="noopener noreferrer" class="li-btn" style="font-size:10px;padding:3px 9px;display:block">+ Role →</a>
       </div>
+      <div>${schoolCell}</div>
     </div>`;
   }).join('');
 }
 
-// ═══════════════ ALUMNI ═══════════════
-function renderAlumni(){
-  const q=(document.getElementById('alumni-search')||{}).value?.toLowerCase()||'';
-  const list=alum.filter(a=>{
-    if(F.ast!=='all'&&a.status!==F.ast) return false;
-    if(q&&!a.name.toLowerCase().includes(q)&&!a.firm.toLowerCase().includes(q)&&!(a.prog||'').toLowerCase().includes(q)) return false;
-    return true;
-  });
-  const smap={identified:['c-id','Identified'],reached:['c-rc','Reached out'],replied:['c-rp','Replied ✓'],coffee:['c-cf','Coffee chat ☕'],referred:['c-rf','Referred 🌟']};
-  const avc=['#1a4fa8','#b33a1a','#1d6a45','#5a3a9a','#0d6b6b'];
-  const ini=n=>n.replace(/[\[\]]/g,'').split(' ').filter(Boolean).map(w=>w[0]||'').join('').substring(0,2).toUpperCase()||'?';
-  const sbadge=s=>{
-    const label=SCHOOL_LABELS[s]||s;
-    const cls=['esade','hec'].includes(s)?`stag ${s}`:'stag esade';
-    const style=['esade','hec'].includes(s)?'':`style="background:var(--teal-bg);color:var(--teal);border-color:rgba(13,107,107,.2)"`;
-    if(s==='both') return `<span class="stag esade">ESADE</span> <span class="stag hec">HEC Paris</span>`;
-    return `<span class="${cls}" ${style}>${label}</span>`;
-  };
-  document.getElementById('alumni-list').innerHTML=list.length===0
-    ?'<div class="empty" style="grid-column:1/-1">No contacts found. Use the LinkedIn search cards above to find alumni, then add them here.</div>'
-    :list.map((a,i)=>{
-      const [sc,sl]=smap[a.status]||['c-id','Identified'];
-      return `<div class="acard">
-        <div class="ahead">
-          <div class="avatar" style="background:${avc[i%5]}18;color:${avc[i%5]};border:1px solid ${avc[i%5]}25">${ini(a.name)}</div>
-          <div><div class="aname">${a.name}</div><div class="arole">${a.role} · <strong>${a.firm}</strong></div></div>
-        </div>
-        <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:7px">${sbadge(a.school)}<span class="cs ${sc}">${sl}</span></div>
-        ${a.loc?`<div style="font-size:11px;color:var(--text3);margin-bottom:3px">📍 ${a.loc}${a.prog?' · '+a.prog:''}</div>`:''}
-        ${a.notes?`<div class="anotes">${a.notes}</div>`:''}
-        <div class="afoot">
-          ${a.li?`<a class="li-btn" href="${a.li}" target="_blank" rel="noopener noreferrer">Open LinkedIn →</a>`:''}
-          <button class="gbtn" onclick="editA(${a.id})">Edit</button>
-          <button class="gbtn" style="color:var(--red)" onclick="delA(${a.id})">Remove</button>
-        </div>
-      </div>`;
-    }).join('');
-}
+// renderAlumni — no-op, contact tracking moved to My Applications
+function renderAlumni(){ }
 
 // ═══════════════ APPLICATIONS ═══════════════
 function renderApplications(){
@@ -1245,57 +1381,32 @@ function renderDeadlines(){
     }).join('');
 }
 
-function downloadICS(item){
+function downloadICS(item, mode='multi'){
   const dl=new Date(item.deadline);
-  // Generate two reminders: 7 days before and day before
-  const fmt=d=>{
-    const s=d.toISOString().replace(/[-:]/g,'').split('.')[0]+'Z';
-    return s;
-  };
+  const fmt=d=>{const s=d.toISOString().replace(/[-:]/g,'').split('.')[0]+'Z';return s;};
   const uid=`ldpscout-${Date.now()}@ldpscout.app`;
   const now=fmt(new Date());
-  const due=fmt(dl);
-  // Day before
-  const dayBefore=new Date(dl);dayBefore.setDate(dayBefore.getDate()-1);
-  // 7 days before
-  const weekBefore=new Date(dl);weekBefore.setDate(weekBefore.getDate()-7);
+  const dateStr=dl.toISOString().split('T')[0].replace(/-/g,'');
 
-  const ics=`BEGIN:VCALENDAR
-VERSION:2.0
-PRODID:-//LDP Scout//LDP Deadline//EN
-CALSCALE:GREGORIAN
-METHOD:PUBLISH
-BEGIN:VEVENT
-UID:${uid}
-DTSTART;VALUE=DATE:${dl.toISOString().split('T')[0].replace(/-/g,'')}
-DTEND;VALUE=DATE:${dl.toISOString().split('T')[0].replace(/-/g,'')}
-DTSTAMP:${now}
-SUMMARY:DEADLINE: ${item.name} (${item.org})
-DESCRIPTION:LDP application deadline for ${item.name} at ${item.org}. Type: ${item.type}. Tracked via LDP Scout.
-BEGIN:VALARM
-TRIGGER:-P7D
-ACTION:DISPLAY
-DESCRIPTION:7 days until: ${item.name} deadline
-END:VALARM
-BEGIN:VALARM
-TRIGGER:-P1D
-ACTION:DISPLAY
-DESCRIPTION:Tomorrow: ${item.name} deadline — final check!
-END:VALARM
-BEGIN:VALARM
-TRIGGER:PT0S
-ACTION:DISPLAY
-DESCRIPTION:TODAY: ${item.name} deadline
-END:VALARM
-END:VEVENT
-END:VCALENDAR`;
+  const alarmMulti=`BEGIN:VALARM\nTRIGGER:-P30D\nACTION:DISPLAY\nDESCRIPTION:30 days until ${item.name} deadline — start your application\nEND:VALARM\nBEGIN:VALARM\nTRIGGER:-P7D\nACTION:DISPLAY\nDESCRIPTION:7 days until ${item.name} deadline — final review\nEND:VALARM\nBEGIN:VALARM\nTRIGGER:-P1D\nACTION:DISPLAY\nDESCRIPTION:Tomorrow: ${item.name} deadline — submit today!\nEND:VALARM`;
+  const alarmSingle=`BEGIN:VALARM\nTRIGGER:-P7D\nACTION:DISPLAY\nDESCRIPTION:7 days until: ${item.name} deadline\nEND:VALARM`;
+  const alarms=mode==='multi'?alarmMulti:alarmSingle;
 
+  const lines=[
+    'BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//LDP Scout//EN','CALSCALE:GREGORIAN','METHOD:PUBLISH',
+    'BEGIN:VEVENT',`UID:${uid}`,`DTSTART;VALUE=DATE:${dateStr}`,`DTEND;VALUE=DATE:${dateStr}`,
+    `DTSTAMP:${now}`,`SUMMARY:DEADLINE: ${item.name} (${item.org})`,
+    `DESCRIPTION:Application deadline tracked via LDP Scout.`,
+    ...alarms.split('\n'),
+    'END:VEVENT','END:VCALENDAR'
+  ];
+  const ics=lines.join('\r\n');
   const blob=new Blob([ics],{type:'text/calendar;charset=utf-8'});
   const a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
-  a.download=`ldp-deadline-${item.org.toLowerCase().replace(/\s+/g,'-')}.ics`;
+  a.download=`ldp-${item.org.toLowerCase().replace(/\s+/g,'-')}.ics`;
   a.click();
-  toast('📅 Calendar file downloaded — open it to add to your calendar');
+  toast('📅 Calendar file downloaded — open it to import into Google Calendar, Outlook, or Apple Calendar');
 }
 
 // ═══════════════ AI FILE PARSING (PDF.js + Mammoth) ═══════════════
@@ -1735,6 +1846,19 @@ if(!userProfile&&!localStorage.getItem('ldps_ob_skipped')){
 window._fitOnly=false;
 window._visaOnly=false;
 if(userProfile?.schools?.length) activeAlumniSchool=userProfile.schools[0];
+
+// Populate alumni modal school select from full list
+const aiSchoolSel = document.getElementById('ai-school');
+if(aiSchoolSel){
+  aiSchoolSel.innerHTML = ALL_MBA_SCHOOLS.map(s=>`<option value="${s.key}">${s.label}</option>`).join('') +
+    '<option value="both">Multiple schools</option>';
+}
+
+// Close ICS modal on outside click
+document.getElementById('ics-modal-overlay').addEventListener('click',e=>{
+  if(e.target===document.getElementById('ics-modal-overlay')) document.getElementById('ics-modal-overlay').classList.remove('open');
+});
+
 renderPrograms();
 // Set dynamic program count
 const pcEl=document.getElementById('prog-count');
