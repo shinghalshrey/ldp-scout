@@ -3,7 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Prevent stale HTML on mobile — forces fresh load every visit -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>LDP Scout — MBA Leadership Program Tracker</title>
+<!-- Build version: bumped automatically on each deploy to bust caches -->
+<meta name="build-version" content="2026-05-12-v4">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,300;1,9..144,400&family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -486,6 +492,64 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
   .topbar-brand { display: none; }
   .lp-mark-text { display: none; }
 }
+
+/* ── LANDING PAGE V2 — refined ── */
+.lp-cta-primary{background:var(--accent);color:#fff;border:none;border-radius:12px;padding:16px 28px;font-size:15px;font-weight:600;cursor:pointer;font-family:var(--sans);box-shadow:0 8px 24px rgba(29,106,69,0.22);transition:all .18s;display:inline-flex;align-items:center;gap:10px;letter-spacing:.2px}
+.lp-cta-primary:hover{background:var(--accent2);transform:translateY(-2px);box-shadow:0 12px 32px rgba(29,106,69,0.28)}
+.lp-cta-primary:disabled{opacity:.5;cursor:wait;transform:none}
+
+.lp-signup-bar-v2{display:flex;align-items:stretch;border-radius:14px;overflow:hidden;border:1.5px solid var(--border2);background:var(--bg2);box-shadow:var(--shadow-md);margin-bottom:14px;max-width:480px}
+.lp-signup-bar-v2 input{flex:1;padding:15px 18px;border:none;background:transparent;color:var(--text);font-size:15px;outline:none;font-family:var(--sans);min-width:0}
+.lp-signup-bar-v2 input:focus{background:var(--bg3)}
+.lp-signup-bar-v2 button{padding:15px 24px;background:var(--accent);color:#fff;border:none;cursor:pointer;font-weight:600;font-size:14px;font-family:var(--sans);white-space:nowrap;transition:background .15s}
+.lp-signup-bar-v2 button:hover{background:var(--accent2)}
+.lp-signup-bar-v2 button:disabled{opacity:.5;cursor:wait}
+
+.lp-edu-hint{font-size:12px;color:var(--text3);margin-bottom:4px;display:flex;align-items:center;gap:6px}
+.lp-edu-hint .dot{width:6px;height:6px;border-radius:50%;background:var(--accent)}
+.lp-msg{font-size:13px;margin:8px 0 0;line-height:1.5;max-width:480px}
+.lp-msg.ok{color:var(--accent)}
+.lp-msg.err{color:var(--coral)}
+
+/* Founder note — personal touch under hero */
+.lp-founder{margin-top:38px;padding-top:24px;border-top:1px solid var(--border);max-width:520px}
+.lp-founder-row{display:flex;align-items:flex-start;gap:14px}
+.lp-founder-avatar{width:44px;height:44px;border-radius:50%;background:var(--accent-bg);color:var(--accent);display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-style:italic;font-size:18px;font-weight:500;flex-shrink:0;border:1.5px solid rgba(29,106,69,0.18)}
+.lp-founder-text{flex:1}
+.lp-founder-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px}
+.lp-founder-quote{font-family:var(--serif);font-style:italic;font-size:14px;color:var(--text2);line-height:1.6;margin-bottom:6px}
+.lp-founder-sig{font-size:12px;color:var(--text2);font-weight:500}
+.lp-founder-sig span{color:var(--text3);font-weight:400}
+
+/* ESADE credit placeholder — neutral until permission granted */
+.lp-school-credit{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border:1px solid var(--border);border-radius:20px;background:var(--bg2);font-size:11px;color:var(--text3);margin-top:14px}
+.lp-school-credit .dot{width:6px;height:6px;border-radius:50%;background:var(--accent)}
+/* When official ESADE permission is granted, replace inner text with logo img */
+
+/* Features V2 — better cards */
+.lp-feat-v2{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:32px 28px;transition:all .2s;position:relative;overflow:hidden}
+.lp-feat-v2:hover{transform:translateY(-3px);box-shadow:var(--shadow-md);border-color:var(--border2)}
+.lp-feat-v2::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--accent);opacity:0;transition:opacity .2s}
+.lp-feat-v2:hover::before{opacity:1}
+.lp-feat-v2-icon{width:42px;height:42px;border-radius:10px;background:var(--accent-bg);color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:18px}
+
+/* Auth gate notice on signup bar */
+.lp-gate-note{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text3);margin-top:10px;padding:10px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;max-width:480px;line-height:1.5}
+.lp-gate-note strong{color:var(--text2);font-weight:600}
+.lp-gate-note-icon{color:var(--accent);flex-shrink:0}
+
+/* Mobile landing tweaks */
+@media (max-width: 768px){
+  .lp-founder{margin-top:24px}
+  .lp-signup-bar-v2{max-width:none}
+  .lp-msg,.lp-gate-note{max-width:none}
+}
+
+/* Freshness badge in topbar */
+.freshness-badge{display:flex;align-items:center;gap:6px;padding:5px 10px;border-radius:20px;background:var(--accent-bg);border:1px solid rgba(29,106,69,0.2);font-size:11px;color:var(--accent);font-weight:600;font-family:var(--mono);white-space:nowrap;margin-right:6px}
+.freshness-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 3px rgba(29,106,69,0.15);animation:pulse-dot 2.5s ease-in-out infinite}
+@keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:0.5}}
+@media (max-width:768px){.freshness-badge{display:none}}
 </style>
 </head>
 <body>
@@ -499,7 +563,10 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
       <div class="lp-mark"><span style="color:#fff;font-size:15px;font-weight:700">L</span></div>
       <div class="lp-brand">LDP <span>Scout</span></div>
     </div>
-    <button onclick="enterApp()" style="background:transparent;border:1.5px solid var(--border2);color:var(--text2);padding:8px 18px;border-radius:8px;font-family:var(--sans);font-size:13px;cursor:pointer;">Browse programs →</button>
+    <div style="display:flex;align-items:center;gap:10px">
+      <span style="font-size:12px;color:var(--text3)">Already a member?</span>
+      <button onclick="document.getElementById('lp-email').focus()" style="background:transparent;border:1.5px solid var(--border2);color:var(--text);padding:8px 18px;border-radius:8px;font-family:var(--sans);font-size:13px;cursor:pointer;font-weight:500;">Sign in →</button>
+    </div>
   </div>
 
   <!-- HERO -->
@@ -507,24 +574,46 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
     <div class="lp-hero-left">
       <div class="lp-eyebrow">MBA Leadership Development Programs</div>
       <div class="lp-title">Your personal<br><em>LDP recruiting</em><br>command centre</div>
-      <div class="lp-sub">48 verified programs. AI resume fit scoring. Alumni discovery. Deadline tracking. Built by an ESADE MBA student — for MBA students.</div>
+      <div class="lp-sub">Verified MBA-specific Leadership Development Programs across Europe, UAE, and beyond. AI-matched to your CV. Alumni discovery. Deadline tracking — all in one place.</div>
 
-      <div class="lp-signup-bar">
-        <input id="lp-email" type="email" placeholder="your@school.edu" onkeydown="if(event.key==='Enter') lpSignUp()">
-        <button onclick="lpSignUp()" id="lp-signup-btn">Get Started Free →</button>
+      <div class="lp-edu-hint"><span class="dot"></span> Free for MBA students. Sign in with your school email to access.</div>
+      <div class="lp-signup-bar-v2">
+        <input id="lp-email" type="email" placeholder="you@esade.edu" autocomplete="email" onkeydown="if(event.key==='Enter') lpSignUp()">
+        <button onclick="lpSignUp()" id="lp-signup-btn">Explore Programs →</button>
       </div>
-      <p id="lp-signup-msg" style="font-size:13px;color:var(--accent);margin:0 0 12px;display:none;"></p>
-      <button class="lp-browse-link" onclick="enterApp()">Browse without an account →</button>
+      <p id="lp-signup-msg" class="lp-msg" style="display:none;"></p>
 
-      <div style="display:flex;gap:24px;margin-top:36px;flex-wrap:wrap;">
+      <div class="lp-gate-note">
+        <span class="lp-gate-note-icon">🔒</span>
+        <span><strong>Why a school email?</strong> Keeps the community MBA-only and lets us tag programs to your school's alumni network. We never share your address.</span>
+      </div>
+
+      <div style="display:flex;gap:24px;margin-top:28px;flex-wrap:wrap;">
         <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text2);">
-          <span style="color:var(--accent);font-size:16px;">✓</span> Free forever
+          <span style="color:var(--accent);font-size:16px;">✓</span> No password — magic link sign in
         </div>
         <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text2);">
-          <span style="color:var(--accent);font-size:16px;">✓</span> No password needed
+          <span style="color:var(--accent);font-size:16px;">✓</span> Your data is private to you
         </div>
         <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text2);">
-          <span style="color:var(--accent);font-size:16px;">✓</span> Data verified May 2026
+          <span style="color:var(--accent);font-size:16px;">✓</span> <span id="lp-verified-stamp">Programs verified May 2026</span>
+        </div>
+      </div>
+
+      <!-- Founder note -->
+      <div class="lp-founder">
+        <div class="lp-founder-label">Why I built this</div>
+        <div class="lp-founder-row">
+          <div class="lp-founder-avatar">S</div>
+          <div class="lp-founder-text">
+            <div class="lp-founder-quote">"I faced these problems myself during my MBA — Leadership Development Programs are scattered across careers pages, named inconsistently, and almost impossible to match to your actual profile. I built LDP Scout to solve this for the next cohort of MBAs going through the same recruiting cycle."</div>
+            <div class="lp-founder-sig">Shrey Singhal <span>· ESADE MBA Class of 2026</span></div>
+          </div>
+        </div>
+        <!-- ESADE logo placeholder — replace innerHTML with <img> after written permission from ESADE careers office -->
+        <div class="lp-school-credit" id="lp-school-credit">
+          <span class="dot"></span>
+          <span>Built by an ESADE MBA student</span>
         </div>
       </div>
     </div>
@@ -536,14 +625,13 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
           <div class="lp-mock-dot" style="background:#ff5f57"></div>
           <div class="lp-mock-dot" style="background:#ffbd2e"></div>
           <div class="lp-mock-dot" style="background:#28ca41"></div>
-          <div class="lp-mock-title">LDP Scout — Programs</div>
+          <div class="lp-mock-title">LDP Scout — AI Fit Scan results</div>
         </div>
         <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;">
-          <span style="font-size:11px;background:var(--accent);color:#fff;padding:4px 10px;border-radius:20px;">All</span>
-          <span style="font-size:11px;background:var(--bg3);color:var(--text2);padding:4px 10px;border-radius:20px;">Europe</span>
-          <span style="font-size:11px;background:var(--bg3);color:var(--text2);padding:4px 10px;border-radius:20px;">UAE/Gulf</span>
-          <span style="font-size:11px;background:var(--bg3);color:var(--text2);padding:4px 10px;border-radius:20px;">Finance</span>
-          <span style="font-size:11px;background:var(--bg3);color:var(--text2);padding:4px 10px;border-radius:20px;">Consulting</span>
+          <span style="font-size:11px;background:var(--accent);color:#fff;padding:4px 10px;border-radius:20px;">All tiers</span>
+          <span style="font-size:11px;background:var(--bg3);color:var(--text2);padding:4px 10px;border-radius:20px;">Best Fit</span>
+          <span style="font-size:11px;background:var(--bg3);color:var(--text2);padding:4px 10px;border-radius:20px;">Strong Fit</span>
+          <span style="font-size:11px;background:var(--bg3);color:var(--text2);padding:4px 10px;border-radius:20px;">UAE</span>
         </div>
         <div class="lp-mock-row">
           <div>
@@ -555,39 +643,39 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
         </div>
         <div class="lp-mock-row">
           <div>
-            <div class="lp-mock-co">McKinsey Associate</div>
-            <div class="lp-mock-loc">Consulting · Global</div>
+            <div class="lp-mock-co">DHL Consulting LDP</div>
+            <div class="lp-mock-loc">Strategy · Bonn, Germany</div>
           </div>
-          <span class="lp-mock-chip">★★★★ Strong Fit</span>
-          <span class="lp-mock-badge" style="background:var(--amber-bg);color:var(--amber)">Jul 2026</span>
+          <span class="lp-mock-chip">★★★★★ Best Fit</span>
+          <span class="lp-mock-badge" style="background:var(--accent-bg);color:var(--accent)">Rolling</span>
         </div>
         <div class="lp-mock-row">
           <div>
-            <div class="lp-mock-co">Unilever UFLP</div>
-            <div class="lp-mock-loc">General Mgmt · UK · Netherlands</div>
+            <div class="lp-mock-co">Roche Business Perspectives</div>
+            <div class="lp-mock-loc">Healthcare · Basel · Global</div>
           </div>
           <span class="lp-mock-chip">★★★★ Strong Fit</span>
-          <span class="lp-mock-badge" style="background:var(--blue-bg);color:var(--blue)">Jun 2026</span>
+          <span class="lp-mock-badge" style="background:var(--blue-bg);color:var(--blue)">Sep 2026</span>
         </div>
         <div class="lp-mock-row" style="opacity:.55">
           <div>
-            <div class="lp-mock-co">ING International Talent</div>
-            <div class="lp-mock-loc">Finance · Amsterdam · Brussels</div>
+            <div class="lp-mock-co">Mubadala Graduate Programme</div>
+            <div class="lp-mock-loc">Investments · Abu Dhabi</div>
           </div>
-          <span class="lp-mock-chip">★★★ Good Fit</span>
+          <span class="lp-mock-chip">★★★ Achievable</span>
           <span class="lp-mock-badge" style="background:var(--bg3);color:var(--text3)">Watch</span>
         </div>
         <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
-          <span style="font-size:11px;color:var(--text3);">Showing 48 programs · 31 open now</span>
-          <span style="font-size:11px;color:var(--accent);font-weight:600;">✓ Verified May 2026</span>
+          <span style="font-size:11px;color:var(--text3);"><span id="lp-mock-count">48</span> programs tracked</span>
+          <span style="font-size:11px;color:var(--accent);font-weight:600;">✦ AI-matched to your CV</span>
         </div>
       </div>
       <!-- Floating badge -->
       <div style="position:absolute;bottom:-16px;right:24px;background:var(--bg2);border:1px solid var(--border2);border-radius:12px;padding:12px 16px;box-shadow:var(--shadow-md);display:flex;align-items:center;gap:10px;">
         <div style="width:32px;height:32px;background:var(--accent-bg);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;">✦</div>
         <div>
-          <div style="font-size:12px;font-weight:600;">AI Fit Scan complete</div>
-          <div style="font-size:11px;color:var(--text3);">36 programs matched your CV</div>
+          <div style="font-size:12px;font-weight:600;">Fit Scan complete</div>
+          <div style="font-size:11px;color:var(--text3);">Tier rankings + gap analysis</div>
         </div>
       </div>
     </div>
@@ -595,10 +683,10 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 
   <!-- STATS STRIP -->
   <div class="lp-stats">
-    <div><div class="lp-stat-n">48</div><div class="lp-stat-l">Verified MBA programs<br>across Europe, UAE & global</div></div>
+    <div><div class="lp-stat-n" id="lp-stat-progs">48</div><div class="lp-stat-l">Verified MBA programs<br>across Europe, UAE &amp; global</div></div>
     <div><div class="lp-stat-n">5</div><div class="lp-stat-l">AI fit tiers matched<br>to your specific resume</div></div>
-    <div><div class="lp-stat-n">15+</div><div class="lp-stat-l">Pre-loaded alumni search<br>cards (ESADE · HEC · LBS)</div></div>
-    <div><div class="lp-stat-n">100%</div><div class="lp-stat-l">Free — no subscription,<br>no hidden fees</div></div>
+    <div><div class="lp-stat-n">6</div><div class="lp-stat-l">Recruiting dimensions<br>analysed in your CV</div></div>
+    <div><div class="lp-stat-n">37+</div><div class="lp-stat-l">European MBA schools<br>supported in alumni finder</div></div>
   </div>
 
   <!-- FEATURES -->
@@ -606,35 +694,35 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
     <div class="lp-features-title">Everything you need to land an LDP</div>
     <div class="lp-features-sub">Built around the actual MBA recruiting workflow — not a generic job board</div>
     <div class="lp-features">
-      <div class="lp-feat">
-        <div class="lp-feat-icon">✦</div>
+      <div class="lp-feat-v2">
+        <div class="lp-feat-v2-icon">✦</div>
         <div class="lp-feat-title">AI Resume Fit Scan</div>
-        <div class="lp-feat-text">Upload your CV and get instant tier rankings across all 48 programs — Best Fit to Long Shot — with gap analysis across 6 dimensions: leadership, operations, quant, and more.</div>
+        <div class="lp-feat-text">Upload your CV and get instant tier rankings — Best Fit to Long Shot — with gap analysis across 6 recruiting dimensions: leadership, international, operations, quant, cross-functional, entrepreneurial.</div>
       </div>
-      <div class="lp-feat">
-        <div class="lp-feat-icon">🎓</div>
-        <div class="lp-feat-title">Alumni Network Discovery</div>
-        <div class="lp-feat-text">Smart LinkedIn search cards for every program, personalised to your MBA school. Find the right people inside target firms before applications open.</div>
+      <div class="lp-feat-v2">
+        <div class="lp-feat-v2-icon">🎓</div>
+        <div class="lp-feat-title">Alumni Finder</div>
+        <div class="lp-feat-text">Smart LinkedIn search builders for every program — by company, by role, filtered to your MBA school. Plus copy-paste connection request templates so you actually reach out.</div>
       </div>
-      <div class="lp-feat">
-        <div class="lp-feat-icon">📋</div>
+      <div class="lp-feat-v2">
+        <div class="lp-feat-v2-icon">📋</div>
         <div class="lp-feat-title">Application Kanban</div>
-        <div class="lp-feat-text">Track every application from Networking → Offer with a full kanban board, notes, deadline reminders, and one-click calendar exports.</div>
+        <div class="lp-feat-text">Track every application from Networking → Offer with a full kanban board, notes, contacts, and deadline reminders that sync to your account — not the browser.</div>
       </div>
-      <div class="lp-feat">
-        <div class="lp-feat-icon">📅</div>
+      <div class="lp-feat-v2">
+        <div class="lp-feat-v2-icon">📅</div>
         <div class="lp-feat-title">Deadline Tracker</div>
-        <div class="lp-feat-text">All upcoming deadlines sorted by urgency. ICS export adds 30-day, 7-day, and 1-day reminders to your calendar automatically.</div>
+        <div class="lp-feat-text">All upcoming deadlines sorted by urgency. ICS export adds 30-day, 7-day, and 1-day reminders to your calendar automatically — works with Google, Outlook, Apple.</div>
       </div>
-      <div class="lp-feat">
-        <div class="lp-feat-icon">🌍</div>
+      <div class="lp-feat-v2">
+        <div class="lp-feat-v2-icon">🌍</div>
         <div class="lp-feat-title">Europe · UAE · Global</div>
-        <div class="lp-feat-text">48 hand-picked programs with verified career page links, visa sponsorship data, salary ranges, and last-verified timestamps — no stale data.</div>
+        <div class="lp-feat-text">Hand-picked MBA-specific programs with verified career page links, visa sponsorship flags, salary ranges, and last-verified timestamps — no stale data, no MiM entries.</div>
       </div>
-      <div class="lp-feat">
-        <div class="lp-feat-icon">🔒</div>
+      <div class="lp-feat-v2">
+        <div class="lp-feat-v2-icon">🔒</div>
         <div class="lp-feat-title">Private by Design</div>
-        <div class="lp-feat-text">Your applications are private to your account. Community intel is opt-in. Resume analysis runs in-session and is never stored on any server.</div>
+        <div class="lp-feat-text">Your applications and resume are private to your account. Community intel is opt-in. Resume analysis runs server-side via a secure proxy — never exposed to other users.</div>
       </div>
     </div>
   </div>
@@ -643,24 +731,17 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
   <div class="lp-bottom">
     <div class="lp-trust-text">
       <strong>Built for the real MBA recruiting workflow.</strong><br>
-      Program data verified May 2026 — sourced from official careers pages, MBA-Exchange rankings, and ESADE/HEC careers office intel. Designed by an ESADE MBA student, for MBA students actively recruiting.
+      Program data sourced from official careers pages, MBA-Exchange rankings, and direct school careers office intel. Maintained by an active MBA student — for active MBA students.
     </div>
-    <button class="lp-signup-bar" onclick="document.getElementById('lp-email').focus();window.scrollTo({top:0,behavior:'smooth'})" style="display:inline-flex;width:auto;cursor:pointer;border:none;border-radius:14px;">
-      <span style="padding:15px 24px;font-size:15px;color:var(--text2);">your@school.edu</span>
-      <span style="padding:15px 26px;background:var(--accent);color:#fff;font-weight:600;font-size:14px;border-radius:0 14px 14px 0;">Get Started Free →</span>
+    <button class="lp-cta-primary" onclick="document.getElementById('lp-email').focus();window.scrollTo({top:0,behavior:'smooth'})">
+      Sign in to explore programs →
     </button>
+    <div style="font-size:12px;color:var(--text3);margin-top:14px">Magic link sent to your school email — no password needed.</div>
   </div>
 
 </div>
 
 
-
-<!-- PAYWALL -->
-
-    <button class="ob-cta" onclick="saveOnboarding()">Build My Dashboard →</button>
-    <button class="ob-skip" onclick="skipOnboarding()">Skip for now</button>
-  </div>
-</div>
 
 <!-- TOPBAR -->
 <div class="topbar">
@@ -671,14 +752,17 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
   <div class="nav-tabs">
     <button class="nav-tab active" onclick="showPage('programs')">Programs</button>
     <button class="nav-tab" onclick="showPage('aifit')">✦ AI Fit Scan</button>
-    <button class="nav-tab" onclick="showPage('alumni')">Alumni Network</button>
+    <button class="nav-tab" onclick="showPage('alumni')">Alumni Finder</button>
     <button class="nav-tab" onclick="showPage('applications')">My Applications</button>
     <button class="nav-tab" onclick="showPage('deadlines')">Deadlines</button>
   </div>
   <div class="topbar-right">
-    <div class="date-lbl" id="today-lbl"></div>
-    <span id="user-info" style="color:#7c8db5;font-size:12px;margin-right:8px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
-    <button id="auth-btn" onclick="handleAuth()" style="padding:6px 14px;border-radius:8px;background:#6366f1;color:white;border:none;cursor:pointer;font-weight:600;font-size:12px;margin-right:8px;">Sign In</button>
+    <div class="freshness-badge" id="freshness-badge" title="Last full data verification">
+      <span class="freshness-dot"></span>
+      <span>Verified <span id="freshness-date"></span></span>
+    </div>
+    <span id="user-info" style="color:var(--text2);font-size:12px;margin-right:8px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
+    <button id="auth-btn" onclick="handleAuth()" style="padding:6px 14px;border-radius:8px;background:var(--accent);color:white;border:none;cursor:pointer;font-weight:600;font-size:12px;">Sign In</button>
   </div>
 </div>
 
@@ -737,13 +821,13 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 
 <!-- ALUMNI PAGE -->
 <div class="page" id="page-alumni">
-  <div class="sech"><h2>Alumni Network</h2><p>Find the right people inside target firms — then reach out before applications open.</p></div>
+  <div class="sech"><h2>Alumni Finder</h2><p>Build the right LinkedIn searches and connection messages to reach the right people inside target programs — before applications open.</p></div>
 
   <div class="itip" style="margin-bottom:16px">
-    <strong>How to network effectively using this page:</strong><br>
-    <strong style="color:var(--text)">① Find people</strong> — Use the LinkedIn links below to find alumni at each firm. Search by company first, then filter by role. Target people who joined in the last 2–3 years.<br>
-    <strong style="color:var(--text)">② Reach out on LinkedIn</strong> — Send a short note (3–4 sentences). Mention your shared school, your background, and one specific thing about their program. Ask for a 20-minute call.<br>
-    <strong style="color:var(--text)">③ Timing</strong> — Reach out 6–8 weeks before applications open. Log contacts in My Applications once you've spoken.
+    <strong>How to use this page:</strong><br>
+    <strong style="color:var(--text)">① Pick your school</strong> — so we filter searches to your alumni network.<br>
+    <strong style="color:var(--text)">② Run 2 searches per program</strong> — <em>"School + Company"</em> finds warm alumni intros, <em>"School + Role"</em> finds people doing the exact LDP role. <em>"Company"</em> and <em>"Role"</em> are broader searches if alumni results are thin.<br>
+    <strong style="color:var(--text)">③ Copy the connection request</strong> — Click "📋 Message" on any row for a ready-to-paste 300-character message. Edit the placeholders before sending.
   </div>
 
   <!-- SCHOOL SELECTOR + SEARCH -->
@@ -772,12 +856,12 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 
   <!-- ALUMNI TABLE -->
   <div class="table-wrap" id="alumni-table-wrap">
-    <div style="display:grid;grid-template-columns:2fr 1fr 1fr 140px 140px;padding:9px 16px;border-bottom:1px solid var(--border);background:var(--bg3)">
+    <div style="display:grid;grid-template-columns:1.8fr 1fr 1fr 1fr 1.6fr;padding:9px 16px;border-bottom:1px solid var(--border);background:var(--bg3)">
       <div class="th">Program / Organisation</div>
       <div class="th">Location · Status</div>
       <div class="th">Function</div>
-      <div class="th">① Company Search</div>
-      <div class="th">② School Alumni</div>
+      <div class="th">Broad searches</div>
+      <div class="th">School-filtered searches</div>
     </div>
     <div id="alumni-search-rows"></div>
   </div>
@@ -933,6 +1017,16 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 </div>
 <script>
 // ═══════════════ DATA ═══════════════
+// Global last-verified date — bump this when you re-run program audits.
+// Displayed in the topbar and on the landing page so users can see data freshness.
+const DATA_LAST_VERIFIED = '2026-05-12';   // YYYY-MM-DD
+const DATA_LAST_VERIFIED_LABEL = 'May 2026';
+
+// Each program SHOULD eventually have:
+//   mba_level: 'mba_only' | 'mba_and_mim' | 'unknown'   (set during program audit)
+//   last_verified: 'YYYY-MM-DD'                          (per-program timestamp)
+// For now, programs without these fields default to 'unknown' and the global date.
+
 const DP = [
   {id:1,name:"Amazon Pathways Operations LDP",org:"Amazon",geo:"global",loc:"EU · UAE · India",fn:"operations",sector:"tech",status:"rolling",deadline:"",dlnote:"Rolling — no fixed deadline, apply early",fit:5,visa:true,tags:["MBA","Operations","Rotational"],notes:"3-year career accelerator for MBA graduates. Recruits fall for following year. Strong fit: operations background, 3+ yrs exp. Language skills required for EU postings.",url:"https://www.amazon.jobs/content/en/career-programs/pathways"},
   {id:2,name:"Microsoft Aspire Experience (MBA)",org:"Microsoft",geo:"global",loc:"Dublin · Amsterdam · Dubai",fn:"strategy",sector:"tech",status:"watch",deadline:"2026-10-01",dlnote:"Opens Sep–Oct annually",fit:4,visa:true,tags:["MBA","Product","Strategy"],notes:"Strong Dublin and Dubai presence. Search 'Microsoft Aspire' on LinkedIn for current cohort members. Targets MBA generalists with a product/strategy orientation.",url:"https://careers.microsoft.com"},
@@ -1013,20 +1107,113 @@ const DA = [
   } catch(e){ localStorage.removeItem('ldps_progs'); }
 })();
 
-// ─── Supabase Auth ───────────────────────────────────────────────
+// ─── Supabase Auth + Data Layer ──────────────────────────────────
 const SUPA_URL = 'https://kqtarrgtxqpamlfrkgiv.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtxdGFycmd0eHFwYW1sZnJrZ2l2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1MDMxNzksImV4cCI6MjA5NDA3OTE3OX0.D6Foh3F2gS0d1lpWEHuc5incL-9LDW__17qRony9X2U';
+// NOTE on key safety: The Supabase anon key is designed to be public.
+// Real security is enforced by Row Level Security (RLS) policies on each
+// table — see migrations.sql. Verify RLS is enabled before sharing widely.
 const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
 let currentUser = null;
+let userProfile = null;
+
+// ─── .edu validation ─────────────────────────────────────────────
+// Allow standard .edu TLDs plus school-specific domains used by major MBA programs.
+const EDU_DOMAIN_PATTERNS = [
+  /\.edu$/i,                  // US universities + ESADE (esade.edu), HEC (hec.edu)
+  /\.edu\.[a-z]{2,3}$/i,      // .edu.ar, .edu.au, .edu.in etc.
+  /\.ac\.[a-z]{2,3}$/i,       // .ac.uk (LBS, Oxford, Cambridge), .ac.in
+  /\.ie$/i,                   // Trinity Dublin, UCD — Irish universities
+];
+// School-specific exceptions for known MBA programs whose domains don't match above:
+const EDU_DOMAIN_WHITELIST = [
+  'insead.edu',          // matched by .edu — listed for clarity
+  'mbs.edu',             // Mannheim (mbs.de also valid)
+  'mbs.de',
+  'bocconi.it',          // SDA Bocconi
+  'bocconi.education',
+  'unibocconi.it',
+  'imd.org',             // IMD
+  'iese.edu',
+  'student.ie.edu',
+  'ie.edu',
+  'ceibs.edu',
+  'whu.edu',
+  'frankfurt-school.de',
+  'novasbe.pt',
+  'ucp.pt',              // Católica Lisbon
+  'unisg.ch',            // St. Gallen
+  'rsm.nl',
+  'london.edu',          // LBS
+];
+
+function isValidEduEmail(email){
+  if(!email || !email.includes('@')) return false;
+  const domain = email.split('@')[1].toLowerCase().trim();
+  if(!domain) return false;
+  // Whitelist match
+  if(EDU_DOMAIN_WHITELIST.includes(domain)) return true;
+  // Pattern match
+  for(const pat of EDU_DOMAIN_PATTERNS){
+    if(pat.test(domain)) return true;
+  }
+  return false;
+}
 
 async function initAuth() {
-  const { data: { session } } = await sb.auth.getSession();
-  currentUser = session?.user ?? null;
-  sb.auth.onAuthStateChange((_event, session) => {
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    currentUser = session?.user ?? null;
+  } catch(e){
+    console.warn('Supabase getSession failed:', e);
+    currentUser = null;
+  }
+  sb.auth.onAuthStateChange(async (event, session) => {
+    const wasSignedIn = !!currentUser;
     currentUser = session?.user ?? null;
     updateAuthUI();
+    if(currentUser && !wasSignedIn){
+      // Just signed in — hide landing, load data, show app
+      await onSignIn();
+    } else if(!currentUser && wasSignedIn){
+      // Just signed out — show landing
+      onSignOut();
+    }
   });
   updateAuthUI();
+  // On initial load: if already signed in, hide landing + load data
+  if(currentUser){
+    await onSignIn();
+  } else {
+    showLanding();
+  }
+}
+
+function showLanding(){
+  document.getElementById('landing-overlay').classList.add('open');
+}
+function hideLanding(){
+  document.getElementById('landing-overlay').classList.remove('open');
+}
+
+async function onSignIn(){
+  hideLanding();
+  // Load profile, applications, resume — all from Supabase
+  await loadUserProfile();
+  await loadUserApplications();
+  await loadUserResume();
+  renderPrograms();
+  renderApplications();
+}
+
+function onSignOut(){
+  apps = [];
+  userProfile = null;
+  resumeText = '';
+  showLanding();
+  // Clear UI
+  document.getElementById('app-kanban').innerHTML='';
+  document.getElementById('ai-results').innerHTML='';
 }
 
 function updateAuthUI() {
@@ -1045,71 +1232,262 @@ async function handleAuth() {
   if (currentUser) {
     await sb.auth.signOut();
   } else {
-    showAuthModal();
+    showLanding();
+    setTimeout(()=>{ const el=document.getElementById('lp-email'); if(el) el.focus(); },150);
+  }
+}
+
+// ─── Landing page sign-up (magic link) with .edu validation ──────
+async function lpSignUp(){
+  const emailInput = document.getElementById('lp-email');
+  const btn = document.getElementById('lp-signup-btn');
+  const msg = document.getElementById('lp-signup-msg');
+  const email = (emailInput.value||'').trim();
+
+  msg.style.display = 'none';
+  msg.classList.remove('ok','err');
+
+  if(!email){
+    msg.textContent = 'Please enter your school email.';
+    msg.classList.add('err');
+    msg.style.display = 'block';
+    return;
+  }
+  if(!isValidEduEmail(email)){
+    msg.innerHTML = '⚠️ Please use your university school email (.edu, .ac.uk, or your MBA school domain). LDP Scout is currently invite-only for MBA students.<br><span style="font-size:11px;color:var(--text3)">Accepted examples: you@esade.edu · you@hec.edu · you@london.edu</span>';
+    msg.classList.add('err');
+    msg.style.display = 'block';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Sending...';
+
+  try {
+    const redirectTo = window.location.origin + window.location.pathname;
+    const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: redirectTo } });
+    if(error){
+      msg.textContent = error.message || 'Could not send magic link. Please try again.';
+      msg.classList.add('err');
+      msg.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Explore Programs →';
+      return;
+    }
+    msg.innerHTML = '✓ <strong>Check your inbox.</strong> Click the magic link in the email we just sent to <strong>'+email+'</strong> to sign in. The link expires in 1 hour.';
+    msg.classList.add('ok');
+    msg.style.display = 'block';
+    btn.textContent = 'Magic link sent ✓';
+    // Keep disabled — user should click email link, not retap
+  } catch(err){
+    msg.textContent = err.message || 'Unexpected error. Please try again.';
+    msg.classList.add('err');
+    msg.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = 'Explore Programs →';
   }
 }
 
 function showAuthModal() {
-  const existing = document.getElementById('auth-modal');
-  if (existing) existing.remove();
-  const modal = document.createElement('div');
-  modal.id = 'auth-modal';
-  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:9999;';
-  modal.innerHTML = `
-    <div style="background:#1e2130;border-radius:12px;padding:32px;width:360px;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
-      <h2 style="color:#e2e8f0;margin:0 0 8px;font-size:20px;">Sign in to LDP Scout</h2>
-      <p style="color:#7c8db5;margin:0 0 24px;font-size:14px;">Track your applications privately. Share intel with your cohort.</p>
-      <input id="auth-email" type="email" placeholder="your@email.com"
-        style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid #3b4a6b;background:#0f1117;color:#e2e8f0;font-size:14px;box-sizing:border-box;margin-bottom:12px;">
-      <button onclick="sendMagicLink()"
-        style="width:100%;padding:12px;border-radius:8px;background:#6366f1;color:white;font-weight:600;border:none;cursor:pointer;font-size:14px;">
-        Send Magic Link →
-      </button>
-      <p id="auth-msg" style="color:#4ade80;font-size:13px;margin:12px 0 0;text-align:center;display:none;"></p>
-      <button onclick="document.getElementById('auth-modal').remove()"
-        style="width:100%;padding:8px;margin-top:12px;border-radius:8px;background:transparent;color:#7c8db5;border:1px solid #3b4a6b;cursor:pointer;font-size:13px;">
-        Cancel
-      </button>
-    </div>`;
-  document.body.appendChild(modal);
-  modal.addEventListener('click', e => { if(e.target===modal) modal.remove(); });
+  // Used by topbar Sign In button — just show the landing page
+  showLanding();
+  setTimeout(()=>{ const el=document.getElementById('lp-email'); if(el) el.focus(); },150);
 }
 
-async function sendMagicLink() {
-  const email = document.getElementById('auth-email').value.trim();
-  if (!email) return;
-  const btn = document.querySelector('#auth-modal button');
-  btn.textContent = 'Sending...';
-  const redirectTo = window.location.origin + window.location.pathname;
-  const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: redirectTo } });
-  const msg = document.getElementById('auth-msg');
-  msg.style.display = 'block';
-  if (error) {
-    msg.style.color = '#f87171';
-    msg.textContent = error.message;
-    btn.textContent = 'Send Magic Link →';
-  } else {
-    msg.textContent = '\u2713 Check your email for the login link!';
-    btn.textContent = 'Sent!';
-    btn.disabled = true;
+// ════════════════════════════════════════════════════════════════
+// SUPABASE DATA LAYER — profiles, applications, resumes
+// ════════════════════════════════════════════════════════════════
+
+async function loadUserProfile(){
+  if(!currentUser) return;
+  try {
+    const { data, error } = await sb.from('user_profiles').select('*').eq('user_id', currentUser.id).maybeSingle();
+    if(error) throw error;
+    if(data){
+      userProfile = {
+        full_name:   data.full_name,
+        school_key:  data.school_key,
+        school_label:data.school_label,
+        mba_year:    data.mba_year,
+        target_geos: data.target_geos || [],
+        target_fns:  data.target_fns || [],
+        goals_note:  data.goals_note,
+        // For backward-compat with old code referencing userProfile.schools
+        schools:     data.school_key ? [data.school_key] : []
+      };
+      activeAlumniSchool = data.school_key || activeAlumniSchool;
+    } else {
+      // First-time user — create a stub profile row
+      const stub = { user_id: currentUser.id, email: currentUser.email };
+      await sb.from('user_profiles').upsert(stub, {onConflict:'user_id'});
+      userProfile = { schools: [] };
+    }
+  } catch(e){
+    console.warn('loadUserProfile failed:', e);
+    userProfile = { schools: [] };
+  }
+}
+
+async function saveUserProfile(updates){
+  if(!currentUser) return;
+  try {
+    const payload = { user_id: currentUser.id, email: currentUser.email, ...updates };
+    const { error } = await sb.from('user_profiles').upsert(payload, {onConflict:'user_id'});
+    if(error) throw error;
+    // Refresh in-memory copy
+    await loadUserProfile();
+  } catch(e){
+    console.error('saveUserProfile failed:', e);
+    toast('Could not save profile — check connection.');
+  }
+}
+
+async function loadUserApplications(){
+  if(!currentUser){ apps = []; return; }
+  try {
+    const { data, error } = await sb.from('user_applications').select('*').eq('user_id', currentUser.id).order('created_at',{ascending:false});
+    if(error) throw error;
+    // Map DB rows → in-memory shape used by render functions
+    apps = (data||[]).map(r=>({
+      id: r.id,                  // UUID now, not a Date.now() number
+      _db: true,                 // marker that this came from DB
+      program_id: r.program_id,
+      name: r.name,
+      org: r.org||'',
+      geo: r.geo||'',
+      status: r.status||'networking',
+      date: r.applied_on||'',
+      deadline: r.deadline||'',
+      next: r.next_step||'',
+      contact: r.contact||'',
+      notes: r.notes||''
+    }));
+  } catch(e){
+    console.warn('loadUserApplications failed:', e);
+    apps = [];
+  }
+}
+
+async function saveApplicationToDB(app){
+  if(!currentUser) return null;
+  const row = {
+    user_id:    currentUser.id,
+    program_id: app.program_id || null,
+    name:       app.name,
+    org:        app.org || null,
+    geo:        app.geo || null,
+    status:     app.status || 'networking',
+    applied_on: app.date || null,
+    deadline:   app.deadline || null,
+    next_step:  app.next || null,
+    contact:    app.contact || null,
+    notes:      app.notes || null
+  };
+  try {
+    if(app.id && app._db){
+      // Update existing
+      const { error } = await sb.from('user_applications').update(row).eq('id', app.id).eq('user_id', currentUser.id);
+      if(error) throw error;
+      return app.id;
+    } else {
+      // Insert new
+      const { data, error } = await sb.from('user_applications').insert(row).select('id').single();
+      if(error) throw error;
+      return data.id;
+    }
+  } catch(e){
+    console.error('saveApplicationToDB failed:', e);
+    toast('Could not save to cloud — please check your connection.');
+    return null;
+  }
+}
+
+async function deleteApplicationFromDB(id){
+  if(!currentUser) return;
+  try {
+    const { error } = await sb.from('user_applications').delete().eq('id', id).eq('user_id', currentUser.id);
+    if(error) throw error;
+  } catch(e){
+    console.error('deleteApplicationFromDB failed:', e);
+    toast('Could not delete from cloud — please refresh.');
+  }
+}
+
+async function loadUserResume(){
+  if(!currentUser){ resumeText = ''; return; }
+  try {
+    const { data, error } = await sb.from('user_resumes').select('*').eq('user_id', currentUser.id).maybeSingle();
+    if(error) throw error;
+    if(data){
+      resumeText = data.raw_text || '';
+      // Surface filename in UI if present
+      if(data.file_name){
+        const nd = document.getElementById('file-name-display');
+        if(nd){ nd.textContent = '✓ Saved: ' + data.file_name; nd.style.display = 'block'; }
+        const uz = document.getElementById('upload-zone');
+        if(uz) uz.classList.add('has-file');
+        const btn = document.getElementById('analyze-btn');
+        if(btn) btn.disabled = false;
+      }
+    } else {
+      resumeText = '';
+    }
+  } catch(e){
+    console.warn('loadUserResume failed:', e);
+    resumeText = '';
+  }
+}
+
+async function saveResumeToDB(rawText, fileName){
+  if(!currentUser) return;
+  try {
+    const row = {
+      user_id:     currentUser.id,
+      file_name:   fileName || null,
+      raw_text:    rawText,
+      char_count:  rawText.length,
+      uploaded_at: new Date().toISOString()
+    };
+    const { error } = await sb.from('user_resumes').upsert(row, {onConflict:'user_id'});
+    if(error) throw error;
+  } catch(e){
+    console.error('saveResumeToDB failed:', e);
+    toast('Resume saved locally but cloud sync failed — please retry.');
+  }
+}
+
+async function saveScanToHistory(result){
+  if(!currentUser) return;
+  try {
+    await sb.from('user_scan_history').insert({
+      user_id: currentUser.id,
+      result: result,
+      resume_chars: resumeText.length,
+      program_count: progs.length
+    });
+    // Mark resume last-scanned
+    await sb.from('user_resumes').update({ last_scan_at: new Date().toISOString() }).eq('user_id', currentUser.id);
+  } catch(e){
+    console.warn('saveScanToHistory failed (non-blocking):', e);
   }
 }
 // ────────────────────────────────────────────────────────────────
 
 let progs = JSON.parse(localStorage.getItem('ldps_progs')||'null')||JSON.parse(JSON.stringify(DP));
 let alum  = JSON.parse(localStorage.getItem('ldps_alum') ||'null')||JSON.parse(JSON.stringify(DA));
-let apps  = JSON.parse(localStorage.getItem('ldps_apps') ||'[]');
-let userProfile = JSON.parse(localStorage.getItem('ldps_profile')||'null');
-let selectedSchools = userProfile?.schools||[];
+let apps  = [];                       // loaded from Supabase on sign-in
+// userProfile is declared in the auth section above and populated by loadUserProfile()
+let selectedSchools = [];
 let eId   = {prog:null,alumni:null,app:null};
 let F     = {geo:'all',fn:'all',st:'all',asc:'all',ast:'all'};
 let resumeText = '';
 let isUnlocked = true; // paywall removed
 
 function persist(){
+  // Only program cache + alumni search cards live in localStorage now.
+  // Applications and resume are saved server-side in Supabase.
   localStorage.setItem('ldps_progs',JSON.stringify(progs));
   localStorage.setItem('ldps_alum', JSON.stringify(alum));
-  localStorage.setItem('ldps_apps', JSON.stringify(apps));
 }
 
 // ═══════════════ ONBOARDING ═══════════════
@@ -1213,32 +1591,16 @@ function confirmICS(mode){
   if(_icsItem) downloadICS(_icsItem, mode);
 }
 
-function saveOnboarding(){
-  const name=document.getElementById('ob-name').value.trim();
-  const email=document.getElementById('ob-email').value.trim();
-  if(!name){alert('Please enter your name.');return;}
-  userProfile={name,email,schools:selectedSchools};
-  localStorage.setItem('ldps_profile',JSON.stringify(userProfile));
-  document.getElementById('onboard-overlay').classList.remove('open');
-  applyProfile();
-  toast(`Welcome, ${name.split(' ')[0]}! Dashboard ready ✓`);
-}
+// Legacy onboarding stubs — the standalone onboarding modal was removed.
+// Profile data is now captured progressively: school via Alumni tab dropdown,
+// name via future settings panel. These remain only so any stale onclick="" handlers
+// don't throw if they survived removal.
+async function saveOnboarding(){ /* no-op */ }
+function skipOnboarding(){ /* no-op */ }
 
-function skipOnboarding(){
-  localStorage.setItem('ldps_ob_skipped','1');
-  document.getElementById('onboard-overlay').classList.remove('open');
-}
-
-function applyProfile(){
-  if(!userProfile) return;
-  // Update topbar greeting
-  const lbl=document.getElementById('today-lbl');
-  if(lbl&&userProfile.name) lbl.title=`Signed in as ${userProfile.name}`;
-  // Set active alumni school from profile if not already set
-  if(!activeAlumniSchool && userProfile.schools?.length){
-    activeAlumniSchool = userProfile.schools[0];
-  }
-}
+// Legacy stub — kept so any leftover references don't throw.
+// In the new auth-driven flow, profile is loaded by loadUserProfile() on sign-in.
+function applyProfile(){ /* no-op */ }
 
 // ═══════════════ PAYWALL ═══════════════
 
@@ -1250,6 +1612,12 @@ function dismissPaywall(){
 // ═══════════════ NAV ═══════════════
 const PAGE_ORDER=['programs','aifit','alumni','applications','deadlines'];
 function showPage(id){
+  // Hard-gate: must be signed in to access any tab
+  if(!currentUser){
+    showLanding();
+    setTimeout(()=>{ const el=document.getElementById('lp-email'); if(el) el.focus(); },150);
+    return;
+  }
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
   document.getElementById('page-'+id).classList.add('active');
@@ -1260,36 +1628,14 @@ function showPage(id){
   ({programs:renderPrograms,alumni:()=>{initAlumniSchoolDrop();renderAlumniSearch();},applications:renderApplications,deadlines:renderDeadlines,aifit:()=>{}})[id]?.();
 }
 
-async function lpSignUp(){
-  const email = document.getElementById('lp-email').value.trim();
-  if(!email){ document.getElementById('lp-email').focus(); return; }
-  const btn = document.getElementById('lp-signup-btn');
-  btn.textContent = 'Sending...'; btn.disabled = true;
-  const redirectTo2 = window.location.origin + window.location.pathname;
-  const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: redirectTo2 } });
-  const msg = document.getElementById('lp-signup-msg');
-  msg.style.display = 'block';
-  if(error){
-    msg.style.color = '#f87171';
-    msg.textContent = error.message;
-    btn.textContent = 'Get Started Free →'; btn.disabled = false;
-  } else {
-    msg.style.color = '#4ade80';
-    msg.textContent = '✓ Magic link sent! Check your email, then come back here.';
-    btn.textContent = 'Sent ✓';
-    // Also enter the app so they can browse while waiting
-    setTimeout(()=>enterApp(), 1800);
-  }
-}
-
+// Legacy stub — the new lpSignUp() (defined above in auth section) handles signup.
+// Kept here so any onclick handlers in old DOM nodes don't error.
 function enterApp(){
-  document.getElementById('landing-overlay').classList.remove('open');
-  // landing seen flag removed — always show on load
-  // Show onboarding after landing if first visit
-  if(!userProfile&&!localStorage.getItem('ldps_ob_skipped')){
-    setTimeout(()=>{document.getElementById('onboard-overlay').classList.add('open');},300);
+  if(currentUser){
+    hideLanding();
   } else {
-    applyProfile();
+    showLanding();
+    setTimeout(()=>{ const el=document.getElementById('lp-email'); if(el) el.focus(); },150);
   }
 }
 
@@ -1511,12 +1857,20 @@ function renderAlumniSchoolOpts(q){
     </div>`).join('');
 }
 
-function pickAlumniSchool(key){
+async function pickAlumniSchool(key){
   // Single selection — clicking the same school deselects, clicking another switches
   activeAlumniSchool = (activeAlumniSchool === key) ? null : key;
   document.getElementById('alumni-school-drop').style.display = 'none';
   updateAlumniSchoolDisplay();
   renderAlumniSearch();
+  // Persist to profile so next session remembers it
+  if(currentUser && activeAlumniSchool){
+    const schoolObj = ALL_MBA_SCHOOLS.find(s=>s.key===activeAlumniSchool);
+    await saveUserProfile({
+      school_key: activeAlumniSchool,
+      school_label: schoolObj?.label || activeAlumniSchool
+    });
+  }
 }
 
 // Close dropdown when clicking outside
@@ -1557,24 +1911,45 @@ function renderAlumniSearch(){
   const sm={open:'b-open',rolling:'b-rolling',watch:'b-watch',closed:'b-closed'};
 
   container.innerHTML = filtered.map((p,i) => {
-    const org = encodeURIComponent(p.org);
-    const roleKw = p.name.replace(/MBA|Leadership Development Program|Programme|Program/gi,'').trim().split(' ').slice(0,4).join(' ');
-    const role = encodeURIComponent(roleKw);
-    const companyUrl = `https://www.linkedin.com/search/results/people/?keywords=${org}`;
-    const roleUrl = `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(p.org+' '+roleKw)}`;
+    // Extract a cleaner "role keyword" — remove generic LDP/MBA boilerplate
+    const roleKw = p.name
+      .replace(/MBA|Leadership Development Program|Programme|Program|Graduate|Associate/gi,'')
+      .replace(/\s+/g,' ')
+      .trim()
+      .split(' ').slice(0,4).join(' ') || p.org;
 
-    let schoolCell = '';
+    const orgEnc  = encodeURIComponent(p.org);
+    const roleEnc = encodeURIComponent(roleKw);
+    const bothEnc = encodeURIComponent(p.org + ' ' + roleKw);
+
+    // Broad LinkedIn searches (no school filter)
+    const companyUrl = `https://www.linkedin.com/search/results/people/?keywords=${orgEnc}`;
+    const roleUrl    = `https://www.linkedin.com/search/results/people/?keywords=${roleEnc}`;
+
+    // School-filtered searches
+    let schoolCell;
     if(slug){
-      const byCompany = `https://www.linkedin.com/school/${slug}/people/?keywords=${org}`;
-      const byRole = `https://www.linkedin.com/school/${slug}/people/?keywords=${role}`;
-      schoolCell = `<a href="${byCompany}" target="_blank" rel="noopener noreferrer" class="li-btn" style="font-size:10px;padding:3px 9px;display:block;margin-bottom:4px">By company →</a><a href="${byRole}" target="_blank" rel="noopener noreferrer" class="li-btn" style="font-size:10px;padding:3px 9px;display:block">By role →</a>`;
+      const schoolCompanyUrl = `https://www.linkedin.com/school/${slug}/people/?keywords=${orgEnc}`;
+      const schoolRoleUrl    = `https://www.linkedin.com/school/${slug}/people/?keywords=${roleEnc}`;
+      schoolCell = `
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <a href="${schoolCompanyUrl}" target="_blank" rel="noopener noreferrer" class="li-btn" style="font-size:10px;padding:4px 9px;display:flex;justify-content:space-between;align-items:center;gap:6px">
+            <span>${schoolLabel.split(' ')[0]} + ${p.org}</span><span>↗</span>
+          </a>
+          <a href="${schoolRoleUrl}" target="_blank" rel="noopener noreferrer" class="li-btn" style="font-size:10px;padding:4px 9px;display:flex;justify-content:space-between;align-items:center;gap:6px">
+            <span>${schoolLabel.split(' ')[0]} + role</span><span>↗</span>
+          </a>
+          <button onclick='openConnectMessage(${JSON.stringify({org:p.org, role:roleKw, prog:p.name, school:schoolLabel}).replace(/'/g,"&#39;")})' class="gbtn" style="font-size:10px;padding:4px 9px;text-align:left;display:flex;justify-content:space-between;align-items:center;gap:6px">
+            <span>📋 Copy message</span><span>→</span>
+          </button>
+        </div>`;
     } else {
-      schoolCell = `<span style="font-size:10px;color:var(--text3);font-style:italic">Select school above</span>`;
+      schoolCell = `<span style="font-size:10px;color:var(--text3);font-style:italic">Pick your school above to enable school-filtered searches + connection templates</span>`;
     }
 
     const bc = sm[p.status]||'b-closed';
     const rowBg = i%2===0 ? '' : 'background:var(--bg3)';
-    return `<div style="display:grid;grid-template-columns:2fr 1fr 1fr 140px 140px;padding:11px 16px;border-bottom:1px solid var(--border);align-items:center;${rowBg}">
+    return `<div style="display:grid;grid-template-columns:1.8fr 1fr 1fr 1fr 1.6fr;padding:12px 16px;border-bottom:1px solid var(--border);align-items:center;gap:8px;${rowBg}">
       <div>
         <div style="font-size:12px;font-weight:500">${p.url?`<a href="${p.url}" target="_blank" rel="noopener noreferrer" style="color:var(--text);text-decoration:none;border-bottom:1px solid var(--border2)" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text)'">${p.name}</a>`:p.name}</div>
         <div style="font-size:11px;color:var(--text2);margin-top:2px">${p.org}</div>
@@ -1584,13 +1959,85 @@ function renderAlumniSearch(){
         <span class="badge ${bc}" style="font-size:10px;margin-top:4px;display:inline-block">${cap(p.status)}</span>
       </div>
       <div style="font-size:11px;color:var(--text2)">${cap(p.fn)}<br><span style="color:var(--text3)">${cap(p.sector)}</span></div>
-      <div>
-        <a href="${companyUrl}" target="_blank" rel="noopener noreferrer" class="li-btn" style="font-size:10px;padding:3px 9px;display:block;margin-bottom:4px">Company →</a>
-        <a href="${roleUrl}" target="_blank" rel="noopener noreferrer" class="li-btn" style="font-size:10px;padding:3px 9px;display:block">+ Role →</a>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <a href="${companyUrl}" target="_blank" rel="noopener noreferrer" class="li-btn" style="font-size:10px;padding:4px 9px;display:flex;justify-content:space-between;align-items:center;gap:6px">
+          <span>${p.org}</span><span>↗</span>
+        </a>
+        <a href="${roleUrl}" target="_blank" rel="noopener noreferrer" class="li-btn" style="font-size:10px;padding:4px 9px;display:flex;justify-content:space-between;align-items:center;gap:6px">
+          <span>${roleKw||'Role'}</span><span>↗</span>
+        </a>
       </div>
       <div>${schoolCell}</div>
     </div>`;
   }).join('');
+}
+
+// ─── Connection request template modal ───────────────────────────
+function openConnectMessage(ctx){
+  // ctx = { org, role, prog, school }
+  const userName = (userProfile?.full_name) || '{Your name}';
+  const userSchool = ctx.school || '{Your school}';
+
+  // Build 3 message variants — different angles, all ≤300 chars for LinkedIn connect note
+  const v1 = `Hi {Their first name}, I'm ${userName}, an MBA at ${userSchool}. I'm exploring the ${ctx.prog} for next year and noticed your path into ${ctx.org}. Would you have 20 minutes for a quick call? I'd love to learn what made the difference for you. Thanks!`;
+  const v2 = `Hi {Their first name}, fellow ${userSchool} {if alumni, else: an MBA from ${userSchool}}. I'm researching ${ctx.org}'s ${ctx.role || ctx.prog} and your background looks like exactly the path I'm hoping for. Open to a 15-min call? Any insight on the application process would mean a lot.`;
+  const v3 = `Hi {Their first name}, I'm an ${userSchool} MBA preparing to apply to ${ctx.prog}. Coming from {your background — e.g. PE healthcare}, I'd value your honest take on the role fit. Could we connect for 20 minutes when convenient? Happy to work around your schedule.`;
+
+  const trim = s => s.length > 300 ? s.substring(0, 297) + '...' : s;
+  const html = `
+    <div class="overlay open" id="ov-connect" style="z-index:9000" onclick="if(event.target===this) this.remove()">
+      <div class="modal" style="max-width:580px;width:92vw">
+        <button class="mclose" onclick="document.getElementById('ov-connect').remove()">×</button>
+        <div class="mtitle">LinkedIn connection request — ${ctx.org}</div>
+        <div style="font-size:12px;color:var(--text2);margin:-6px 0 16px;line-height:1.6">
+          LinkedIn limits connection notes to <strong>300 characters</strong>. Pick a variant, edit the {placeholders} for the specific person, then send.
+        </div>
+        ${[{label:'① Curious & humble',msg:v1},{label:'② Shared-school angle',msg:v2},{label:'③ Background-led',msg:v3}].map((opt,i)=>{
+          const msg = trim(opt.msg);
+          const safe = msg.replace(/'/g,"\\'").replace(/"/g,'&quot;');
+          return `
+          <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+              <div style="font-size:12px;font-weight:600;color:var(--accent)">${opt.label}</div>
+              <div style="font-size:10px;color:var(--text3);font-family:var(--mono)">${msg.length}/300 chars</div>
+            </div>
+            <textarea id="connect-msg-${i}" style="width:100%;min-height:96px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:10px;font-size:12px;font-family:var(--sans);color:var(--text);line-height:1.55;resize:vertical;outline:none">${msg}</textarea>
+            <div style="display:flex;gap:8px;margin-top:8px">
+              <button onclick="copyConnectMsg(${i})" class="li-btn" style="font-size:11px;padding:6px 14px;cursor:pointer">📋 Copy to clipboard</button>
+              <button onclick="openLinkedInSchoolSearch('${(ctx.org||'').replace(/'/g,"\\'")}')" class="gbtn" style="font-size:11px;padding:6px 14px;cursor:pointer">Open LinkedIn search ↗</button>
+            </div>
+          </div>`;
+        }).join('')}
+        <div style="font-size:11px;color:var(--text3);margin-top:12px;line-height:1.6">
+          <strong style="color:var(--text2)">Tip:</strong> Always personalize {Their first name} and any other placeholder. Generic copy-paste hurts your reply rate. Aim to send within 60 seconds of reading their profile so the message feels intentional, not bulk.
+        </div>
+      </div>
+    </div>`;
+  // Remove any prior modal
+  const existing = document.getElementById('ov-connect');
+  if(existing) existing.remove();
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+
+async function copyConnectMsg(idx){
+  const el = document.getElementById('connect-msg-'+idx);
+  if(!el) return;
+  try {
+    await navigator.clipboard.writeText(el.value);
+    toast('✓ Message copied — paste it into the LinkedIn connect note');
+  } catch {
+    // Fallback for older browsers
+    el.select(); document.execCommand('copy');
+    toast('✓ Message copied');
+  }
+}
+
+function openLinkedInSchoolSearch(org){
+  const slug = activeAlumniSchool ? SCHOOL_LI_IDS[activeAlumniSchool] : null;
+  const url = slug
+    ? `https://www.linkedin.com/school/${slug}/people/?keywords=${encodeURIComponent(org)}`
+    : `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(org)}`;
+  window.open(url, '_blank', 'noopener,noreferrer');
 }
 
 // renderAlumni — no-op, contact tracking moved to My Applications
@@ -1747,6 +2194,13 @@ async function handleFileUpload(event){
     document.getElementById('analyze-btn').disabled = false;
     statusNote.textContent = `✓ ${file.name} ready — ${pdf_format_label(file)} · Click "Analyse My Fit" to start`;
 
+    // Persist resume to Supabase (overwrites previous resume for this user)
+    if(currentUser){
+      saveResumeToDB(resumeText, file.name).then(()=>{
+        statusNote.textContent = `✓ ${file.name} saved to your account · Click "Analyse My Fit" to start`;
+      });
+    }
+
   } catch(err){
     nd.textContent = '⚠ ' + err.message;
     nd.style.color = 'var(--coral)';
@@ -1774,92 +2228,149 @@ uzEl.addEventListener('drop',e=>{
 });
 
 async function runAIAnalysis(){
-  
+
   if(!resumeText){alert('Please upload your resume first.');return;}
 
-  // Restore key from session if available
-  if(!window.LDP_API_KEY) window.LDP_API_KEY = sessionStorage.getItem('ldp_key')||'';
-
   // Vercel proxy handles the API key — no key needed in the browser
-  window.LDP_PROXY_URL = 'https://ldp-proxy.vercel.app/api/scan';
+  const PROXY_URL = 'https://ldp-proxy.vercel.app/api/scan';
 
   const btn=document.getElementById('analyze-btn');
   btn.disabled=true;btn.textContent='Analysing...';
-  document.getElementById('ai-results').innerHTML=`<div class="spin-wrap"><div class="spinner"></div><div class="spin-label">Matching your profile against ${progs.length} leadership programs...</div></div>`;
+  document.getElementById('ai-results').innerHTML=`<div class="spin-wrap"><div class="spinner"></div><div class="spin-label">Step 1 of 2: Matching your profile against ${progs.length} programs...</div></div>`;
 
-  // Compress program summaries tightly to stay within token budget
-  const progSummary=progs.map(p=>`${p.id}|${p.name}|${p.org}|${p.fn}|${p.sector}|${p.geo}|${p.status}`).join('\n');
+  // Cap resume at 4000 chars to stay within token budget
+  const resumeSnippet = resumeText.substring(0, 4000);
 
-  const sys=`You are an expert MBA career advisor specialising in Leadership Development Programs. Analyse the resume and categorise EVERY program into one of 5 tiers. Reference actual experience from the resume — be specific, not generic.
+  // Compact program list
+  const progSummary = progs.map(p=>`${p.id}|${p.name}|${p.org}|${p.fn}|${p.sector}|${p.geo}|${p.status}`).join('\n');
 
-TIERS: BEST_FIT (direct match, apply now) | STRONG_FIT (solid match, tailor and apply) | ACHIEVABLE (relevant but needs positioning) | LONG_SHOT (gaps exist, worth trying with network) | NOT_FIT (structural mismatch, skip)
+  try {
+    // ─── CALL 1: Tier classification only ─────────────────────────
+    // Smaller, focused output → much less likely to truncate
+    const tierSys = `You are an expert MBA career advisor specialising in Leadership Development Programs. Classify EVERY program into one of 5 tiers based on the resume.
 
-GAP ANALYSIS — rate each on: "Strong" (clear evidence) | "Medium" (some evidence) | "Weak" (gap):
-leadership_evidence | international_exposure | operations_depth | quantitative_rigor | cross_functional | entrepreneurial_impact
+TIERS:
+- BEST_FIT: Direct match, apply now
+- STRONG_FIT: Solid match, tailor and apply
+- ACHIEVABLE: Relevant but needs positioning
+- LONG_SHOT: Gaps exist, worth trying with network
+- NOT_FIT: Structural mismatch, skip
 
-PROGRAM COACHING: each suggestion must name which specific programs it helps most (max 3).
-
-CRITICAL: Respond ONLY with raw valid JSON. No markdown. No code fences. No explanation before or after. The response must start with { and end with }.
+CRITICAL: Every program ID must appear in exactly ONE tier. Respond ONLY with raw valid JSON. No markdown, no code fences, no preamble.
 
 Schema:
-{"profile_summary":"string","tiers":{"BEST_FIT":[{"id":N,"reason":"string"}],"STRONG_FIT":[...],"ACHIEVABLE":[...],"LONG_SHOT":[...],"NOT_FIT":[{"id":N,"reason":"string"}]},"gap_analysis":{"leadership_evidence":{"rating":"Strong","evidence":"string","tip":"string"},"international_exposure":{"rating":"Medium","evidence":"string","tip":"string"},"operations_depth":{"rating":"Strong","evidence":"string","tip":"string"},"quantitative_rigor":{"rating":"Medium","evidence":"string","tip":"string"},"cross_functional":{"rating":"Weak","evidence":"string","tip":"string"},"entrepreneurial_impact":{"rating":"Strong","evidence":"string","tip":"string"}},"suggestions":[{"title":"string","body":"string","priority":"high","helps_programs":"Program A, Program B"}]}
+{"profile_summary":"2-sentence summary of candidate","tiers":{"BEST_FIT":[{"id":N,"reason":"<25 word reason citing specific resume evidence"}],"STRONG_FIT":[...],"ACHIEVABLE":[...],"LONG_SHOT":[...],"NOT_FIT":[{"id":N,"reason":"string"}]}}`;
 
-Rules: Every program ID must appear in exactly one tier. Include exactly 6 suggestions. Keep reason fields under 30 words each.`;
+    const tierUsr = `RESUME:\n${resumeSnippet}\n\nPROGRAMS (ID|Name|Org|Function|Sector|Geo|Status):\n${progSummary}`;
 
-  // Resume: cap at 4000 chars to leave ample room for programs + response
-  const resumeSnippet = resumeText.substring(0, 4000);
-  const usr=`RESUME:\n${resumeSnippet}\n\nPROGRAMS (ID|Name|Org|Function|Sector|Geo|Status):\n${progSummary}`;
-
-  try{
-    const res = await fetch('https://ldp-proxy.vercel.app/api/scan',{
+    const tierRes = await fetch(PROXY_URL, {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        model:'claude-haiku-4-5-20251001',
-        max_tokens:8000,
-        system:sys,
-        messages:[{role:'user',content:usr}]
+      body: JSON.stringify({
+        model:'claude-sonnet-4-5',
+        max_tokens: 4000,
+        system: tierSys,
+        messages: [{role:'user', content: tierUsr}]
       })
     });
 
-    if(!res.ok){
-      const errText = await res.text();
-      throw new Error(`Server error ${res.status}: ${errText.substring(0,200)}`);
+    if(!tierRes.ok){
+      const errText = await tierRes.text();
+      throw new Error(`Tier classification failed (${tierRes.status}): ${errText.substring(0,200)}`);
     }
+    const tierData = await tierRes.json();
+    if(tierData.error) throw new Error(typeof tierData.error === 'object' ? JSON.stringify(tierData.error) : tierData.error);
 
-    const data = await res.json();
-    if(data.error) throw new Error(typeof data.error === 'object' ? JSON.stringify(data.error) : data.error);
+    const tierRaw = tierData.content?.filter(b=>b.type==='text').map(b=>b.text).join('') || '';
+    const tierParsed = extractJSON(tierRaw, 'tier classification');
 
-    const raw = data.content?.filter(b=>b.type==='text').map(b=>b.text).join('') || '';
+    // ─── CALL 2: Gap analysis + suggestions ───────────────────────
+    document.getElementById('ai-results').innerHTML=`<div class="spin-wrap"><div class="spinner"></div><div class="spin-label">Step 2 of 2: Generating your gap analysis + coaching suggestions...</div></div>`;
 
-    // Robust JSON extraction — strips markdown fences, finds the JSON object
-    let clean = raw.trim();
-    // Remove markdown code fences if present
-    clean = clean.replace(/^```(?:json)?\s*/i,'').replace(/\s*```\s*$/,'').trim();
-    // Find first { and last } in case model adds preamble/postamble
-    const firstBrace = clean.indexOf('{');
-    const lastBrace = clean.lastIndexOf('}');
-    if(firstBrace === -1 || lastBrace === -1) throw new Error('AI returned an unexpected response format. Please try again.');
-    clean = clean.substring(firstBrace, lastBrace + 1);
+    // Build a compact summary of which programs landed where, for context
+    const tierContext = Object.entries(tierParsed.tiers||{})
+      .map(([tier, items]) => `${tier}: ${(items||[]).length} programs`)
+      .join(' · ');
 
-    let parsed;
-    try {
-      parsed = JSON.parse(clean);
-    } catch(jsonErr) {
-      // Last resort: try to fix common truncation issues
-      console.error('JSON parse failed, raw response:', raw.substring(0,500));
-      throw new Error(`Response parsing failed. The AI response may have been cut off. Try again — this is usually a one-off issue. (Detail: ${jsonErr.message})`);
+    const gapSys = `You are an expert MBA career advisor. Given the resume and which LDP tiers the candidate landed in, produce a gap analysis and tailored resume suggestions.
+
+GAP ANALYSIS — rate each dimension as Strong (clear evidence) | Medium (some evidence) | Weak (gap):
+leadership_evidence | international_exposure | operations_depth | quantitative_rigor | cross_functional | entrepreneurial_impact
+
+Each dimension needs: rating (one of the three labels), evidence (specific resume quote or paraphrase, <20 words), tip (one actionable improvement, <25 words).
+
+SUGGESTIONS: Exactly 6 specific resume/positioning improvements. Each names which 1-3 programs it most helps and has a priority (high/medium/low).
+
+CRITICAL: Respond ONLY with raw valid JSON. No markdown, no preamble.
+
+Schema:
+{"gap_analysis":{"leadership_evidence":{"rating":"Strong","evidence":"string","tip":"string"},"international_exposure":{...},"operations_depth":{...},"quantitative_rigor":{...},"cross_functional":{...},"entrepreneurial_impact":{...}},"suggestions":[{"title":"string","body":"<40 word improvement","priority":"high","helps_programs":"Program A, Program B"}]}`;
+
+    const gapUsr = `RESUME:\n${resumeSnippet}\n\nTIER CONTEXT: ${tierContext}\nPROFILE SUMMARY: ${tierParsed.profile_summary || 'N/A'}`;
+
+    const gapRes = await fetch(PROXY_URL, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model:'claude-sonnet-4-5',
+        max_tokens: 3000,
+        system: gapSys,
+        messages: [{role:'user', content: gapUsr}]
+      })
+    });
+
+    if(!gapRes.ok){
+      const errText = await gapRes.text();
+      throw new Error(`Gap analysis failed (${gapRes.status}): ${errText.substring(0,200)}`);
     }
+    const gapData = await gapRes.json();
+    if(gapData.error) throw new Error(typeof gapData.error === 'object' ? JSON.stringify(gapData.error) : gapData.error);
 
-    renderAIResults(parsed);
-  }catch(err){
+    const gapRaw = gapData.content?.filter(b=>b.type==='text').map(b=>b.text).join('') || '';
+    const gapParsed = extractJSON(gapRaw, 'gap analysis');
+
+    // ─── Merge and render ────────────────────────────────────────
+    const merged = {
+      profile_summary: tierParsed.profile_summary,
+      tiers: tierParsed.tiers,
+      gap_analysis: gapParsed.gap_analysis,
+      suggestions: gapParsed.suggestions
+    };
+
+    renderAIResults(merged);
+
+    // Save to scan history (non-blocking)
+    if(currentUser) saveScanToHistory(merged);
+
+  } catch(err){
     document.getElementById('ai-results').innerHTML=`<div class="empty">
       <div style="font-size:24px;margin-bottom:12px">⚠️</div>
-      <div style="font-weight:500;margin-bottom:6px">Error: ${err.message}</div>
+      <div style="font-weight:500;margin-bottom:6px">${err.message}</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:8px">If this keeps happening, try refreshing the page.</div>
       <button onclick="runAIAnalysis()" style="margin-top:12px;padding:8px 16px;background:var(--accent);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:12px">Try Again</button>
     </div>`;
   }
   btn.disabled=false;btn.textContent='✦ Re-analyse';
+}
+
+// Helper: robust JSON extraction (strips markdown fences + finds {…} envelope)
+function extractJSON(raw, label){
+  let clean = (raw||'').trim();
+  // Strip markdown fences if present
+  clean = clean.replace(/^```(?:json)?\s*/i,'').replace(/\s*```\s*$/,'').trim();
+  // Find first { and last } in case model adds preamble/postamble
+  const firstBrace = clean.indexOf('{');
+  const lastBrace = clean.lastIndexOf('}');
+  if(firstBrace === -1 || lastBrace === -1){
+    throw new Error(`AI returned unexpected format for ${label}. Try again.`);
+  }
+  clean = clean.substring(firstBrace, lastBrace + 1);
+  try {
+    return JSON.parse(clean);
+  } catch(jsonErr){
+    console.error(`JSON parse failed for ${label}, raw response:`, raw.substring(0,500));
+    throw new Error(`${label} response was malformed. This is usually a one-off — please try again.`);
+  }
 }
 
 function showApiKeyPrompt(){
@@ -2064,14 +2575,38 @@ function saveAlumni(){
   else alum.push(a);
   persist();closeM('alumni');renderAlumni();toast('Contact saved ✓');
 }
-function saveApp(){
-  const a={id:eId.app||Date.now(),name:gv('aps-name'),org:gv('aps-org'),geo:gv('aps-geo'),
-    status:gv('aps-status'),date:gv('aps-date'),deadline:gv('aps-deadline'),
-    next:gv('aps-next'),contact:gv('aps-contact'),notes:gv('aps-notes')};
+async function saveApp(){
+  if(!currentUser){
+    toast('Please sign in to save applications.');
+    showLanding();
+    return;
+  }
+  const a={
+    id: eId.app || null,
+    _db: !!eId.app,            // true if we're editing an existing DB row
+    program_id: null,
+    name:gv('aps-name'), org:gv('aps-org'), geo:gv('aps-geo'),
+    status:gv('aps-status'), date:gv('aps-date'), deadline:gv('aps-deadline'),
+    next:gv('aps-next'), contact:gv('aps-contact'), notes:gv('aps-notes')
+  };
   if(!a.name){alert('Program/role name required.');return;}
-  if(eId.app){const i=apps.findIndex(x=>x.id===eId.app);i>=0?apps[i]=a:apps.push(a);}
-  else apps.push(a);
-  persist();closeM('app');renderApplications();toast('Application saved ✓');
+
+  // Persist to Supabase
+  const newId = await saveApplicationToDB(a);
+  if(!newId){ return; }   // toast already shown by saveApplicationToDB
+  a.id = newId;
+  a._db = true;
+
+  // Update in-memory cache
+  if(eId.app){
+    const i = apps.findIndex(x=>x.id===eId.app);
+    if(i>=0) apps[i] = a; else apps.unshift(a);
+  } else {
+    apps.unshift(a);
+  }
+  closeM('app');
+  renderApplications();
+  toast('Application saved ✓');
 }
 
 // ═══════════════ EDIT / DELETE ═══════════════
@@ -2080,10 +2615,13 @@ function delP(id){if(confirm('Remove this program?')){progs=progs.filter(p=>p.id
 function editA(id){openM('alumni',alum.find(a=>a.id===id)||{});}
 function delA(id){if(confirm('Remove this contact?')){alum=alum.filter(a=>a.id!==id);persist();renderAlumni();toast('Removed');}}
 function editAp(id){openM('app',apps.find(a=>a.id===id)||{});}
-function delCurrentApp(){
-  if(eId.app&&confirm('Delete this application?')){
-    apps=apps.filter(a=>a.id!==eId.app);
-    persist();closeM('app');renderApplications();toast('Application deleted');
+async function delCurrentApp(){
+  if(eId.app && confirm('Delete this application?')){
+    await deleteApplicationFromDB(eId.app);
+    apps = apps.filter(a=>a.id!==eId.app);
+    closeM('app');
+    renderApplications();
+    toast('Application deleted');
   }
 }
 
@@ -2094,17 +2632,22 @@ function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t
 // Close modals on outside click
 document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open');}));
 
-// Init
-document.getElementById('today-lbl').textContent=new Date().toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
+// ─── Init ────────────────────────────────────────────────────────
+// Populate freshness badge (topbar + landing)
+const _freshEl = document.getElementById('freshness-date');
+if(_freshEl) _freshEl.textContent = DATA_LAST_VERIFIED_LABEL;
+const _lpStamp = document.getElementById('lp-verified-stamp');
+if(_lpStamp) _lpStamp.textContent = `Programs verified ${DATA_LAST_VERIFIED_LABEL}`;
+const _lpProgs = document.getElementById('lp-stat-progs');
+if(_lpProgs) _lpProgs.textContent = progs.length;
+const _lpMock = document.getElementById('lp-mock-count');
+if(_lpMock) _lpMock.textContent = progs.length;
 
-
-// Always show landing page — it's the entry point every time
+// Show landing by default; initAuth() will hide it if user is already signed in.
 document.getElementById('landing-overlay').classList.add('open');
-applyProfile();
 
 window._fitOnly=false;
 window._visaOnly=false;
-if(userProfile?.schools?.length) activeAlumniSchool=userProfile.schools[0];
 
 // Populate alumni modal school select from full list
 const aiSchoolSel = document.getElementById('ai-school');
@@ -2118,9 +2661,11 @@ document.getElementById('ics-modal-overlay').addEventListener('click',e=>{
   if(e.target===document.getElementById('ics-modal-overlay')) document.getElementById('ics-modal-overlay').classList.remove('open');
 });
 
+// Boot: initialise auth (which decides whether to show landing or main app)
 initAuth();
 renderPrograms();
-// Set dynamic program count
+
+// Set dynamic program count in topbar stats
 const pcEl=document.getElementById('prog-count');
 if(pcEl) pcEl.textContent=progs.length;
 </script>
