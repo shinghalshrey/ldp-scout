@@ -39,9 +39,6 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 .nav-tab.active{background:var(--bg2);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,0.08)}
 .topbar-right{display:flex;align-items:center;gap:12px}
 .date-lbl{font-family:var(--mono);font-size:10px;color:var(--text3)}
-.pro-badge{font-size:10px;padding:4px 10px;background:linear-gradient(135deg,#1d6a45,#0f4530);color:#fff;border-radius:20px;font-weight:600;letter-spacing:.04em;cursor:pointer;transition:opacity .15s}
-.pro-badge:hover{opacity:.85}
-
 /* LAYOUT */
 .main{padding:24px 28px;max-width:1440px;margin:0 auto}
 .page{display:none}
@@ -233,9 +230,9 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 .profile-box-text{font-size:14px;line-height:1.65;color:var(--text);font-family:var(--serif);font-style:italic}
 
 /* PAYWALL */
-.paywall-overlay{position:fixed;inset:0;background:rgba(24,24,15,0.6);z-index:500;display:none;align-items:center;justify-content:center;backdrop-filter:blur(6px)}
-.paywall-overlay.open{display:flex}
-.paywall-box{background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:40px;width:480px;max-width:95vw;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.2)}
+
+
+
 .pw-logo{width:52px;height:52px;background:linear-gradient(135deg,#1d6a45,#0f4530);border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 18px;font-size:22px}
 .pw-title{font-family:var(--serif);font-size:26px;font-weight:400;font-style:italic;margin-bottom:8px;letter-spacing:-0.3px}
 .pw-sub{font-size:13px;color:var(--text2);line-height:1.65;margin-bottom:24px}
@@ -375,144 +372,291 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 /* LANDING PAGE */
 .landing-overlay{position:fixed;inset:0;background:var(--bg);z-index:700;display:none;overflow-y:auto}
 .landing-overlay.open{display:block}
-.lp-wrap{max-width:900px;margin:0 auto;padding:60px 32px}
-.lp-logo{display:flex;align-items:center;gap:12px;margin-bottom:48px}
-.lp-mark{width:40px;height:40px;background:var(--accent);border-radius:10px;display:flex;align-items:center;justify-content:center}
-.lp-brand{font-family:var(--serif);font-size:22px;font-weight:500}
+
+/* Hero — full width, two columns */
+.lp-nav{display:flex;align-items:center;justify-content:space-between;padding:20px 60px;max-width:1400px;margin:0 auto}
+.lp-logo{display:flex;align-items:center;gap:10px}
+.lp-mark{width:36px;height:36px;background:var(--accent);border-radius:9px;display:flex;align-items:center;justify-content:center}
+.lp-brand{font-family:var(--serif);font-size:20px;font-weight:500}
 .lp-brand span{color:var(--accent);font-style:italic}
-.lp-hero{margin-bottom:56px}
-.lp-eyebrow{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.12em;color:var(--accent);margin-bottom:14px}
-.lp-title{font-family:var(--serif);font-size:52px;font-weight:300;line-height:1.1;letter-spacing:-1px;margin-bottom:20px}
+
+.lp-hero{display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center;max-width:1400px;margin:0 auto;padding:60px 60px 80px}
+.lp-hero-left{}
+.lp-eyebrow{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.12em;color:var(--accent);margin-bottom:16px}
+.lp-title{font-family:var(--serif);font-size:54px;font-weight:300;line-height:1.08;letter-spacing:-1.5px;margin-bottom:20px}
 .lp-title em{color:var(--accent);font-style:italic}
-.lp-sub{font-size:16px;color:var(--text2);line-height:1.7;max-width:600px;margin-bottom:36px}
-.lp-cta-row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
-.lp-cta{background:var(--accent);color:#fff;border:none;border-radius:10px;padding:14px 28px;font-size:15px;font-weight:600;cursor:pointer;font-family:var(--sans);transition:all .15s;letter-spacing:-.01em}
-.lp-cta:hover{background:var(--accent2);transform:translateY(-2px)}
-.lp-cta-sec{background:transparent;border:1.5px solid var(--border2);color:var(--text2);border-radius:10px;padding:14px 24px;font-size:14px;cursor:pointer;font-family:var(--sans);transition:all .15s}
-.lp-cta-sec:hover{border-color:var(--accent);color:var(--accent)}
-.lp-stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;padding:32px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);margin-bottom:56px}
-.lp-stat-n{font-family:var(--serif);font-size:40px;font-weight:300;color:var(--accent);letter-spacing:-1px}
-.lp-stat-l{font-size:12px;color:var(--text2);margin-top:4px;line-height:1.5}
-.lp-features{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-bottom:56px}
-.lp-feat{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:22px}
-.lp-feat-icon{font-size:22px;margin-bottom:12px}
-.lp-feat-title{font-size:14px;font-weight:600;margin-bottom:6px}
-.lp-feat-text{font-size:12px;color:var(--text2);line-height:1.65}
-.lp-trust{background:var(--accent-bg);border:1px solid rgba(29,106,69,.15);border-radius:var(--radius);padding:24px 28px;display:flex;align-items:center;gap:20px}
-.lp-trust-icon{font-size:28px;flex-shrink:0}
-.lp-trust-text{font-size:13px;color:var(--text2);line-height:1.65}
+.lp-sub{font-size:16px;color:var(--text2);line-height:1.75;margin-bottom:36px}
+
+/* Signup bar */
+.lp-signup-bar{display:flex;align-items:stretch;border-radius:14px;overflow:hidden;border:1.5px solid var(--border2);background:var(--bg2);box-shadow:var(--shadow-md);margin-bottom:14px}
+.lp-signup-bar input{flex:1;padding:15px 18px;border:none;background:transparent;color:var(--text);font-size:15px;outline:none;font-family:var(--sans);min-width:0}
+.lp-signup-bar button{padding:15px 26px;background:var(--accent);color:#fff;border:none;cursor:pointer;font-weight:600;font-size:14px;font-family:var(--sans);white-space:nowrap;transition:background .15s}
+.lp-signup-bar button:hover{background:var(--accent2)}
+.lp-browse-link{background:none;border:none;color:var(--text3);font-size:13px;cursor:pointer;font-family:var(--sans);padding:0;text-decoration:underline;text-underline-offset:3px}
+.lp-browse-link:hover{color:var(--text2)}
+
+/* Hero right — mock UI */
+.lp-hero-right{position:relative}
+.lp-mockup{background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:20px;box-shadow:0 24px 80px rgba(0,0,0,0.12);overflow:hidden}
+.lp-mock-topbar{display:flex;align-items:center;gap:8px;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+.lp-mock-dot{width:10px;height:10px;border-radius:50%}
+.lp-mock-title{font-family:var(--serif);font-size:13px;font-weight:500;color:var(--text2);margin-left:6px}
+.lp-mock-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;margin-bottom:6px;border:1px solid var(--border)}
+.lp-mock-row:hover{background:var(--bg3)}
+.lp-mock-badge{font-size:10px;font-weight:600;padding:3px 8px;border-radius:20px;white-space:nowrap}
+.lp-mock-co{font-size:13px;font-weight:600;flex:1}
+.lp-mock-loc{font-size:11px;color:var(--text3);flex:1}
+.lp-mock-fit{font-size:11px;font-weight:600;color:var(--accent)}
+.lp-mock-chip{font-size:10px;background:var(--accent-bg);color:var(--accent);border-radius:20px;padding:2px 8px;font-weight:500}
+
+/* Stats strip */
+.lp-stats{background:var(--accent);padding:32px 60px;display:grid;grid-template-columns:repeat(4,1fr);gap:20px;max-width:none}
+.lp-stat-n{font-family:var(--serif);font-size:42px;font-weight:300;color:#fff;letter-spacing:-1px;line-height:1}
+.lp-stat-l{font-size:13px;color:rgba(255,255,255,0.7);margin-top:6px;line-height:1.5}
+
+/* Features */
+.lp-features-section{max-width:1400px;margin:0 auto;padding:80px 60px}
+.lp-features-title{font-family:var(--serif);font-size:36px;font-weight:300;text-align:center;margin-bottom:8px}
+.lp-features-sub{text-align:center;color:var(--text2);font-size:15px;margin-bottom:48px}
+.lp-features{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.lp-feat{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:28px}
+.lp-feat-icon{font-size:28px;margin-bottom:14px}
+.lp-feat-title{font-size:15px;font-weight:600;margin-bottom:8px}
+.lp-feat-text{font-size:13px;color:var(--text2);line-height:1.7}
+
+/* Trust + CTA */
+.lp-bottom{background:var(--bg3);border-top:1px solid var(--border);padding:60px;text-align:center}
+.lp-trust-text{font-size:14px;color:var(--text2);line-height:1.7;max-width:640px;margin:0 auto 32px}
 .lp-trust-text strong{color:var(--text)}
+
+/* ── MOBILE RESPONSIVE ── */
+@media (max-width: 768px) {
+  /* Landing page */
+  .lp-nav { padding: 16px 20px; }
+  .lp-hero { grid-template-columns: 1fr; gap: 32px; padding: 32px 20px 48px; }
+  .lp-hero-right { display: none; }
+  .lp-title { font-size: 36px; letter-spacing: -.5px; }
+  .lp-sub { font-size: 15px; }
+  .lp-stats { grid-template-columns: repeat(2,1fr); padding: 28px 20px; gap: 20px; }
+  .lp-stat-n { font-size: 32px; }
+  .lp-features { grid-template-columns: 1fr; gap: 12px; }
+  .lp-features-section { padding: 48px 20px; }
+  .lp-bottom { padding: 40px 20px; }
+
+  /* Topbar */
+  .topbar { padding: 0 12px; gap: 8px; }
+  .topbar-brand { font-size: 16px; }
+  .tab-bar { gap: 4px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .nav-tab { font-size: 12px; padding: 6px 10px; white-space: nowrap; }
+  #user-info { display: none; }
+  #auth-btn { font-size: 11px; padding: 5px 10px; }
+
+  /* Programs table */
+  .prog-table { display: none; }
+  .prog-cards { display: flex !important; flex-direction: column; gap: 12px; padding: 0 12px 80px; }
+  .prog-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+  .prog-card-title { font-weight: 600; font-size: 15px; margin-bottom: 2px; }
+  .prog-card-org { font-size: 13px; color: var(--accent); margin-bottom: 8px; }
+  .prog-card-meta { font-size: 12px; color: var(--text2); display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+  .prog-card-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 10px; }
+  .prog-card-actions { display: flex; gap: 8px; }
+  .prog-card-actions button { flex: 1; padding: 8px; border-radius: 8px; font-size: 13px; cursor: pointer; border: 1px solid var(--border2); background: var(--bg); color: var(--text); }
+
+  /* Filters */
+  .filter-bar { flex-wrap: wrap; gap: 6px; padding: 8px 12px; overflow-x: visible; }
+  .si-bar { padding: 8px 12px; }
+  .si-input { font-size: 14px; }
+
+  /* Stats row */
+  .stats-row { grid-template-columns: repeat(2, 1fr); gap: 8px; padding: 12px; }
+  .stat-card { padding: 14px; }
+  .stat-n { font-size: 28px; }
+
+  /* Applications kanban */
+  .kanban { flex-direction: column; gap: 12px; padding: 12px; }
+  .kan-col { min-width: unset; width: 100%; }
+
+  /* Modals */
+  .modal { width: 95vw; max-height: 90vh; overflow-y: auto; }
+  .mform { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 480px) {
+  .lp-title { font-size: 30px; }
+  .topbar-brand { display: none; }
+  .lp-mark-text { display: none; }
+}
 </style>
 </head>
 <body>
 
 <!-- LANDING PAGE -->
 <div class="landing-overlay" id="landing-overlay">
-  <div class="lp-wrap">
+
+  <!-- NAV -->
+  <div class="lp-nav">
     <div class="lp-logo">
-      <div class="lp-mark"><span style="color:#fff;font-size:16px;font-weight:700">L</span></div>
+      <div class="lp-mark"><span style="color:#fff;font-size:15px;font-weight:700">L</span></div>
       <div class="lp-brand">LDP <span>Scout</span></div>
     </div>
-    <div class="lp-hero">
+    <button onclick="enterApp()" style="background:transparent;border:1.5px solid var(--border2);color:var(--text2);padding:8px 18px;border-radius:8px;font-family:var(--sans);font-size:13px;cursor:pointer;">Browse programs →</button>
+  </div>
+
+  <!-- HERO -->
+  <div class="lp-hero">
+    <div class="lp-hero-left">
       <div class="lp-eyebrow">MBA Leadership Development Programs</div>
-      <div class="lp-title">Build your personalised<br><em>LDP recruiting dashboard</em></div>
-      <div class="lp-sub">The only tool built for MBA students tracking and applying to Leadership Development Programs across Europe, UAE, and global markets — with AI-powered fit analysis, alumni discovery, and deadline tracking.</div>
-      <div class="lp-cta-row">
-        <button class="lp-cta" onclick="enterApp()">Get Started Free →</button>
-        <button class="lp-cta-sec" onclick="enterApp()">Explore the tracker</button>
+      <div class="lp-title">Your personal<br><em>LDP recruiting</em><br>command centre</div>
+      <div class="lp-sub">48 verified programs. AI resume fit scoring. Alumni discovery. Deadline tracking. Built by an ESADE MBA student — for MBA students.</div>
+
+      <div class="lp-signup-bar">
+        <input id="lp-email" type="email" placeholder="your@school.edu" onkeydown="if(event.key==='Enter') lpSignUp()">
+        <button onclick="lpSignUp()" id="lp-signup-btn">Get Started Free →</button>
+      </div>
+      <p id="lp-signup-msg" style="font-size:13px;color:var(--accent);margin:0 0 12px;display:none;"></p>
+      <button class="lp-browse-link" onclick="enterApp()">Browse without an account →</button>
+
+      <div style="display:flex;gap:24px;margin-top:36px;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text2);">
+          <span style="color:var(--accent);font-size:16px;">✓</span> Free forever
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text2);">
+          <span style="color:var(--accent);font-size:16px;">✓</span> No password needed
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text2);">
+          <span style="color:var(--accent);font-size:16px;">✓</span> Data verified May 2026
+        </div>
       </div>
     </div>
-    <div class="lp-stats-row">
-      <div><div class="lp-stat-n">42</div><div class="lp-stat-l">Curated leadership programs<br>with verified links</div></div>
-      <div><div class="lp-stat-n">5</div><div class="lp-stat-l">AI-powered fit tiers<br>matched to your resume</div></div>
-      <div><div class="lp-stat-n">15+</div><div class="lp-stat-l">Pre-loaded alumni<br>search cards (ESADE + HEC)</div></div>
-      <div><div class="lp-stat-n">100%</div><div class="lp-stat-l">Local — your data<br>never leaves your browser</div></div>
+
+    <!-- MOCK UI -->
+    <div class="lp-hero-right">
+      <div class="lp-mockup">
+        <div class="lp-mock-topbar">
+          <div class="lp-mock-dot" style="background:#ff5f57"></div>
+          <div class="lp-mock-dot" style="background:#ffbd2e"></div>
+          <div class="lp-mock-dot" style="background:#28ca41"></div>
+          <div class="lp-mock-title">LDP Scout — Programs</div>
+        </div>
+        <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;">
+          <span style="font-size:11px;background:var(--accent);color:#fff;padding:4px 10px;border-radius:20px;">All</span>
+          <span style="font-size:11px;background:var(--bg3);color:var(--text2);padding:4px 10px;border-radius:20px;">Europe</span>
+          <span style="font-size:11px;background:var(--bg3);color:var(--text2);padding:4px 10px;border-radius:20px;">UAE/Gulf</span>
+          <span style="font-size:11px;background:var(--bg3);color:var(--text2);padding:4px 10px;border-radius:20px;">Finance</span>
+          <span style="font-size:11px;background:var(--bg3);color:var(--text2);padding:4px 10px;border-radius:20px;">Consulting</span>
+        </div>
+        <div class="lp-mock-row">
+          <div>
+            <div class="lp-mock-co">Amazon Pathways LDP</div>
+            <div class="lp-mock-loc">Operations · EU · UAE · India</div>
+          </div>
+          <span class="lp-mock-chip">★★★★★ Best Fit</span>
+          <span class="lp-mock-badge" style="background:var(--accent-bg);color:var(--accent)">Rolling</span>
+        </div>
+        <div class="lp-mock-row">
+          <div>
+            <div class="lp-mock-co">McKinsey Associate</div>
+            <div class="lp-mock-loc">Consulting · Global</div>
+          </div>
+          <span class="lp-mock-chip">★★★★ Strong Fit</span>
+          <span class="lp-mock-badge" style="background:var(--amber-bg);color:var(--amber)">Jul 2026</span>
+        </div>
+        <div class="lp-mock-row">
+          <div>
+            <div class="lp-mock-co">Unilever UFLP</div>
+            <div class="lp-mock-loc">General Mgmt · UK · Netherlands</div>
+          </div>
+          <span class="lp-mock-chip">★★★★ Strong Fit</span>
+          <span class="lp-mock-badge" style="background:var(--blue-bg);color:var(--blue)">Jun 2026</span>
+        </div>
+        <div class="lp-mock-row" style="opacity:.55">
+          <div>
+            <div class="lp-mock-co">ING International Talent</div>
+            <div class="lp-mock-loc">Finance · Amsterdam · Brussels</div>
+          </div>
+          <span class="lp-mock-chip">★★★ Good Fit</span>
+          <span class="lp-mock-badge" style="background:var(--bg3);color:var(--text3)">Watch</span>
+        </div>
+        <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:11px;color:var(--text3);">Showing 48 programs · 31 open now</span>
+          <span style="font-size:11px;color:var(--accent);font-weight:600;">✓ Verified May 2026</span>
+        </div>
+      </div>
+      <!-- Floating badge -->
+      <div style="position:absolute;bottom:-16px;right:24px;background:var(--bg2);border:1px solid var(--border2);border-radius:12px;padding:12px 16px;box-shadow:var(--shadow-md);display:flex;align-items:center;gap:10px;">
+        <div style="width:32px;height:32px;background:var(--accent-bg);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;">✦</div>
+        <div>
+          <div style="font-size:12px;font-weight:600;">AI Fit Scan complete</div>
+          <div style="font-size:11px;color:var(--text3);">36 programs matched your CV</div>
+        </div>
+      </div>
     </div>
+  </div>
+
+  <!-- STATS STRIP -->
+  <div class="lp-stats">
+    <div><div class="lp-stat-n">48</div><div class="lp-stat-l">Verified MBA programs<br>across Europe, UAE & global</div></div>
+    <div><div class="lp-stat-n">5</div><div class="lp-stat-l">AI fit tiers matched<br>to your specific resume</div></div>
+    <div><div class="lp-stat-n">15+</div><div class="lp-stat-l">Pre-loaded alumni search<br>cards (ESADE · HEC · LBS)</div></div>
+    <div><div class="lp-stat-n">100%</div><div class="lp-stat-l">Free — no subscription,<br>no hidden fees</div></div>
+  </div>
+
+  <!-- FEATURES -->
+  <div class="lp-features-section">
+    <div class="lp-features-title">Everything you need to land an LDP</div>
+    <div class="lp-features-sub">Built around the actual MBA recruiting workflow — not a generic job board</div>
     <div class="lp-features">
       <div class="lp-feat">
         <div class="lp-feat-icon">✦</div>
         <div class="lp-feat-title">AI Resume Fit Scan</div>
-        <div class="lp-feat-text">Upload your CV and get instant tier rankings across all 42 programs — Best Fit to Long Shot — with specific reasoning and structured resume gap analysis by category.</div>
+        <div class="lp-feat-text">Upload your CV and get instant tier rankings across all 48 programs — Best Fit to Long Shot — with gap analysis across 6 dimensions: leadership, operations, quant, and more.</div>
       </div>
       <div class="lp-feat">
         <div class="lp-feat-icon">🎓</div>
         <div class="lp-feat-title">Alumni Network Discovery</div>
-        <div class="lp-feat-text">Smart LinkedIn search cards for every program, personalised to your school. Find the right people inside target firms before applications open.</div>
+        <div class="lp-feat-text">Smart LinkedIn search cards for every program, personalised to your MBA school. Find the right people inside target firms before applications open.</div>
       </div>
       <div class="lp-feat">
         <div class="lp-feat-icon">📋</div>
         <div class="lp-feat-title">Application Kanban</div>
-        <div class="lp-feat-text">Track every application from Networking → Offer with a full kanban board, deadline reminders, and one-click calendar exports.</div>
-      </div>
-      <div class="lp-feat">
-        <div class="lp-feat-icon">🔍</div>
-        <div class="lp-feat-title">42 Curated Programs</div>
-        <div class="lp-feat-text">42 hand-picked programs across Europe, UAE, and global markets — each with verified career page links, visa sponsorship data, and last-verified timestamps.</div>
+        <div class="lp-feat-text">Track every application from Networking → Offer with a full kanban board, notes, deadline reminders, and one-click calendar exports.</div>
       </div>
       <div class="lp-feat">
         <div class="lp-feat-icon">📅</div>
         <div class="lp-feat-title">Deadline Tracker</div>
-        <div class="lp-feat-text">All upcoming deadlines sorted by urgency — with ICS calendar export that adds 7-day and 1-day reminders automatically.</div>
+        <div class="lp-feat-text">All upcoming deadlines sorted by urgency. ICS export adds 30-day, 7-day, and 1-day reminders to your calendar automatically.</div>
+      </div>
+      <div class="lp-feat">
+        <div class="lp-feat-icon">🌍</div>
+        <div class="lp-feat-title">Europe · UAE · Global</div>
+        <div class="lp-feat-text">48 hand-picked programs with verified career page links, visa sponsorship data, salary ranges, and last-verified timestamps — no stale data.</div>
       </div>
       <div class="lp-feat">
         <div class="lp-feat-icon">🔒</div>
-        <div class="lp-feat-title">100% Private</div>
-        <div class="lp-feat-text">Everything saved in your browser's local storage. No accounts, no tracking, no servers. Your resume analysis stays on your device.</div>
+        <div class="lp-feat-title">Private by Design</div>
+        <div class="lp-feat-text">Your applications are private to your account. Community intel is opt-in. Resume analysis runs in-session and is never stored on any server.</div>
       </div>
     </div>
-    <div class="lp-trust">
-      <div class="lp-trust-icon">✅</div>
-      <div class="lp-trust-text"><strong>Built for the real MBA recruiting workflow.</strong> Program data verified May 2026 — sourced from official careers pages, MBA-Exchange rankings, and ESADE/HEC careers office intel. Designed by an ESADE MBA student, for MBA students actively recruiting.</div>
-    </div>
-    <div style="text-align:center;margin-top:40px">
-      <button class="lp-cta" onclick="enterApp()" style="padding:16px 36px;font-size:16px">Open LDP Scout →</button>
-    </div>
   </div>
+
+  <!-- BOTTOM CTA -->
+  <div class="lp-bottom">
+    <div class="lp-trust-text">
+      <strong>Built for the real MBA recruiting workflow.</strong><br>
+      Program data verified May 2026 — sourced from official careers pages, MBA-Exchange rankings, and ESADE/HEC careers office intel. Designed by an ESADE MBA student, for MBA students actively recruiting.
+    </div>
+    <button class="lp-signup-bar" onclick="document.getElementById('lp-email').focus();window.scrollTo({top:0,behavior:'smooth'})" style="display:inline-flex;width:auto;cursor:pointer;border:none;border-radius:14px;">
+      <span style="padding:15px 24px;font-size:15px;color:var(--text2);">your@school.edu</span>
+      <span style="padding:15px 26px;background:var(--accent);color:#fff;font-weight:600;font-size:14px;border-radius:0 14px 14px 0;">Get Started Free →</span>
+    </button>
+  </div>
+
 </div>
+
+
 
 <!-- PAYWALL -->
-<div class="paywall-overlay" id="paywall-overlay">
-  <div class="paywall-box">
-    <div class="pw-logo">✦</div>
-    <div class="pw-title">Unlock LDP Scout</div>
-    <div class="pw-sub">The only tool built for MBA students tracking Leadership Development Programs across Europe, UAE, and global markets.</div>
-    <div class="pw-price">€5</div>
-    <div class="pw-price-note">one-time · lifetime access · no subscription</div>
-    <div class="pw-features">
-      <div class="pw-feat"><span class="pw-feat-icon">✓</span> 42 curated leadership programs with verified career links</div>
-      <div class="pw-feat"><span class="pw-feat-icon">✓</span> AI resume scanner — tier-ranked fit across all programs</div>
-      <div class="pw-feat"><span class="pw-feat-icon">✓</span> Personalised resume coaching for each application</div>
-      <div class="pw-feat"><span class="pw-feat-icon">✓</span> Alumni tracker (ESADE + HEC Paris network)</div>
-      <div class="pw-feat"><span class="pw-feat-icon">✓</span> Application kanban + deadline tracker</div>
-      <div class="pw-feat"><span class="pw-feat-icon">✓</span> All data saved locally — nothing leaves your browser</div>
-    </div>
-    <button class="pw-cta" onclick="unlockApp()">Pay €5 &amp; Get Full Access →</button><br>
-    <button class="pw-skip" onclick="dismissPaywall()">Continue without AI features</button>
-  </div>
-</div>
 
-<!-- ONBOARDING MODAL -->
-<div class="onboard-overlay" id="onboard-overlay">
-  <div class="onboard-box">
-    <div class="ob-logo">🚀</div>
-    <div class="ob-title">Build your recruiting dashboard</div>
-    <div class="ob-sub">Tell us which schools you attended and we'll personalise your alumni network, surface the right program connections, and set up your recruiting tracker. Takes 30 seconds.</div>
-    <div class="ob-field">
-      <label>Your Name</label>
-      <input id="ob-name" placeholder="e.g. Shrey Singhal" autocomplete="name">
-    </div>
-    <div class="ob-field">
-      <label>Email (for calendar reminders)</label>
-      <input id="ob-email" type="email" placeholder="you@school.edu" autocomplete="email">
-    </div>
-    <div class="ob-field">
-      <label>Your MBA School(s) — search and select all that apply</label>
-      <div class="school-select-wrap" id="ob-school-wrap">
-        <input class="school-search-input" id="ob-school-search" placeholder="Type school name, e.g. ESADE, LBS, INSEAD..." autocomplete="off" oninput="filterSchoolDropdown()" onfocus="openSchoolDropdown()" onblur="setTimeout(closeSchoolDropdown,200)">
-        <div class="school-dropdown" id="ob-school-dropdown"></div>
-        <div class="selected-schools" id="ob-selected-schools"></div>
-      </div>
-    </div>
     <button class="ob-cta" onclick="saveOnboarding()">Build My Dashboard →</button>
     <button class="ob-skip" onclick="skipOnboarding()">Skip for now</button>
   </div>
@@ -533,7 +677,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
   </div>
   <div class="topbar-right">
     <div class="date-lbl" id="today-lbl"></div>
-    <div class="pro-badge" id="pro-badge" onclick="document.getElementById('paywall-overlay').classList.add('open')">✦ Pro</div>
+    <span id="user-info" style="color:#7c8db5;font-size:12px;margin-right:8px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
+    <button id="auth-btn" onclick="handleAuth()" style="padding:6px 14px;border-radius:8px;background:#6366f1;color:white;border:none;cursor:pointer;font-weight:600;font-size:12px;margin-right:8px;">Sign In</button>
   </div>
 </div>
 
@@ -868,6 +1013,89 @@ const DA = [
   } catch(e){ localStorage.removeItem('ldps_progs'); }
 })();
 
+// ─── Supabase Auth ───────────────────────────────────────────────
+const SUPA_URL = 'https://kqtarrgtxqpamlfrkgiv.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtxdGFycmd0eHFwYW1sZnJrZ2l2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1MDMxNzksImV4cCI6MjA5NDA3OTE3OX0.D6Foh3F2gS0d1lpWEHuc5incL-9LDW__17qRony9X2U';
+const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+let currentUser = null;
+
+async function initAuth() {
+  const { data: { session } } = await sb.auth.getSession();
+  currentUser = session?.user ?? null;
+  sb.auth.onAuthStateChange((_event, session) => {
+    currentUser = session?.user ?? null;
+    updateAuthUI();
+  });
+  updateAuthUI();
+}
+
+function updateAuthUI() {
+  const btn = document.getElementById('auth-btn');
+  const userInfo = document.getElementById('user-info');
+  if (currentUser) {
+    if (btn) btn.textContent = 'Sign Out';
+    if (userInfo) userInfo.textContent = currentUser.email;
+  } else {
+    if (btn) btn.textContent = 'Sign In';
+    if (userInfo) userInfo.textContent = '';
+  }
+}
+
+async function handleAuth() {
+  if (currentUser) {
+    await sb.auth.signOut();
+  } else {
+    showAuthModal();
+  }
+}
+
+function showAuthModal() {
+  const existing = document.getElementById('auth-modal');
+  if (existing) existing.remove();
+  const modal = document.createElement('div');
+  modal.id = 'auth-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:9999;';
+  modal.innerHTML = `
+    <div style="background:#1e2130;border-radius:12px;padding:32px;width:360px;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
+      <h2 style="color:#e2e8f0;margin:0 0 8px;font-size:20px;">Sign in to LDP Scout</h2>
+      <p style="color:#7c8db5;margin:0 0 24px;font-size:14px;">Track your applications privately. Share intel with your cohort.</p>
+      <input id="auth-email" type="email" placeholder="your@email.com"
+        style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid #3b4a6b;background:#0f1117;color:#e2e8f0;font-size:14px;box-sizing:border-box;margin-bottom:12px;">
+      <button onclick="sendMagicLink()"
+        style="width:100%;padding:12px;border-radius:8px;background:#6366f1;color:white;font-weight:600;border:none;cursor:pointer;font-size:14px;">
+        Send Magic Link →
+      </button>
+      <p id="auth-msg" style="color:#4ade80;font-size:13px;margin:12px 0 0;text-align:center;display:none;"></p>
+      <button onclick="document.getElementById('auth-modal').remove()"
+        style="width:100%;padding:8px;margin-top:12px;border-radius:8px;background:transparent;color:#7c8db5;border:1px solid #3b4a6b;cursor:pointer;font-size:13px;">
+        Cancel
+      </button>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => { if(e.target===modal) modal.remove(); });
+}
+
+async function sendMagicLink() {
+  const email = document.getElementById('auth-email').value.trim();
+  if (!email) return;
+  const btn = document.querySelector('#auth-modal button');
+  btn.textContent = 'Sending...';
+  const redirectTo = window.location.origin + window.location.pathname;
+  const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: redirectTo } });
+  const msg = document.getElementById('auth-msg');
+  msg.style.display = 'block';
+  if (error) {
+    msg.style.color = '#f87171';
+    msg.textContent = error.message;
+    btn.textContent = 'Send Magic Link →';
+  } else {
+    msg.textContent = '\u2713 Check your email for the login link!';
+    btn.textContent = 'Sent!';
+    btn.disabled = true;
+  }
+}
+// ────────────────────────────────────────────────────────────────
+
 let progs = JSON.parse(localStorage.getItem('ldps_progs')||'null')||JSON.parse(JSON.stringify(DP));
 let alum  = JSON.parse(localStorage.getItem('ldps_alum') ||'null')||JSON.parse(JSON.stringify(DA));
 let apps  = JSON.parse(localStorage.getItem('ldps_apps') ||'[]');
@@ -876,7 +1104,7 @@ let selectedSchools = userProfile?.schools||[];
 let eId   = {prog:null,alumni:null,app:null};
 let F     = {geo:'all',fn:'all',st:'all',asc:'all',ast:'all'};
 let resumeText = '';
-let isUnlocked = localStorage.getItem('ldps_unlocked')==='true';
+let isUnlocked = true; // paywall removed
 
 function persist(){
   localStorage.setItem('ldps_progs',JSON.stringify(progs));
@@ -1013,19 +1241,10 @@ function applyProfile(){
 }
 
 // ═══════════════ PAYWALL ═══════════════
-function unlockApp(){
-  // Production: trigger Stripe checkout here
-  isUnlocked=true;
-  localStorage.setItem('ldps_unlocked','true');
-  document.getElementById('paywall-overlay').classList.remove('open');
-  const badge=document.getElementById('pro-badge');
-  badge.textContent='✦ Pro ✓';
-  badge.style.background='linear-gradient(135deg,#0f4530,#1d6a45)';
-  toast('✦ Access unlocked — welcome to LDP Scout Pro!');
-}
+
 function dismissPaywall(){
   localStorage.setItem('ldps_dismissed','1');
-  document.getElementById('paywall-overlay').classList.remove('open');
+  
 }
 
 // ═══════════════ NAV ═══════════════
@@ -1037,13 +1256,35 @@ function showPage(id){
   const idx=PAGE_ORDER.indexOf(id);
   const tabs=document.querySelectorAll('.nav-tab');
   if(idx>=0&&tabs[idx]) tabs[idx].classList.add('active');
-  if(id==='aifit'&&!isUnlocked){document.getElementById('paywall-overlay').classList.add('open');return;}
+  
   ({programs:renderPrograms,alumni:()=>{initAlumniSchoolDrop();renderAlumniSearch();},applications:renderApplications,deadlines:renderDeadlines,aifit:()=>{}})[id]?.();
+}
+
+async function lpSignUp(){
+  const email = document.getElementById('lp-email').value.trim();
+  if(!email){ document.getElementById('lp-email').focus(); return; }
+  const btn = document.getElementById('lp-signup-btn');
+  btn.textContent = 'Sending...'; btn.disabled = true;
+  const redirectTo2 = window.location.origin + window.location.pathname;
+  const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: redirectTo2 } });
+  const msg = document.getElementById('lp-signup-msg');
+  msg.style.display = 'block';
+  if(error){
+    msg.style.color = '#f87171';
+    msg.textContent = error.message;
+    btn.textContent = 'Get Started Free →'; btn.disabled = false;
+  } else {
+    msg.style.color = '#4ade80';
+    msg.textContent = '✓ Magic link sent! Check your email, then come back here.';
+    btn.textContent = 'Sent ✓';
+    // Also enter the app so they can browse while waiting
+    setTimeout(()=>enterApp(), 1800);
+  }
 }
 
 function enterApp(){
   document.getElementById('landing-overlay').classList.remove('open');
-  localStorage.setItem('ldps_seen_landing','1');
+  // landing seen flag removed — always show on load
   // Show onboarding after landing if first visit
   if(!userProfile&&!localStorage.getItem('ldps_ob_skipped')){
     setTimeout(()=>{document.getElementById('onboard-overlay').classList.add('open');},300);
@@ -1194,6 +1435,34 @@ function renderPrograms(){
       <div class="stat-lbl">★★★★+ Fit</div>
       <div class="stat-hint">Click to filter</div>
     </div>`;
+
+  // Mobile card view
+  const cards = document.getElementById('prog-cards');
+  const table = document.getElementById('prog-table');
+  if (cards) {
+    if (window.innerWidth <= 768) {
+      table.style.display = 'none';
+      cards.style.display = 'flex';
+      cards.innerHTML = filtered.map(p => `
+        <div class="prog-card">
+          <div class="prog-card-title">${p.name}</div>
+          <div class="prog-card-org">${p.org}${p.visa?' <span style="color:var(--accent);font-size:11px;">✓ Visa</span>':''}</div>
+          <div class="prog-card-meta">
+            <span>📍 ${p.loc}</span>
+            <span>⏰ ${p.dlnote||p.deadline||'Rolling'}</span>
+          </div>
+          <div class="prog-card-tags">${(p.tags||[]).map(t=>`<span class="tag">${t}</span>`).join('')}</div>
+          <div class="prog-card-actions">
+            <button onclick="window.open('${p.url}','_blank')">Apply →</button>
+            <button onclick="openM('prog',${p.id})">Edit</button>
+          </div>
+        </div>`).join('');
+    } else {
+      table.style.display = '';
+      cards.style.display = 'none';
+    }
+  }
+
 }
 
 // ═══════════════ ALUMNI TAB — SCHOOL DROPDOWN + TABLE ═══════════════
@@ -1505,7 +1774,7 @@ uzEl.addEventListener('drop',e=>{
 });
 
 async function runAIAnalysis(){
-  if(!isUnlocked){document.getElementById('paywall-overlay').classList.add('open');return;}
+  
   if(!resumeText){alert('Please upload your resume first.');return;}
 
   // Restore key from session if available
@@ -1827,22 +2096,12 @@ document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',e=>{
 
 // Init
 document.getElementById('today-lbl').textContent=new Date().toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
-if(isUnlocked){const b=document.getElementById('pro-badge');b.textContent='✦ Pro ✓';}
-if(!isUnlocked&&!localStorage.getItem('ldps_dismissed')){setTimeout(()=>{document.getElementById('paywall-overlay').classList.add('open');},900);}
 
-// Show landing page on first visit
-if(!localStorage.getItem('ldps_seen_landing')){
-  document.getElementById('landing-overlay').classList.add('open');
-}
+,900);}
 
-// Show onboarding if first visit and no landing page shown
-if(!userProfile&&!localStorage.getItem('ldps_ob_skipped')){
-  if(localStorage.getItem('ldps_seen_landing')){
-    setTimeout(()=>{document.getElementById('onboard-overlay').classList.add('open');},400);
-  }
-} else {
-  applyProfile();
-}
+// Always show landing page — it's the entry point every time
+document.getElementById('landing-overlay').classList.add('open');
+applyProfile();
 
 window._fitOnly=false;
 window._visaOnly=false;
@@ -1860,6 +2119,7 @@ document.getElementById('ics-modal-overlay').addEventListener('click',e=>{
   if(e.target===document.getElementById('ics-modal-overlay')) document.getElementById('ics-modal-overlay').classList.remove('open');
 });
 
+initAuth();
 renderPrograms();
 // Set dynamic program count
 const pcEl=document.getElementById('prog-count');
