@@ -1151,6 +1151,8 @@ const EDU_DOMAIN_WHITELIST = [
   'bocconi.it',          // SDA Bocconi
   'bocconi.education',
   'unibocconi.it',
+  'bocconialumni.it',    // Bocconi alumni
+  'studbocconi.it',      // Bocconi students
   'imd.org',             // IMD
   'iese.edu',
   'student.ie.edu',
@@ -1209,11 +1211,20 @@ function isValidEduEmail(email){
   if(!email || !email.includes('@')) return false;
   const domain = email.split('@')[1].toLowerCase().trim();
   if(!domain) return false;
-  // Whitelist match
+  // Whitelist match (exact domain)
   if(EDU_DOMAIN_WHITELIST.includes(domain)) return true;
-  // Pattern match
+  // Pattern match (TLD patterns like .edu, .ac.uk)
   for(const pat of EDU_DOMAIN_PATTERNS){
     if(pat.test(domain)) return true;
+  }
+  // Fuzzy match: if the domain contains a known school keyword + 'alumni', allow it
+  // e.g. bocconialumni.it, alumni.esade.edu, alumni.hec.edu
+  const schoolKeywords = ['esade','hec','insead','iese','bocconi','lbs','oxford','cambridge',
+    'imperial','cranfield','warwick','mannheim','rsm','vlerick','edhec','emlyon','skema',
+    'audencia','neoma','kedge','escp','whu','hhl','frankfurt','imd','stgallen','ceibs',
+    'kellogg','wharton','booth','columbia','iima','iimb','iimc','isb','nus','ntu','smu'];
+  for(const kw of schoolKeywords){
+    if(domain.includes(kw)) return true;
   }
   return false;
 }
