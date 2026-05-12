@@ -588,9 +588,9 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 
       <!-- Step 2: OTP input (hidden until code is sent) -->
       <div id="lp-step-otp" style="display:none;">
-        <div style="font-size:13px;color:var(--text2);margin-bottom:10px;">Enter the 6-digit code we sent to <strong id="lp-otp-email-display"></strong></div>
+        <div style="font-size:13px;color:var(--text2);margin-bottom:10px;">Enter the 8-digit code we sent to <strong id="lp-otp-email-display"></strong></div>
         <div class="lp-signup-bar-v2">
-          <input id="lp-otp-input" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="000000" autocomplete="one-time-code" style="font-family:var(--mono);font-size:20px;letter-spacing:8px;text-align:center;" onkeydown="if(event.key==='Enter') lpVerifyOTP()">
+          <input id="lp-otp-input" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="8" placeholder="00000000" autocomplete="one-time-code" style="font-family:var(--mono);font-size:20px;letter-spacing:6px;text-align:center;" onkeydown="if(event.key==='Enter') lpVerifyOTP()">
           <button onclick="lpVerifyOTP()" id="lp-verify-btn">Verify →</button>
         </div>
         <div style="display:flex;gap:16px;margin-top:8px;align-items:center;">
@@ -1384,7 +1384,7 @@ async function lpVerifyOTP(){
   msg.classList.remove('ok','err');
 
   if(!code || code.length < 6){
-    msg.textContent = 'Please enter the 6-digit code from your email.';
+    msg.textContent = 'Please enter the full code from your email.';
     msg.classList.add('err');
     msg.style.display = 'block';
     return;
