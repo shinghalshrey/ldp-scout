@@ -1645,7 +1645,7 @@ function renderDeadlines(){
         <span class="dltype">${i.type}</span>
         <div class="dldays ${cls}">${lbl}</div>
         <div class="dlitem-actions">
-          <button class="ics-btn" onclick="downloadICS(${JSON.stringify(i).replace(/"/g,'&quot;')})" title="Add to calendar">📅 Remind me</button>
+          <button class="ics-btn" onclick="openICSModal(${JSON.stringify(i).replace(/"/g,'&quot;')})" title="Add to calendar">📅 Set reminder</button>
         </div>
       </div>`;
     }).join('');
