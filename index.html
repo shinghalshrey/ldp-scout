@@ -417,28 +417,9 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
       <div class="lp-eyebrow">MBA Leadership Development Programs</div>
       <div class="lp-title">Build your personalised<br><em>LDP recruiting dashboard</em></div>
       <div class="lp-sub">The only tool built for MBA students tracking and applying to Leadership Development Programs across Europe, UAE, and global markets — with AI-powered fit analysis, alumni discovery, and deadline tracking.</div>
-      <div style="display:flex;flex-direction:column;gap:12px;max-width:480px;">
-        <div style="display:flex;align-items:stretch;border-radius:12px;overflow:hidden;border:1.5px solid var(--border2);background:var(--bg2);">
-          <input id="lp-email" type="email" placeholder="your@school.edu"
-            style="flex:1;padding:14px 18px;border:none;background:transparent;color:var(--text);
-                   font-size:15px;outline:none;font-family:inherit;min-width:0;"
-            onkeydown="if(event.key==='Enter') lpSignUp()">
-          <button onclick="lpSignUp()" id="lp-signup-btn"
-            style="padding:14px 24px;background:var(--accent);color:#fff;border:none;cursor:pointer;
-                   font-weight:600;font-size:14px;font-family:inherit;white-space:nowrap;
-                   transition:background .15s;border-radius:0;"
-            onmouseover="this.style.background='var(--accent2)'"
-            onmouseout="this.style.background='var(--accent)'">
-            Get Started Free →
-          </button>
-        </div>
-        <p id="lp-signup-msg" style="font-size:13px;color:#4ade80;margin:0;display:none;"></p>
-        <button onclick="enterApp()"
-          style="background:transparent;border:none;color:var(--text3);font-size:13px;
-                 cursor:pointer;font-family:inherit;text-align:left;padding:0;
-                 text-decoration:underline;text-underline-offset:3px;">
-          Browse programs without signing up →
-        </button>
+      <div class="lp-cta-row">
+        <button class="lp-cta" onclick="enterApp()">Get Started Free →</button>
+        <button class="lp-cta-sec" onclick="enterApp()">Explore the tracker</button>
       </div>
     </div>
     <div class="lp-stats-row">
@@ -475,8 +456,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
       </div>
       <div class="lp-feat">
         <div class="lp-feat-icon">🔒</div>
-        <div class="lp-feat-title">Private by Design</div>
-        <div class="lp-feat-text">Your applications are private to your account — no one else can see them. Community intel is opt-in. Your resume analysis never leaves the session.</div>
+        <div class="lp-feat-title">100% Private</div>
+        <div class="lp-feat-text">Everything saved in your browser's local storage. No accounts, no tracking, no servers. Your resume analysis stays on your device.</div>
       </div>
     </div>
     <div class="lp-trust">
@@ -484,7 +465,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
       <div class="lp-trust-text"><strong>Built for the real MBA recruiting workflow.</strong> Program data verified May 2026 — sourced from official careers pages, MBA-Exchange rankings, and ESADE/HEC careers office intel. Designed by an ESADE MBA student, for MBA students actively recruiting.</div>
     </div>
     <div style="text-align:center;margin-top:40px">
-      <button class="lp-cta" onclick="enterApp()" style="padding:16px 36px;font-size:16px">Explore Programs →</button>
+      <button class="lp-cta" onclick="enterApp()" style="padding:16px 36px;font-size:16px">Open LDP Scout →</button>
     </div>
   </div>
 </div>
@@ -552,8 +533,6 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
   </div>
   <div class="topbar-right">
     <div class="date-lbl" id="today-lbl"></div>
-    <span id="user-info" style="color:#7c8db5;font-size:12px;margin-right:8px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
-    <button id="auth-btn" onclick="handleAuth()" style="padding:6px 14px;border-radius:8px;background:#6366f1;color:white;border:none;cursor:pointer;font-weight:600;font-size:12px;margin-right:8px;">Sign In</button>
     <div class="pro-badge" id="pro-badge" onclick="document.getElementById('paywall-overlay').classList.add('open')">✦ Pro</div>
   </div>
 </div>
@@ -889,88 +868,6 @@ const DA = [
   } catch(e){ localStorage.removeItem('ldps_progs'); }
 })();
 
-// ─── Supabase Auth ───────────────────────────────────────────────
-const SUPA_URL = 'https://kqtarrgtxqpamlfrkgiv.supabase.co';
-const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtxdGFycmd0eHFwYW1sZnJrZ2l2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1MDMxNzksImV4cCI6MjA5NDA3OTE3OX0.D6Foh3F2gS0d1lpWEHuc5incL-9LDW__17qRony9X2U';
-const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
-let currentUser = null;
-
-async function initAuth() {
-  const { data: { session } } = await sb.auth.getSession();
-  currentUser = session?.user ?? null;
-  sb.auth.onAuthStateChange((_event, session) => {
-    currentUser = session?.user ?? null;
-    updateAuthUI();
-  });
-  updateAuthUI();
-}
-
-function updateAuthUI() {
-  const btn = document.getElementById('auth-btn');
-  const userInfo = document.getElementById('user-info');
-  if (currentUser) {
-    if (btn) btn.textContent = 'Sign Out';
-    if (userInfo) userInfo.textContent = currentUser.email;
-  } else {
-    if (btn) btn.textContent = 'Sign In';
-    if (userInfo) userInfo.textContent = '';
-  }
-}
-
-async function handleAuth() {
-  if (currentUser) {
-    await sb.auth.signOut();
-  } else {
-    showAuthModal();
-  }
-}
-
-function showAuthModal() {
-  const existing = document.getElementById('auth-modal');
-  if (existing) existing.remove();
-  const modal = document.createElement('div');
-  modal.id = 'auth-modal';
-  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:9999;';
-  modal.innerHTML = `
-    <div style="background:#1e2130;border-radius:12px;padding:32px;width:360px;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
-      <h2 style="color:#e2e8f0;margin:0 0 8px;font-size:20px;">Sign in to LDP Scout</h2>
-      <p style="color:#7c8db5;margin:0 0 24px;font-size:14px;">Track your applications privately. Share intel with your cohort.</p>
-      <input id="auth-email" type="email" placeholder="your@email.com"
-        style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid #3b4a6b;background:#0f1117;color:#e2e8f0;font-size:14px;box-sizing:border-box;margin-bottom:12px;">
-      <button onclick="sendMagicLink()"
-        style="width:100%;padding:12px;border-radius:8px;background:#6366f1;color:white;font-weight:600;border:none;cursor:pointer;font-size:14px;">
-        Send Magic Link →
-      </button>
-      <p id="auth-msg" style="color:#4ade80;font-size:13px;margin:12px 0 0;text-align:center;display:none;"></p>
-      <button onclick="document.getElementById('auth-modal').remove()"
-        style="width:100%;padding:8px;margin-top:12px;border-radius:8px;background:transparent;color:#7c8db5;border:1px solid #3b4a6b;cursor:pointer;font-size:13px;">
-        Cancel
-      </button>
-    </div>`;
-  document.body.appendChild(modal);
-  modal.addEventListener('click', e => { if(e.target===modal) modal.remove(); });
-}
-
-async function sendMagicLink() {
-  const email = document.getElementById('auth-email').value.trim();
-  if (!email) return;
-  const btn = document.querySelector('#auth-modal button');
-  btn.textContent = 'Sending...';
-  const { error } = await sb.auth.signInWithOtp({ email });
-  const msg = document.getElementById('auth-msg');
-  msg.style.display = 'block';
-  if (error) {
-    msg.style.color = '#f87171';
-    msg.textContent = error.message;
-    btn.textContent = 'Send Magic Link →';
-  } else {
-    msg.textContent = '\u2713 Check your email for the login link!';
-    btn.textContent = 'Sent!';
-    btn.disabled = true;
-  }
-}
-// ────────────────────────────────────────────────────────────────
-
 let progs = JSON.parse(localStorage.getItem('ldps_progs')||'null')||JSON.parse(JSON.stringify(DP));
 let alum  = JSON.parse(localStorage.getItem('ldps_alum') ||'null')||JSON.parse(JSON.stringify(DA));
 let apps  = JSON.parse(localStorage.getItem('ldps_apps') ||'[]');
@@ -1144,30 +1041,9 @@ function showPage(id){
   ({programs:renderPrograms,alumni:()=>{initAlumniSchoolDrop();renderAlumniSearch();},applications:renderApplications,deadlines:renderDeadlines,aifit:()=>{}})[id]?.();
 }
 
-async function lpSignUp(){
-  const email = document.getElementById('lp-email').value.trim();
-  if(!email){ document.getElementById('lp-email').focus(); return; }
-  const btn = document.getElementById('lp-signup-btn');
-  btn.textContent = 'Sending...'; btn.disabled = true;
-  const { error } = await sb.auth.signInWithOtp({ email });
-  const msg = document.getElementById('lp-signup-msg');
-  msg.style.display = 'block';
-  if(error){
-    msg.style.color = '#f87171';
-    msg.textContent = error.message;
-    btn.textContent = 'Get Started Free →'; btn.disabled = false;
-  } else {
-    msg.style.color = '#4ade80';
-    msg.textContent = '✓ Magic link sent! Check your email, then come back here.';
-    btn.textContent = 'Sent ✓';
-    // Also enter the app so they can browse while waiting
-    setTimeout(()=>enterApp(), 1800);
-  }
-}
-
 function enterApp(){
   document.getElementById('landing-overlay').classList.remove('open');
-  // landing seen flag removed — always show on load
+  localStorage.setItem('ldps_seen_landing','1');
   // Show onboarding after landing if first visit
   if(!userProfile&&!localStorage.getItem('ldps_ob_skipped')){
     setTimeout(()=>{document.getElementById('onboard-overlay').classList.add('open');},300);
@@ -1954,9 +1830,19 @@ document.getElementById('today-lbl').textContent=new Date().toLocaleDateString('
 if(isUnlocked){const b=document.getElementById('pro-badge');b.textContent='✦ Pro ✓';}
 if(!isUnlocked&&!localStorage.getItem('ldps_dismissed')){setTimeout(()=>{document.getElementById('paywall-overlay').classList.add('open');},900);}
 
-// Always show landing page — it's the entry point every time
-document.getElementById('landing-overlay').classList.add('open');
-applyProfile();
+// Show landing page on first visit
+if(!localStorage.getItem('ldps_seen_landing')){
+  document.getElementById('landing-overlay').classList.add('open');
+}
+
+// Show onboarding if first visit and no landing page shown
+if(!userProfile&&!localStorage.getItem('ldps_ob_skipped')){
+  if(localStorage.getItem('ldps_seen_landing')){
+    setTimeout(()=>{document.getElementById('onboard-overlay').classList.add('open');},400);
+  }
+} else {
+  applyProfile();
+}
 
 window._fitOnly=false;
 window._visaOnly=false;
@@ -1974,7 +1860,6 @@ document.getElementById('ics-modal-overlay').addEventListener('click',e=>{
   if(e.target===document.getElementById('ics-modal-overlay')) document.getElementById('ics-modal-overlay').classList.remove('open');
 });
 
-initAuth();
 renderPrograms();
 // Set dynamic program count
 const pcEl=document.getElementById('prog-count');
