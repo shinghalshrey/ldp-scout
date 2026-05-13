@@ -9,7 +9,7 @@
 <meta http-equiv="Expires" content="0">
 <title>LDP Scout — MBA Leadership Program Tracker</title>
 <!-- Build version: bumped automatically on each deploy to bust caches -->
-<meta name="build-version" content="2026-05-13-p9">
+<meta name="build-version" content="2026-05-13-p10">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,300;1,9..144,400&family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -92,6 +92,13 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 .table-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow)}
 .thead{display:grid;grid-template-columns:2.2fr 1fr 0.9fr 0.8fr .6fr .7fr .5fr 70px;padding:9px 16px;border-bottom:1px solid var(--border);background:var(--bg3)}
 .th{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em}
+/* Phase 10: sortable column headers */
+.th.sortable{cursor:pointer;user-select:none;display:flex;align-items:center;gap:5px;transition:color .1s}
+.th.sortable:hover{color:var(--text2)}
+.th.sortable .th-arrow{display:inline-block;font-size:9px;opacity:0;transition:opacity .15s;color:var(--accent)}
+.th.sortable:hover .th-arrow{opacity:.4}
+.th.sortable.sorted{color:var(--accent)}
+.th.sortable.sorted .th-arrow{opacity:1}
 .prow{display:grid;grid-template-columns:2.2fr 1fr 0.9fr 0.8fr .6fr .7fr .5fr 70px;padding:13px 16px;border-bottom:1px solid var(--border);align-items:center;transition:background .1s}
 .prow:last-child{border-bottom:none}
 .prow:hover{background:var(--bg3)}
@@ -1108,12 +1115,12 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
   <div class="results-meta" id="prog-meta"></div>
   <div class="table-wrap">
     <div class="thead">
-      <div class="th">Program / Organisation</div>
-      <div class="th">Function · Sector</div>
-      <div class="th">Location</div>
-      <div class="th">Deadline</div>
-      <div class="th">Status</div>
-      <div class="th">Fit ✦</div>
+      <div class="th sortable" data-sort-key="name" onclick="sortBy('name')">Program / Organisation<span class="th-arrow">▼</span></div>
+      <div class="th sortable" data-sort-key="fn"   onclick="sortBy('fn')">Function · Sector<span class="th-arrow">▼</span></div>
+      <div class="th sortable" data-sort-key="loc"  onclick="sortBy('loc')">Location<span class="th-arrow">▼</span></div>
+      <div class="th sortable" data-sort-key="deadline" onclick="sortBy('deadline')">Deadline<span class="th-arrow">▼</span></div>
+      <div class="th sortable" data-sort-key="status" onclick="sortBy('status')">Status<span class="th-arrow">▼</span></div>
+      <div class="th sortable" data-sort-key="fit"  onclick="sortBy('fit')">Fit ✦<span class="th-arrow">▼</span></div>
       <div class="th">📅 Remind</div>
       <div class="th">Actions</div>
     </div>
@@ -2716,7 +2723,18 @@ let apps  = [];                       // loaded from Supabase on sign-in
 // userProfile is declared in the auth section above and populated by loadUserProfile()
 let selectedSchools = [];
 let eId   = {prog:null,alumni:null,app:null};
-let F     = {geo:'all',fn:'all',st:'all',asc:'all',ast:'all'};
+// Phase 10: filter state — each dimension is a Set of selected values.
+// Empty Set = no filter (equivalent to "All"). asc/ast remain single-value for Alumni.
+let F = {
+  geo:  new Set(),
+  fn:   new Set(),
+  st:   new Set(),
+  asc:  'all',
+  ast:  'all',
+  // Sort state for Programs table: column key + direction. null = default (unsorted).
+  sortKey: null,
+  sortDir: 'asc'   // 'asc' | 'desc'
+};
 let resumeText = '';
 // Phase 7: ISO timestamp of last AI fit scan, or null. Mirrors user_resumes.last_scan_at.
 // Used by renderFitBanner to decide stale/fresh state. Kept separate from userProfile because
@@ -2951,45 +2969,129 @@ function enterApp(){
 }
 
 // ═══════════════ FILTERS ═══════════════
-function setF(dim,btn){
-  F[dim]=btn.getAttribute('data-'+dim);
-  document.querySelectorAll('[data-'+dim+']').forEach(b=>b.classList.remove('on'));
-  btn.classList.add('on');
-  (dim==='asc'||dim==='ast')?renderAlumni():renderPrograms();
-}
-
-// Clickable stat cards
-function statClick(status){
-  if(F.st===status){
-    F.st='all';
-    document.querySelectorAll('[data-st]').forEach(b=>{b.classList.remove('on');if(b.getAttribute('data-st')==='all')b.classList.add('on');});
-  } else {
-    F.st=status;
-    document.querySelectorAll('[data-st]').forEach(b=>{b.classList.remove('on');if(b.getAttribute('data-st')===status)b.classList.add('on');});
+// Phase 10: setF toggles a value in/out of the filter Set. The "All" pill clears the Set.
+// Alumni filters (asc/ast) remain single-value — they're string fields not Sets.
+function setF(dim, btn){
+  const val = btn.getAttribute('data-'+dim);
+  if(dim === 'asc' || dim === 'ast'){
+    // Alumni-side filters: single-value behaviour unchanged
+    F[dim] = val;
+    document.querySelectorAll('[data-'+dim+']').forEach(b => b.classList.remove('on'));
+    btn.classList.add('on');
+    renderAlumni();
+    return;
   }
+  // Programs-side filters: multi-select via Set
+  if(val === 'all'){
+    F[dim].clear();
+  } else if(F[dim].has(val)){
+    F[dim].delete(val);
+  } else {
+    F[dim].add(val);
+  }
+  _syncFilterPills(dim);
+  _persistFilterState();
   renderPrograms();
 }
+
+// Reflect the current Set state into the UI pills for a given dimension
+function _syncFilterPills(dim){
+  const sel = F[dim];
+  document.querySelectorAll('[data-'+dim+']').forEach(b => {
+    const v = b.getAttribute('data-'+dim);
+    if(v === 'all') b.classList.toggle('on', sel.size === 0);
+    else            b.classList.toggle('on', sel.has(v));
+  });
+}
+
+// Clickable stat cards — toggle membership in the status filter Set
+function statClick(status){
+  if(F.st.has(status)){
+    F.st.delete(status);
+  } else {
+    F.st.add(status);
+  }
+  _syncFilterPills('st');
+  _persistFilterState();
+  renderPrograms();
+}
+
 function toggleVisaFilter(btn){
   window._visaOnly = !window._visaOnly;
   btn.classList.toggle('on', window._visaOnly);
+  _persistFilterState();
   renderPrograms();
 }
 
 function fitClick(){
-  // toggle high-fit filter using a simple flag
   window._fitOnly = !window._fitOnly;
+  _persistFilterState();
   renderPrograms();
 }
+
 function clearAll(){
-  F={geo:'all',fn:'all',st:'all',asc:'all',ast:'all'};
-  window._fitOnly=false;
-  window._visaOnly=false;
-  const vp=document.getElementById('visa-pill');if(vp)vp.classList.remove('on');
-  document.querySelectorAll('[data-geo]').forEach(b=>{b.classList.remove('on');if(b.getAttribute('data-geo')==='all')b.classList.add('on');});
-  document.querySelectorAll('[data-fn]').forEach(b=>{b.classList.remove('on');if(b.getAttribute('data-fn')==='all')b.classList.add('on');});
-  document.querySelectorAll('[data-st]').forEach(b=>{b.classList.remove('on');if(b.getAttribute('data-st')==='all')b.classList.add('on');});
-  document.getElementById('prog-search').value='';
+  F.geo.clear(); F.fn.clear(); F.st.clear();
+  F.sortKey = null; F.sortDir = 'asc';
+  window._fitOnly = false;
+  window._visaOnly = false;
+  const vp = document.getElementById('visa-pill'); if(vp) vp.classList.remove('on');
+  ['geo','fn','st'].forEach(_syncFilterPills);
+  const ps = document.getElementById('prog-search'); if(ps) ps.value = '';
+  _persistFilterState();
   renderPrograms();
+}
+
+// Phase 10: clicking a sortable header toggles sort. Same column → flip direction.
+// Different column → start with ascending. Clicking the active column when descending
+// → clear sort (back to default order).
+function sortBy(key){
+  if(F.sortKey === key){
+    if(F.sortDir === 'asc')       F.sortDir = 'desc';
+    else if(F.sortDir === 'desc'){ F.sortKey = null; F.sortDir = 'asc'; }
+  } else {
+    F.sortKey = key;
+    F.sortDir = 'asc';
+  }
+  _persistFilterState();
+  renderPrograms();
+}
+
+// Phase 10: persist filter + sort + search across tab switches and reloads.
+// Search box value is also captured so coming back to Programs preserves the query.
+function _persistFilterState(){
+  try {
+    const ps = document.getElementById('prog-search');
+    const state = {
+      geo: [...F.geo],
+      fn:  [...F.fn],
+      st:  [...F.st],
+      sortKey: F.sortKey,
+      sortDir: F.sortDir,
+      fitOnly:  !!window._fitOnly,
+      visaOnly: !!window._visaOnly,
+      search:  ps ? ps.value : ''
+    };
+    localStorage.setItem('ldps_prog_filters', JSON.stringify(state));
+  } catch {}
+}
+
+function _restoreFilterState(){
+  try {
+    const raw = localStorage.getItem('ldps_prog_filters');
+    if(!raw) return;
+    const s = JSON.parse(raw);
+    F.geo = new Set(Array.isArray(s.geo) ? s.geo : []);
+    F.fn  = new Set(Array.isArray(s.fn)  ? s.fn  : []);
+    F.st  = new Set(Array.isArray(s.st)  ? s.st  : []);
+    F.sortKey = s.sortKey || null;
+    F.sortDir = (s.sortDir === 'desc') ? 'desc' : 'asc';
+    window._fitOnly  = !!s.fitOnly;
+    window._visaOnly = !!s.visaOnly;
+    const ps = document.getElementById('prog-search');
+    if(ps && typeof s.search === 'string') ps.value = s.search;
+    const vp = document.getElementById('visa-pill'); if(vp) vp.classList.toggle('on', window._visaOnly);
+    ['geo','fn','st'].forEach(_syncFilterPills);
+  } catch {}
 }
 
 // Verified badge helper
@@ -3006,15 +3108,53 @@ function renderPrograms(){
   // Phase 7: smart banner reflects resume + scan freshness
   renderFitBanner();
   const q=(document.getElementById('prog-search')||{}).value?.toLowerCase()||'';
+  // Phase 10: persist search text whenever this runs (oninput → renderPrograms)
+  _persistFilterState();
   let list=progs.filter(p=>{
-    if(F.geo!=='all'&&p.geo!==F.geo) return false;
-    if(F.fn!=='all'&&p.fn!==F.fn) return false;
-    if(F.st!=='all'&&p.status!==F.st) return false;
-    if(window._fitOnly&&(+p.fit||0)<4) return false;
-    if(window._visaOnly&&!p.visa) return false;
-    if(q&&!p.name.toLowerCase().includes(q)&&!p.org.toLowerCase().includes(q)&&!(p.notes||'').toLowerCase().includes(q)) return false;
+    // Multi-select: an empty Set = no filter active = pass everything for that dimension.
+    if(F.geo.size && !F.geo.has(p.geo))    return false;
+    if(F.fn.size  && !F.fn.has(p.fn))      return false;
+    if(F.st.size  && !F.st.has(p.status))  return false;
+    if(window._fitOnly && (+p.fit||0) < 4) return false;
+    if(window._visaOnly && !p.visa)        return false;
+    if(q && !p.name.toLowerCase().includes(q) && !p.org.toLowerCase().includes(q) && !(p.notes||'').toLowerCase().includes(q)) return false;
     return true;
   });
+
+  // Phase 10: apply user-selected sort if any. Default order (no sort) keeps original DP[] order.
+  if(F.sortKey){
+    const TIER_RANK = {BEST_FIT:5, STRONG_FIT:4, ACHIEVABLE:3, LONG_SHOT:2, NOT_FIT:1};
+    const STATUS_RANK = {open:1, rolling:2, watch:3, closed:4};
+    const cmp = (a, b) => {
+      let av, bv;
+      switch(F.sortKey){
+        case 'name':     av=(a.name||'').toLowerCase(); bv=(b.name||'').toLowerCase(); break;
+        case 'org':      av=(a.org||'').toLowerCase();  bv=(b.org||'').toLowerCase();  break;
+        case 'fn':       av=`${a.fn||''} ${a.sector||''}`.toLowerCase(); bv=`${b.fn||''} ${b.sector||''}`.toLowerCase(); break;
+        case 'loc':      av=(a.loc||a.geo||'').toLowerCase(); bv=(b.loc||b.geo||'').toLowerCase(); break;
+        case 'deadline':
+          // Treat rolling/missing deadlines as far-future for asc, near-past for desc.
+          av = a.deadline ? new Date(a.deadline).getTime() : Number.POSITIVE_INFINITY;
+          bv = b.deadline ? new Date(b.deadline).getTime() : Number.POSITIVE_INFINITY;
+          break;
+        case 'status':   av = STATUS_RANK[a.status]||99; bv = STATUS_RANK[b.status]||99; break;
+        case 'fit':
+          // Sort by AI tier first (if scanned), then by static fit stars.
+          av = a.aiTier ? TIER_RANK[a.aiTier] : (+a.fit||0);
+          bv = b.aiTier ? TIER_RANK[b.aiTier] : (+b.fit||0);
+          // Higher tier first when asc — so users see Best Fit at top.
+          // Invert here so the dir flip below makes intuitive sense.
+          av = -av; bv = -bv;
+          break;
+        default: return 0;
+      }
+      if(av < bv) return -1;
+      if(av > bv) return  1;
+      return 0;
+    };
+    list.sort(cmp);
+    if(F.sortDir === 'desc') list.reverse();
+  }
 
   const sm={open:['b-open','Open'],rolling:['b-rolling','Rolling'],watch:['b-watch','Watch'],closed:['b-closed','Closed']};
   const fitTier=(n,p)=>{
@@ -3077,24 +3217,25 @@ function renderPrograms(){
   const watch=progs.filter(p=>p.status==='watch').length;
   const highFit=progs.filter(p=>(+p.fit||0)>=4).length;
   const fitActive=window._fitOnly?'sc-active':'';
+  const anyFilterActive = F.geo.size>0 || F.fn.size>0 || F.st.size>0 || window._fitOnly || window._visaOnly || q.length>0;
 
   document.getElementById('prog-stats').innerHTML=`
-    <div class="stat-card sc-total ${F.geo==='all'&&F.fn==='all'&&F.st==='all'&&!window._fitOnly?'':'sc-active'}" onclick="clearAll()" title="Click to clear all filters">
+    <div class="stat-card sc-total ${anyFilterActive?'sc-active':''}" onclick="clearAll()" title="Click to clear all filters">
       <div class="stat-num">${progs.length}</div>
       <div class="stat-lbl">Total Programs</div>
       <div class="stat-hint">Clear filters</div>
     </div>
-    <div class="stat-card sc-open ${F.st==='open'?'sc-active':''}" onclick="statClick('open')" title="Filter: Open now">
+    <div class="stat-card sc-open ${F.st.has('open')?'sc-active':''}" onclick="statClick('open')" title="Filter: Open now">
       <div class="stat-num cg">${open}</div>
       <div class="stat-lbl">Open Now</div>
       <div class="stat-hint">Click to filter</div>
     </div>
-    <div class="stat-card sc-rolling ${F.st==='rolling'?'sc-active':''}" onclick="statClick('rolling')" title="Filter: Rolling">
+    <div class="stat-card sc-rolling ${F.st.has('rolling')?'sc-active':''}" onclick="statClick('rolling')" title="Filter: Rolling">
       <div class="stat-num cb">${rolling}</div>
       <div class="stat-lbl">Rolling</div>
       <div class="stat-hint">Click to filter</div>
     </div>
-    <div class="stat-card sc-watch ${F.st==='watch'?'sc-active':''}" onclick="statClick('watch')" title="Filter: Watch / prep">
+    <div class="stat-card sc-watch ${F.st.has('watch')?'sc-active':''}" onclick="statClick('watch')" title="Filter: Watch / prep">
       <div class="stat-num ca">${watch}</div>
       <div class="stat-lbl">Watch / Prep</div>
       <div class="stat-hint">Click to filter</div>
@@ -3105,14 +3246,27 @@ function renderPrograms(){
       <div class="stat-hint">Click to filter</div>
     </div>`;
 
-  // Mobile card view
+  // Phase 10: sync sort arrows on the table headers
+  document.querySelectorAll('.th.sortable').forEach(th => {
+    const key = th.getAttribute('data-sort-key');
+    const arrow = th.querySelector('.th-arrow');
+    if(key === F.sortKey){
+      th.classList.add('sorted');
+      if(arrow) arrow.textContent = F.sortDir === 'asc' ? '▲' : '▼';
+    } else {
+      th.classList.remove('sorted');
+      if(arrow) arrow.textContent = '▼';
+    }
+  });
+
+  // Mobile card view (uses same filtered+sorted list as the desktop table)
   const cards = document.getElementById('prog-cards');
   const table = document.getElementById('prog-table');
   if (cards) {
     if (window.innerWidth <= 768) {
       table.style.display = 'none';
       cards.style.display = 'flex';
-      cards.innerHTML = filtered.map(p => `
+      cards.innerHTML = list.map(p => `
         <div class="prog-card">
           <div class="prog-card-title">${p.name}</div>
           <div class="prog-card-org">${p.org}${p.visa?' <span style="color:var(--accent);font-size:11px;">✓ Visa</span>':''}</div>
@@ -4423,6 +4577,8 @@ document.getElementById('ics-modal-overlay').addEventListener('click',e=>{
 
 // Boot: initialise auth (which decides whether to show landing or main app)
 initAuth();
+// Phase 10: restore saved filter+sort state before the first render
+_restoreFilterState();
 renderPrograms();
 
 // Set dynamic program count in topbar stats
