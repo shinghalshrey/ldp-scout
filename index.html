@@ -9,7 +9,7 @@
 <meta http-equiv="Expires" content="0">
 <title>LDP Scout — MBA Leadership Program Tracker</title>
 <!-- Build version: bumped automatically on each deploy to bust caches -->
-<meta name="build-version" content="2026-05-13-p7">
+<meta name="build-version" content="2026-05-13-p8">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,300;1,9..144,400&family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -175,13 +175,45 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 .gbtn{font-size:11px;padding:5px 10px;border-radius:6px;background:var(--bg3);border:1px solid var(--border2);color:var(--text2);cursor:pointer;font-family:var(--sans)}
 .gbtn:hover{background:var(--bg4)}
 
+/* PHASE 8: ALUMNI FINDER REDESIGNED ROWS */
+.al-row{display:grid;grid-template-columns:2fr 1.1fr 1.8fr 1.3fr;padding:14px 18px;border-bottom:1px solid var(--border);align-items:start;gap:14px}
+.al-row:last-child{border-bottom:none}
+.al-cell-prog .al-prog-name{font-size:13px;font-weight:500;line-height:1.35;margin-bottom:3px}
+.al-cell-prog .al-prog-name a{color:var(--text);text-decoration:none;border-bottom:1px solid var(--border2);padding-bottom:1px;transition:color .12s,border-color .12s}
+.al-cell-prog .al-prog-name a:hover{color:var(--accent);border-bottom-color:var(--accent)}
+.al-cell-prog .al-prog-org{font-size:11px;color:var(--text2);font-weight:500}
+.al-cell-prog .al-prog-meta{font-size:10px;color:var(--text3);margin-top:3px;letter-spacing:.02em}
+.al-cell-loc .al-loc-text{font-size:11px;color:var(--text2);line-height:1.4}
+/* Search chips — stacked, with badge for school-filtered */
+.al-cell-search{display:flex;flex-direction:column;gap:5px;align-items:stretch}
+.al-chip{display:flex;align-items:center;gap:6px;font-size:11px;padding:6px 9px;border-radius:6px;background:var(--bg2);border:1px solid var(--border2);color:var(--text2);text-decoration:none;font-family:var(--sans);transition:all .12s;line-height:1.3}
+.al-chip:hover{background:var(--blue-bg);border-color:var(--blue);color:var(--blue)}
+.al-chip-school{background:rgba(29,106,69,.06);border-color:rgba(29,106,69,.22)}
+.al-chip-school:hover{background:var(--accent);border-color:var(--accent);color:#fff}
+.al-chip-school:hover .al-chip-badge{background:rgba(255,255,255,.22);color:#fff}
+.al-chip-badge{font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;background:var(--accent);color:#fff;letter-spacing:.04em;flex-shrink:0;line-height:1.2}
+.al-chip-text{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.al-chip-arrow{flex-shrink:0;font-size:11px;opacity:.7}
+/* Reach Out column — prominent action */
+.al-cell-reach{display:flex;flex-direction:column;align-items:stretch;gap:6px}
+.al-reach-btn{display:flex;align-items:center;gap:9px;background:var(--accent);color:#fff;border:1px solid var(--accent);border-radius:8px;padding:10px 12px;cursor:pointer;font-family:var(--sans);text-align:left;width:100%;transition:all .12s;line-height:1.3}
+.al-reach-btn:hover{background:var(--accent2);transform:translateY(-1px);box-shadow:var(--shadow)}
+.al-reach-disabled{display:flex;align-items:center;gap:9px;background:var(--bg3);color:var(--text3);border:1px dashed var(--border2);border-radius:8px;padding:10px 12px;line-height:1.3}
+
 /* KANBAN — 6 columns including Rejected */
 .kanban{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
-.kcol{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:13px;min-height:220px;box-shadow:var(--shadow)}
+.kcol{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:13px;min-height:220px;box-shadow:var(--shadow);transition:background .12s,border-color .12s}
 .khd{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;margin-bottom:11px;display:flex;align-items:center;justify-content:space-between}
 .kct{font-family:var(--mono);font-size:10px;background:var(--bg3);padding:2px 6px;border-radius:8px;color:var(--text3);font-weight:400}
-.apcard{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:6px;cursor:pointer;transition:all .1s}
+.apcard{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:6px;cursor:grab;transition:all .1s;user-select:none}
 .apcard:hover{border-color:var(--border2);background:var(--bg4)}
+.apcard:active{cursor:grabbing}
+/* Phase 8: drag-and-drop visual states */
+.apcard.dragging{opacity:.4;transform:rotate(1.5deg);box-shadow:var(--shadow-md);cursor:grabbing}
+.kcol.drag-over{background:var(--accent-bg);border-color:var(--accent);border-style:dashed}
+.kcol.drag-over .khd{color:var(--accent) !important}
+.kcol .kcol-drop-hint{display:none;font-size:11px;color:var(--accent);text-align:center;padding:18px 8px;border:1px dashed var(--accent);border-radius:8px;background:rgba(29,106,69,.04);margin-top:4px;font-weight:500}
+.kcol.drag-over .kcol-drop-hint{display:block}
 .apct{font-size:12px;font-weight:500;line-height:1.3}
 .apco{font-size:11px;color:var(--text2);margin-top:2px}
 .apnx{font-size:10px;color:var(--accent);margin-top:5px}
@@ -1076,9 +1108,9 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
   <div class="info-card" data-hint-key="alumni_v1" style="margin-bottom:16px">
     <button class="info-card-close" onclick="dismissInfoCard('alumni_v1')" aria-label="Dismiss tip">×</button>
     <strong>How to use this page:</strong><br>
-    <strong style="color:var(--text)">① Pick your school</strong> — so we filter searches to your alumni network.<br>
-    <strong style="color:var(--text)">② Run 2 searches per program</strong> — <em>"School + Company"</em> finds warm alumni intros, <em>"School + Role"</em> finds people doing the exact LDP role. <em>"Company"</em> and <em>"Role"</em> are broader searches if alumni results are thin.<br>
-    <strong style="color:var(--text)">③ Copy the connection request</strong> — Click "📋 Message" on any row for a ready-to-paste 300-character message. Edit the placeholders before sending.
+    <strong style="color:var(--text)">① Pick your school</strong> — alumni-filtered searches get a ★ badge and warm-intro power.<br>
+    <strong style="color:var(--text)">② Use the LinkedIn search chips</strong> — start with ★ alumni searches; fall back to "Anyone at" if alumni results are thin.<br>
+    <strong style="color:var(--text)">③ Click the green Connection message button</strong> — pick from 3 ready-to-paste 300-character templates, edit the {placeholders}, then send.
     <a class="info-card-tour" onclick="tourStart('alumni')">Tour this page →</a>
   </div>
 
@@ -1108,12 +1140,11 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 
   <!-- ALUMNI TABLE -->
   <div class="table-wrap" id="alumni-table-wrap">
-    <div style="display:grid;grid-template-columns:1.8fr 1fr 1fr 1fr 1.6fr;padding:9px 16px;border-bottom:1px solid var(--border);background:var(--bg3)">
+    <div style="display:grid;grid-template-columns:2fr 1.1fr 1.8fr 1.3fr;padding:10px 18px;border-bottom:1px solid var(--border);background:var(--bg3);gap:14px">
       <div class="th">Program / Organisation</div>
       <div class="th">Location · Status</div>
-      <div class="th">Function</div>
-      <div class="th">Broad searches</div>
-      <div class="th">School-filtered searches</div>
+      <div class="th">Find people on LinkedIn</div>
+      <div class="th">Reach out</div>
     </div>
     <div id="alumni-search-rows"></div>
   </div>
@@ -1127,7 +1158,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
     <button class="info-card-close" onclick="dismissInfoCard('apps_v1')" aria-label="Dismiss tip">×</button>
     <strong>Your active pipeline</strong><br>
     Track every program you're pursuing across stages.<br>
-    <strong style="color:var(--text)">① Log applications via + button</strong> · <strong style="color:var(--text)">② Click a card to update its stage</strong> · <strong style="color:var(--text)">③ Add notes per card</strong>
+    <strong style="color:var(--text)">① Log applications via + button</strong> · <strong style="color:var(--text)">② Drag cards between stages</strong> · <strong style="color:var(--text)">③ Click a card to edit dates and notes</strong>
     <a class="info-card-tour" onclick="tourStart('applications')">Tour this page →</a>
   </div>
   <div class="filter-row" style="margin-bottom:18px">
@@ -1302,6 +1333,9 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
   <div class="onb-panel" id="onb-panel-2" style="display:none">
     <div class="mtitle">Which MBA program are you in?</div>
     <div class="onb-sub">We use this to surface alumni at your target firms and tailor program recommendations.</div>
+    <div id="onb-school-autodetect" style="display:none;font-size:11px;color:var(--accent);background:var(--accent-bg);border:1px solid rgba(29,106,69,.18);border-radius:7px;padding:8px 12px;margin-top:12px;line-height:1.5">
+      <strong>✓ Auto-detected from your email.</strong> <span id="onb-school-autodetect-msg"></span>
+    </div>
     <div class="fg full" style="margin-top:18px;position:relative" id="onb-school-wrap">
       <label>Your Business School</label>
       <div id="onb-school-display"
@@ -2186,11 +2220,11 @@ const TOURS = {
   ],
   alumni: [
     {target:'#alumni-school-wrap',                 title:'Pick your school', body:'We use this to scope LinkedIn searches to your own alumni network — that\u2019s the warm-intro lever.'},
-    {target:'#alumni-search-rows .prow:first-child', title:'Run the searches', body:'Each row gives you 4 LinkedIn searches plus a copy-paste 300-character connection message. Edit the placeholders before sending.'}
+    {target:'#alumni-search-rows .al-row:first-child', title:'Find people, then reach out', body:'Each row has up to 4 LinkedIn searches (alumni-filtered ones marked with a star) and a green "Connection message" button that gives you 3 ready-to-paste 300-character templates.'}
   ],
   applications: [
     {target:'.add-btn',     title:'Log a new application', body:'Click here to add an application. Fill in the program name, stage, deadline, and notes.'},
-    {target:'#app-kanban',  title:'Move cards through the funnel', body:'Six stages: Networking \u2192 Drafting \u2192 Applied \u2192 Interview \u2192 Offer (or Rejected). Click any card to update its stage, dates, or notes.'}
+    {target:'#app-kanban',  title:'Move cards through the funnel', body:'Six stages: Networking \u2192 Drafting \u2192 Applied \u2192 Interview \u2192 Offer (or Rejected). Drag a card between columns to update its stage, or click a card to edit dates and notes.'}
   ],
   deadlines: [
     {target:'.dl-timeline',    title:'Urgency-sorted timeline', body:'Red = act now, amber = approaching, grey = comfortable. The list re-sorts itself as dates roll.'},
@@ -2461,6 +2495,18 @@ function onbOpen(){
   _onbResumeFile = null;
   _onbSchoolKey = null;
   _onbSchoolLabel = null;
+  // Phase 8: auto-detect school from the user's login email (e.g. alumni.esade.edu → ESADE)
+  // User can still override on step 2 — this just removes the dropdown friction for ~95% of users.
+  if(currentUser?.email){
+    const detectedKey = detectSchoolFromEmail(currentUser.email);
+    if(detectedKey){
+      const obj = ALL_MBA_SCHOOLS.find(s => s.key === detectedKey);
+      if(obj){
+        _onbSchoolKey   = obj.key;
+        _onbSchoolLabel = obj.label;
+      }
+    }
+  }
   // Pre-fill name from existing profile if present (rare — only if a partial save happened earlier)
   const nameEl = document.getElementById('onb-name');
   if(nameEl) nameEl.value = userProfile?.full_name || '';
@@ -2490,6 +2536,19 @@ function onbGoto(step){
     if(panel) panel.style.display = (i===step) ? 'block' : 'none';
     const ind = document.getElementById('onb-step-ind-'+i);
     if(ind) ind.classList.toggle('on', i<=step);
+  }
+  // Phase 8: when arriving at step 2, show the auto-detect banner if we pre-selected a school
+  if(step === 2){
+    const banner = document.getElementById('onb-school-autodetect');
+    const msg    = document.getElementById('onb-school-autodetect-msg');
+    if(banner && msg){
+      if(_onbSchoolKey){
+        msg.textContent = `${_onbSchoolLabel || _onbSchoolKey} — click below to change.`;
+        banner.style.display = 'block';
+      } else {
+        banner.style.display = 'none';
+      }
+    }
   }
   // Bars light up when the step they CONNECT INTO is reached
   for(let i=1; i<=2; i++){
@@ -2695,6 +2754,82 @@ const ALL_MBA_SCHOOLS = [
 ];
 const SCHOOL_LABELS=Object.fromEntries(ALL_MBA_SCHOOLS.map(s=>[s.key,s.label]));
 const SCHOOL_LI_IDS=Object.fromEntries(ALL_MBA_SCHOOLS.map(s=>[s.key,s.li]));
+
+// ═══ PHASE 8: EMAIL DOMAIN → SCHOOL AUTO-DETECT ═══
+// Used during onboarding to pre-select the user's school based on their login email
+// (e.g. shrey.singhal@alumni.esade.edu → 'esade'). User can still override on step 2.
+// Covers school primary domains, student variants, and alumni variants where known.
+const SCHOOL_DOMAIN_MAP = {
+  // ESADE
+  'esade.edu':'esade', 'alumni.esade.edu':'esade',
+  // HEC Paris
+  'hec.edu':'hec', 'hec.fr':'hec',
+  // INSEAD
+  'insead.edu':'insead',
+  // London Business School
+  'london.edu':'lbs',
+  // IESE
+  'iese.edu':'iese', 'iese.net':'iese',
+  // IE Business School
+  'ie.edu':'ie', 'student.ie.edu':'ie', 'alumni.ie.edu':'ie',
+  // Oxford Saïd
+  'sbs.ox.ac.uk':'oxford', 'said.ox.ac.uk':'oxford', 'ox.ac.uk':'oxford',
+  // Cambridge Judge
+  'jbs.cam.ac.uk':'cambridge', 'cam.ac.uk':'cambridge',
+  // Bocconi
+  'unibocconi.it':'bocconi', 'sdabocconi.it':'bocconi',
+  // Mannheim
+  'mannheim-business-school.com':'mannheim',
+  // Warwick
+  'wbs.ac.uk':'wbs', 'warwick.ac.uk':'wbs',
+  // Imperial
+  'imperial.ac.uk':'imperial',
+  // Cranfield
+  'cranfield.ac.uk':'cranfield',
+  // Rotterdam (RSM)
+  'rsm.nl':'rsm', 'eur.nl':'rsm',
+  // Vlerick
+  'vlerick.com':'vlerick',
+  // EDHEC
+  'edhec.com':'edhec', 'edhec.edu':'edhec',
+  // emlyon
+  'em-lyon.com':'emlyon', 'emlyon.com':'emlyon',
+  // ESCP
+  'escp.eu':'escp',
+  // WHU
+  'whu.edu':'whu',
+  // HHL Leipzig
+  'hhl.de':'hws',
+  // Frankfurt School
+  'frankfurt-school.de':'frankfurt',
+  // St. Gallen
+  'unisg.ch':'stgallen', 'student.unisg.ch':'stgallen',
+  // IMD
+  'imd.org':'imd',
+  // Nova SBE / Católica Lisbon
+  'novasbe.pt':'lisbon', 'ucp.pt':'lisbon',
+  // CEIBS
+  'ceibs.edu':'ceibs',
+  // US M7
+  'kellogg.northwestern.edu':'kellogg_mba', 'northwestern.edu':'kellogg_mba',
+  'wharton.upenn.edu':'wharton', 'upenn.edu':'wharton',
+  'chicagobooth.edu':'booth',
+  'gsb.columbia.edu':'columbia', 'columbia.edu':'columbia',
+};
+
+function detectSchoolFromEmail(email){
+  if(!email || typeof email !== 'string') return null;
+  const at = email.lastIndexOf('@');
+  if(at < 0) return null;
+  let domain = email.slice(at+1).toLowerCase().trim();
+  // Try the full domain first, then progressively shorter suffixes.
+  // e.g. "alumni.esade.edu" → try whole, then "esade.edu"
+  while(domain && domain.includes('.')){
+    if(SCHOOL_DOMAIN_MAP[domain]) return SCHOOL_DOMAIN_MAP[domain];
+    domain = domain.slice(domain.indexOf('.')+1);
+  }
+  return null;
+}
 
 // ═══════════════ SCHOOL DROPDOWN ═══════════════
 function filterSchoolDropdown(){
@@ -3051,6 +3186,7 @@ function renderAlumniSearch(){
   const school = activeAlumniSchool;
   const slug = school ? SCHOOL_LI_IDS[school] : null;
   const schoolLabel = school ? (SCHOOL_LABELS[school]||school) : null;
+  const schoolShort = schoolLabel ? schoolLabel.split(' ')[0].replace(/[(),]/g,'') : null;
 
   const filtered = progs.filter(p => {
     if(!q) return true;
@@ -3069,7 +3205,7 @@ function renderAlumniSearch(){
   const sm={open:'b-open',rolling:'b-rolling',watch:'b-watch',closed:'b-closed'};
 
   container.innerHTML = filtered.map((p,i) => {
-    // Extract a cleaner "role keyword" — remove generic LDP/MBA boilerplate
+    // Extract a cleaner "role keyword" — strip generic LDP/MBA boilerplate
     const roleKw = p.name
       .replace(/MBA|Leadership Development Program|Programme|Program|Graduate|Associate/gi,'')
       .replace(/\s+/g,' ')
@@ -3078,54 +3214,72 @@ function renderAlumniSearch(){
 
     const orgEnc  = encodeURIComponent(p.org);
     const roleEnc = encodeURIComponent(roleKw);
-    const bothEnc = encodeURIComponent(p.org + ' ' + roleKw);
 
-    // Broad LinkedIn searches (no school filter)
+    // Broad LinkedIn searches (no school filter — always available)
     const companyUrl = `https://www.linkedin.com/search/results/people/?keywords=${orgEnc}`;
     const roleUrl    = `https://www.linkedin.com/search/results/people/?keywords=${roleEnc}`;
 
-    // School-filtered searches
-    let schoolCell;
+    // School-filtered URLs (only if a school is selected)
+    const schoolCompanyUrl = slug ? `https://www.linkedin.com/school/${slug}/people/?keywords=${orgEnc}` : null;
+    const schoolRoleUrl    = slug ? `https://www.linkedin.com/school/${slug}/people/?keywords=${roleEnc}` : null;
+
+    // SEARCHES COLUMN — 4 chips when school is set, 2 when not.
+    // School-filtered ones get a small badge so the warm-intro lever is visually obvious.
+    let searchChips = '';
     if(slug){
-      const schoolCompanyUrl = `https://www.linkedin.com/school/${slug}/people/?keywords=${orgEnc}`;
-      const schoolRoleUrl    = `https://www.linkedin.com/school/${slug}/people/?keywords=${roleEnc}`;
-      schoolCell = `
-        <div style="display:flex;flex-direction:column;gap:4px">
-          <a href="${schoolCompanyUrl}" target="_blank" rel="noopener noreferrer" class="li-btn" style="font-size:10px;padding:4px 9px;display:flex;justify-content:space-between;align-items:center;gap:6px">
-            <span>${schoolLabel.split(' ')[0]} + ${p.org}</span><span>↗</span>
-          </a>
-          <a href="${schoolRoleUrl}" target="_blank" rel="noopener noreferrer" class="li-btn" style="font-size:10px;padding:4px 9px;display:flex;justify-content:space-between;align-items:center;gap:6px">
-            <span>${schoolLabel.split(' ')[0]} + role</span><span>↗</span>
-          </a>
-          <button onclick='openConnectMessage(${JSON.stringify({org:p.org, role:roleKw, prog:p.name, school:schoolLabel}).replace(/'/g,"&#39;")})' class="gbtn" style="font-size:10px;padding:4px 9px;text-align:left;display:flex;justify-content:space-between;align-items:center;gap:6px">
-            <span>📋 Copy message</span><span>→</span>
-          </button>
-        </div>`;
+      searchChips = `
+        <a href="${schoolCompanyUrl}" target="_blank" rel="noopener noreferrer" class="al-chip al-chip-school" title="Alumni from ${schoolLabel} who work at ${p.org}">
+          <span class="al-chip-badge">★ ${schoolShort}</span><span class="al-chip-text">at ${p.org}</span><span class="al-chip-arrow">↗</span>
+        </a>
+        <a href="${schoolRoleUrl}" target="_blank" rel="noopener noreferrer" class="al-chip al-chip-school" title="Alumni from ${schoolLabel} doing this role">
+          <span class="al-chip-badge">★ ${schoolShort}</span><span class="al-chip-text">in this role</span><span class="al-chip-arrow">↗</span>
+        </a>
+        <a href="${companyUrl}" target="_blank" rel="noopener noreferrer" class="al-chip" title="Anyone at ${p.org}">
+          <span class="al-chip-text">Anyone at ${p.org}</span><span class="al-chip-arrow">↗</span>
+        </a>
+        <a href="${roleUrl}" target="_blank" rel="noopener noreferrer" class="al-chip" title="Anyone doing this role">
+          <span class="al-chip-text">Anyone in this role</span><span class="al-chip-arrow">↗</span>
+        </a>`;
     } else {
-      schoolCell = `<span style="font-size:10px;color:var(--text3);font-style:italic">Pick your school above to enable school-filtered searches + connection templates</span>`;
+      searchChips = `
+        <a href="${companyUrl}" target="_blank" rel="noopener noreferrer" class="al-chip">
+          <span class="al-chip-text">Anyone at ${p.org}</span><span class="al-chip-arrow">↗</span>
+        </a>
+        <a href="${roleUrl}" target="_blank" rel="noopener noreferrer" class="al-chip">
+          <span class="al-chip-text">Anyone in this role</span><span class="al-chip-arrow">↗</span>
+        </a>
+        <div style="font-size:10px;color:var(--text3);font-style:italic;margin-top:2px;line-height:1.4">Pick your school above to unlock alumni-filtered searches.</div>`;
     }
+
+    // REACH OUT COLUMN — prominent connection-message action.
+    // When no school, disabled with explanatory text. When set, big green button.
+    const reachOut = slug
+      ? `<button onclick='openConnectMessage(${JSON.stringify({org:p.org, role:roleKw, prog:p.name, school:schoolLabel}).replace(/'/g,"&#39;")})' class="al-reach-btn">
+           <span style="font-size:15px;line-height:1">📋</span>
+           <span>
+             <span style="display:block;font-size:12px;font-weight:600">Connection message</span>
+             <span style="display:block;font-size:10px;opacity:.85;margin-top:1px">3 templates · 300 char max</span>
+           </span>
+         </button>`
+      : `<div class="al-reach-disabled">
+           <span style="font-size:15px;opacity:.4">📋</span>
+           <span style="font-size:11px;color:var(--text3);line-height:1.4">Pick your school to enable connection templates</span>
+         </div>`;
 
     const bc = sm[p.status]||'b-closed';
     const rowBg = i%2===0 ? '' : 'background:var(--bg3)';
-    return `<div style="display:grid;grid-template-columns:1.8fr 1fr 1fr 1fr 1.6fr;padding:12px 16px;border-bottom:1px solid var(--border);align-items:center;gap:8px;${rowBg}">
-      <div>
-        <div style="font-size:12px;font-weight:500">${p.url?`<a href="${p.url}" target="_blank" rel="noopener noreferrer" style="color:var(--text);text-decoration:none;border-bottom:1px solid var(--border2)" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text)'">${p.name}</a>`:p.name}</div>
-        <div style="font-size:11px;color:var(--text2);margin-top:2px">${p.org}</div>
+    return `<div class="al-row" style="${rowBg}">
+      <div class="al-cell-prog">
+        <div class="al-prog-name">${p.url?`<a href="${p.url}" target="_blank" rel="noopener noreferrer">${p.name}</a>`:p.name}</div>
+        <div class="al-prog-org">${p.org}</div>
+        <div class="al-prog-meta">${cap(p.fn)} · ${cap(p.sector)}</div>
       </div>
-      <div>
-        <div style="font-size:11px;color:var(--text2)">${p.loc||p.geo}</div>
-        <span class="badge ${bc}" style="font-size:10px;margin-top:4px;display:inline-block">${cap(p.status)}</span>
+      <div class="al-cell-loc">
+        <div class="al-loc-text">${p.loc||p.geo}</div>
+        <span class="badge ${bc}" style="font-size:10px;margin-top:5px;display:inline-block">${cap(p.status)}</span>
       </div>
-      <div style="font-size:11px;color:var(--text2)">${cap(p.fn)}<br><span style="color:var(--text3)">${cap(p.sector)}</span></div>
-      <div style="display:flex;flex-direction:column;gap:4px">
-        <a href="${companyUrl}" target="_blank" rel="noopener noreferrer" class="li-btn" style="font-size:10px;padding:4px 9px;display:flex;justify-content:space-between;align-items:center;gap:6px">
-          <span>${p.org}</span><span>↗</span>
-        </a>
-        <a href="${roleUrl}" target="_blank" rel="noopener noreferrer" class="li-btn" style="font-size:10px;padding:4px 9px;display:flex;justify-content:space-between;align-items:center;gap:6px">
-          <span>${roleKw||'Role'}</span><span>↗</span>
-        </a>
-      </div>
-      <div>${schoolCell}</div>
+      <div class="al-cell-search">${searchChips}</div>
+      <div class="al-cell-reach">${reachOut}</div>
     </div>`;
   }).join('');
 }
@@ -3202,6 +3356,69 @@ function openLinkedInSchoolSearch(org){
 function renderAlumni(){ }
 
 // ═══════════════ APPLICATIONS ═══════════════
+
+// ─── PHASE 8: KANBAN DRAG-AND-DROP ───
+// Desktop-only drag-drop to move cards between stages. Mobile users still tap-to-edit.
+// Optimistic UI: status updates locally first, persists to Supabase, reverts on failure.
+let _draggingAppId = null;
+let _dropInFlight  = false;
+
+function dragAppStart(e, appId){
+  _draggingAppId = appId;
+  e.currentTarget.classList.add('dragging');
+  if(e.dataTransfer){
+    e.dataTransfer.effectAllowed = 'move';
+    // Firefox requires setData() to initiate the drag
+    try { e.dataTransfer.setData('text/plain', String(appId)); } catch {}
+  }
+}
+
+function dragAppEnd(e){
+  e.currentTarget.classList.remove('dragging');
+  document.querySelectorAll('.kcol.drag-over').forEach(c => c.classList.remove('drag-over'));
+  _draggingAppId = null;
+}
+
+function dragColOver(e){
+  if(!_draggingAppId) return;
+  e.preventDefault();                          // required to enable drop
+  if(e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+  e.currentTarget.classList.add('drag-over');
+}
+
+function dragColLeave(e){
+  // Only remove highlight if leaving the column itself, not crossing into a child element
+  if(!e.currentTarget.contains(e.relatedTarget)){
+    e.currentTarget.classList.remove('drag-over');
+  }
+}
+
+async function dropApp(e, stage){
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  if(_dropInFlight || _draggingAppId == null) return;
+  const appId = _draggingAppId;
+  const app = apps.find(a => String(a.id) === String(appId));
+  if(!app)                  return;            // ghost drag — ignore
+  if(app.status === stage)  return;            // dropped on same column — no-op
+  _dropInFlight = true;
+  const prevStatus = app.status;
+  app.status = stage;
+  renderApplications();                        // optimistic UI update
+  try {
+    const newId = await saveApplicationToDB(app);
+    if(!newId){ throw new Error('save failed'); }
+    toast(`Moved to ${stage.charAt(0).toUpperCase()+stage.slice(1)}`);
+  } catch(err){
+    console.error('drop persist failed:', err);
+    app.status = prevStatus;                   // revert in-memory state
+    renderApplications();
+    toast('Could not save — change reverted');
+  } finally {
+    _dropInFlight = false;
+  }
+}
+
 function renderApplications(){
   const q=(document.getElementById('app-search')||{}).value?.toLowerCase()||'';
   const fa=apps.filter(a=>!q||a.name.toLowerCase().includes(q)||(a.org||'').toLowerCase().includes(q));
@@ -3217,16 +3434,20 @@ function renderApplications(){
   ];
   document.getElementById('app-kanban').innerHTML=stages.map(s=>{
     const cards=fa.filter(a=>a.status===s.key);
-    return `<div class="kcol">
+    return `<div class="kcol" data-stage="${s.key}" ondragover="dragColOver(event)" ondragleave="dragColLeave(event)" ondrop="dropApp(event,'${s.key}')">
       <div class="khd" style="color:${s.color}">${s.label}<span class="kct">${cards.length}</span></div>
       ${cards.length===0?`<div style="font-size:11px;color:var(--text3);text-align:center;padding-top:14px;padding-bottom:8px">—</div>`:''}
-      ${cards.map(a=>`<div class="apcard" onclick="editAp(${a.id})">
+      ${cards.map(a=>`<div class="apcard" draggable="true" data-app-id="${a.id}"
+          ondragstart="dragAppStart(event,'${String(a.id).replace(/'/g,"\\'")}')"
+          ondragend="dragAppEnd(event)"
+          onclick="editAp('${String(a.id).replace(/'/g,"\\'")}')">
         <div class="apct">${a.name}</div>
         <div class="apco">${a.org||''}${a.geo?' · '+a.geo:''}</div>
         ${a.next?`<div class="apnx">→ ${a.next}</div>`:''}
         ${a.contact?`<div style="font-size:10px;color:var(--text3);margin-top:4px">👤 ${a.contact}</div>`:''}
         ${a.deadline?`<div class="apdl">Due: ${new Date(a.deadline).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</div>`:''}
       </div>`).join('')}
+      <div class="kcol-drop-hint">Drop here to move to <strong>${s.label}</strong></div>
     </div>`;
   }).join('');
 }
@@ -4052,7 +4273,7 @@ function editP(id){openM('prog',progs.find(p=>p.id===id)||{});}
 function delP(id){if(confirm('Remove this program?')){progs=progs.filter(p=>p.id!==id);persist();renderPrograms();toast('Removed');}}
 function editA(id){openM('alumni',alum.find(a=>a.id===id)||{});}
 function delA(id){if(confirm('Remove this contact?')){alum=alum.filter(a=>a.id!==id);persist();renderAlumni();toast('Removed');}}
-function editAp(id){openM('app',apps.find(a=>a.id===id)||{});}
+function editAp(id){openM('app',apps.find(a=>String(a.id)===String(id))||{});}
 async function delCurrentApp(){
   if(eId.app && confirm('Delete this application?')){
     await deleteApplicationFromDB(eId.app);
