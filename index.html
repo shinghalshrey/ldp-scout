@@ -9,7 +9,7 @@
 <meta http-equiv="Expires" content="0">
 <title>LDP Scout — MBA Leadership Program Tracker</title>
 <!-- Build version: bumped automatically on each deploy to bust caches -->
-<meta name="build-version" content="2026-05-13-p10">
+<meta name="build-version" content="2026-05-13-p11">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,300;1,9..144,400&family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -211,6 +211,72 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 .al-reach-btn{display:flex;align-items:center;gap:9px;background:var(--accent);color:#fff;border:1px solid var(--accent);border-radius:8px;padding:10px 12px;cursor:pointer;font-family:var(--sans);text-align:left;width:100%;transition:all .12s;line-height:1.3}
 .al-reach-btn:hover{background:var(--accent2);transform:translateY(-1px);box-shadow:var(--shadow)}
 .al-reach-disabled{display:flex;align-items:center;gap:9px;background:var(--bg3);color:var(--text3);border:1px dashed var(--border2);border-radius:8px;padding:10px 12px;line-height:1.3}
+
+/* PHASE 11: ALUMNI FINDER — sidebar layout + card-based feed */
+.al-layout{display:grid;grid-template-columns:240px 1fr;gap:22px;align-items:start;margin-top:6px}
+.al-sidebar{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow);position:sticky;top:80px}
+.al-sidebar-section{margin-bottom:22px}
+.al-sidebar-section:last-child{margin-bottom:0}
+.al-sidebar-label{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px}
+.al-sector-list{display:flex;flex-direction:column;gap:2px}
+.al-sector-row{display:flex;align-items:center;gap:9px;cursor:pointer;padding:6px 8px;border-radius:6px;font-size:12px;color:var(--text2);transition:background .1s,color .1s;user-select:none;margin-left:-8px}
+.al-sector-row:hover{background:var(--bg3);color:var(--text)}
+.al-sector-row.on{color:var(--accent);font-weight:500}
+.al-sector-check{width:16px;height:16px;border:1.5px solid var(--border2);border-radius:4px;background:var(--bg2);display:inline-flex;align-items:center;justify-content:center;font-size:10px;color:#fff;flex-shrink:0;transition:all .12s}
+.al-sector-row.on .al-sector-check{background:var(--accent);border-color:var(--accent)}
+.al-pro-tip{background:var(--accent-bg);border:1px solid rgba(29,106,69,.18);border-radius:8px;padding:12px;font-size:11px;color:var(--text2);line-height:1.6}
+.al-pro-tip-title{color:var(--accent);font-weight:600;font-size:12px;margin-bottom:4px;display:flex;align-items:center;gap:5px}
+
+.al-main{display:flex;flex-direction:column;gap:14px;min-width:0}
+.al-main-head{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}
+.al-main-head h3{font-family:var(--serif);font-size:20px;font-weight:400;margin:0;letter-spacing:-.2px}
+.al-main-count{font-size:11px;color:var(--text3);font-family:var(--mono)}
+.al-search-input{width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:13px;font-family:var(--sans);outline:none;color:var(--text);transition:border-color .12s}
+.al-search-input:focus{border-color:var(--accent)}
+.al-search-input::placeholder{color:var(--text3)}
+
+.al-card{display:flex;align-items:flex-start;gap:14px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px 18px;box-shadow:var(--shadow);transition:border-color .12s,box-shadow .12s}
+.al-card:hover{border-color:var(--border2);box-shadow:var(--shadow-md)}
+.al-card-logo{width:46px;height:46px;border-radius:10px;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:600;color:var(--text2);flex-shrink:0;font-family:var(--serif)}
+.al-card-body{flex:1;min-width:0}
+.al-card-row1{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:3px}
+.al-card-title{font-size:14px;font-weight:600;color:var(--text);line-height:1.35}
+.al-card-title a{color:var(--text);text-decoration:none;border-bottom:1px solid transparent;transition:border-color .12s,color .12s}
+.al-card-title a:hover{border-bottom-color:var(--accent);color:var(--accent)}
+.al-card-meta{font-size:12px;color:var(--text2);margin-bottom:9px}
+.al-card-status{font-size:10px;font-weight:600;padding:3px 9px;border-radius:12px;letter-spacing:.05em;text-transform:uppercase;white-space:nowrap;flex-shrink:0}
+.al-card-status.s-rolling{background:var(--accent-bg);color:var(--accent);border:1px solid rgba(29,106,69,.2)}
+.al-card-status.s-open{background:var(--accent-bg);color:var(--accent);border:1px solid rgba(29,106,69,.2)}
+.al-card-status.s-watch{background:var(--amber-bg);color:var(--amber);border:1px solid rgba(138,94,0,.2)}
+.al-card-status.s-closed{background:var(--bg3);color:var(--text3);border:1px solid var(--border)}
+.al-card-tags{display:flex;flex-wrap:wrap;gap:14px;font-size:11px;color:var(--text3);margin-bottom:11px;align-items:center}
+.al-card-tags span strong{color:var(--text2);font-weight:600}
+.al-card-search-row{display:flex;flex-wrap:wrap;gap:7px}
+.al-mini-chip{display:inline-flex;align-items:center;gap:6px;font-size:11px;padding:5px 10px;border-radius:6px;background:var(--bg3);border:1px solid var(--border2);color:var(--text2);text-decoration:none;font-family:var(--sans);transition:all .12s;line-height:1.3;white-space:nowrap}
+.al-mini-chip:hover{background:var(--blue-bg);border-color:var(--blue);color:var(--blue)}
+.al-mini-chip.school{background:rgba(29,106,69,.06);border-color:rgba(29,106,69,.22);color:var(--accent)}
+.al-mini-chip.school:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+.al-mini-chip-star{font-size:9px}
+.al-mini-chip-arrow{font-size:10px;opacity:.7}
+
+.al-card-actions{display:flex;flex-direction:column;gap:6px;align-items:stretch;flex-shrink:0;min-width:170px}
+.al-btn-primary{background:var(--accent);color:#fff;border:1px solid var(--accent);border-radius:8px;padding:10px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--sans);transition:all .12s;display:flex;align-items:center;justify-content:center;gap:6px;line-height:1.2}
+.al-btn-primary:hover{background:var(--accent2);transform:translateY(-1px);box-shadow:var(--shadow)}
+.al-btn-primary:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none}
+.al-btn-secondary{background:var(--bg2);color:var(--text2);border:1px solid var(--border2);border-radius:8px;padding:10px 14px;font-size:12px;font-weight:500;cursor:pointer;font-family:var(--sans);transition:all .12s;display:flex;align-items:center;justify-content:center;gap:6px;line-height:1.2}
+.al-btn-secondary:hover{background:var(--bg3);color:var(--text);border-color:var(--text3)}
+.al-btn-secondary.added{background:var(--accent-bg);color:var(--accent);border-color:rgba(29,106,69,.3);cursor:default;font-weight:600}
+.al-btn-secondary.added:hover{transform:none;background:var(--accent-bg)}
+.al-card-empty-school{font-size:11px;color:var(--text3);font-style:italic;padding:4px 0}
+
+/* Mobile responsive */
+@media (max-width: 900px){
+  .al-layout{grid-template-columns:1fr;gap:14px}
+  .al-sidebar{position:static}
+  .al-card{flex-direction:column;align-items:stretch;gap:10px}
+  .al-card-actions{min-width:0;flex-direction:row}
+  .al-card-actions button{flex:1}
+}
 
 /* KANBAN — 6 columns including Rejected */
 .kanban{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
@@ -1128,52 +1194,61 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
   </div>
 </div>
 
-<!-- ALUMNI PAGE -->
+<!-- ALUMNI PAGE — Phase 11 rebuild -->
 <div class="page" id="page-alumni">
   <div class="sech"><h2>Alumni Finder<span class="info-card-reopen" data-hint-key="alumni_v1" onclick="reopenInfoCard('alumni_v1')" title="Show page tips">?</span></h2><p>Build the right LinkedIn searches and connection messages to reach the right people inside target programs — before applications open.</p></div>
 
   <div class="info-card" data-hint-key="alumni_v1" style="margin-bottom:16px">
     <button class="info-card-close" onclick="dismissInfoCard('alumni_v1')" aria-label="Dismiss tip">×</button>
     <strong>How to use this page:</strong><br>
-    <strong style="color:var(--text)">① Pick your school</strong> — alumni-filtered searches get a ★ badge and warm-intro power.<br>
-    <strong style="color:var(--text)">② Use the LinkedIn search chips</strong> — start with ★ alumni searches; fall back to "Anyone at" if alumni results are thin.<br>
-    <strong style="color:var(--text)">③ Click the green Connection message button</strong> — pick from 3 ready-to-paste 300-character templates, edit the {placeholders}, then send.
+    <strong style="color:var(--text)">① Pick your school</strong> in the sidebar — alumni-filtered searches get a ★ badge.<br>
+    <strong style="color:var(--text)">② Filter by industry vertical</strong> to focus on the sectors that fit your background.<br>
+    <strong style="color:var(--text)">③ Click "Draft Message"</strong> on any program for 3 ready-to-paste 300-character templates.<br>
+    <strong style="color:var(--text)">④ Click "Add to Applications"</strong> to log the program in your pipeline as Networking.
     <a class="info-card-tour" onclick="tourStart('alumni')">Tour this page →</a>
   </div>
 
-  <!-- SCHOOL SELECTOR + SEARCH -->
-  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px 18px;margin-bottom:16px;box-shadow:var(--shadow);display:flex;align-items:center;gap:16px;flex-wrap:wrap">
-    <div style="flex-shrink:0">
-      <div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Search as alumni of</div>
-      <div style="position:relative" id="alumni-school-wrap">
-        <div style="display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:7px 12px;cursor:pointer;min-width:220px" onclick="toggleAlumniSchoolDrop()">
-          <span style="font-size:13px;flex:1" id="alumni-school-display">Select your school</span>
-          <span style="font-size:10px;color:var(--text3)">▾</span>
-        </div>
-        <div id="alumni-school-drop" style="display:none;position:absolute;top:calc(100% + 4px);left:0;min-width:280px;background:var(--bg2);border:1px solid var(--border2);border-radius:10px;box-shadow:var(--shadow-md);z-index:60;overflow:hidden">
-          <div style="padding:8px 10px;border-bottom:1px solid var(--border)">
-            <input id="alumni-school-filter" placeholder="Type to filter schools..." style="width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;padding:6px 10px;font-size:12px;font-family:var(--sans);outline:none;color:var(--text)" oninput="filterAlumniSchoolDrop()">
+  <div class="al-layout">
+    <!-- ─── SIDEBAR: school + sector filters + tip ─── -->
+    <aside class="al-sidebar">
+      <div class="al-sidebar-section">
+        <div class="al-sidebar-label">Target school</div>
+        <div style="position:relative" id="alumni-school-wrap">
+          <div style="display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:8px 12px;cursor:pointer" onclick="toggleAlumniSchoolDrop()">
+            <span style="font-size:12px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="alumni-school-display">Select your school</span>
+            <span style="font-size:10px;color:var(--text3);flex-shrink:0">▾</span>
           </div>
-          <div id="alumni-school-opts" style="max-height:220px;overflow-y:auto"></div>
+          <div id="alumni-school-drop" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--bg2);border:1px solid var(--border2);border-radius:10px;box-shadow:var(--shadow-md);z-index:60;overflow:hidden">
+            <div style="padding:8px 10px;border-bottom:1px solid var(--border)">
+              <input id="alumni-school-filter" placeholder="Type to filter..." style="width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;padding:6px 10px;font-size:12px;font-family:var(--sans);outline:none;color:var(--text)" oninput="filterAlumniSchoolDrop()">
+            </div>
+            <div id="alumni-school-opts" style="max-height:220px;overflow-y:auto"></div>
+          </div>
         </div>
       </div>
-    </div>
-    <div style="width:1px;height:40px;background:var(--border);flex-shrink:0"></div>
-    <div style="flex:1;min-width:200px">
-      <div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Filter by program or firm</div>
-      <input class="si-input" id="alumni-prog-search" type="text" placeholder="e.g. Siemens, Roche, Finance, Healthcare..." oninput="renderAlumniSearch()" style="width:100%;min-width:0">
-    </div>
-  </div>
 
-  <!-- ALUMNI TABLE -->
-  <div class="table-wrap" id="alumni-table-wrap">
-    <div style="display:grid;grid-template-columns:2fr 1.1fr 1.8fr 1.3fr;padding:10px 18px;border-bottom:1px solid var(--border);background:var(--bg3);gap:14px">
-      <div class="th">Program / Organisation</div>
-      <div class="th">Location · Status</div>
-      <div class="th">Find people on LinkedIn</div>
-      <div class="th">Reach out</div>
-    </div>
-    <div id="alumni-search-rows"></div>
+      <div class="al-sidebar-section">
+        <div class="al-sidebar-label">Industry vertical</div>
+        <div class="al-sector-list" id="al-sector-list"></div>
+      </div>
+
+      <div class="al-sidebar-section">
+        <div class="al-pro-tip">
+          <div class="al-pro-tip-title">💡 Pro Tip</div>
+          Warm intros via alumni get higher response rates than cold messages. Always personalize the <code style="font-family:var(--mono);font-size:10px;background:rgba(29,106,69,.12);padding:1px 4px;border-radius:3px">{Their first name}</code> placeholder — generic copy-paste hurts your reply rate.
+        </div>
+      </div>
+    </aside>
+
+    <!-- ─── MAIN: search + card feed ─── -->
+    <main class="al-main">
+      <div class="al-main-head">
+        <h3>Recruiting Feed</h3>
+        <span class="al-main-count" id="alumni-count">—</span>
+      </div>
+      <input class="al-search-input" id="alumni-prog-search" type="text" placeholder="Search companies, programs, sectors..." oninput="renderAlumniSearch()">
+      <div id="alumni-search-rows"></div>
+    </main>
   </div>
 </div>
 
@@ -2247,7 +2322,8 @@ const TOURS = {
   ],
   alumni: [
     {target:'#alumni-school-wrap',                 title:'Pick your school', body:'We use this to scope LinkedIn searches to your own alumni network — that\u2019s the warm-intro lever.'},
-    {target:'#alumni-search-rows .al-row:first-child', title:'Find people, then reach out', body:'Each row has up to 4 LinkedIn searches (alumni-filtered ones marked with a star) and a green "Connection message" button that gives you 3 ready-to-paste 300-character templates.'}
+    {target:'#al-sector-list',                     title:'Filter by industry vertical', body:'Tick one or more sectors to narrow the feed to programs that match your background.'},
+    {target:'#alumni-search-rows .al-card:first-child', title:'Two ways to act on each program', body:'Click "Draft Message" for 3 ready-to-paste 300-character LinkedIn connection templates. Click "Add to Applications" to log the program in your pipeline as Networking — deadline and org auto-filled.'}
   ],
   applications: [
     {target:'.add-btn',     title:'Log a new application', body:'Click here to add an application. Fill in the program name, stage, deadline, and notes.'},
@@ -2945,7 +3021,7 @@ function showPage(id){
   const tabs=document.querySelectorAll('.nav-tab');
   if(idx>=0&&tabs[idx]) tabs[idx].classList.add('active');
   
-  ({programs:renderPrograms,alumni:()=>{initAlumniSchoolDrop();renderAlumniSearch();},applications:renderApplications,deadlines:renderDeadlines,aifit:()=>{}})[id]?.();
+  ({programs:renderPrograms,alumni:()=>{initAlumniSchoolDrop();renderAlumniSectorList();renderAlumniSearch();},applications:renderApplications,deadlines:renderDeadlines,aifit:()=>{}})[id]?.();
 
   // Phase 4: auto-launch the first-visit tour for this page (gated)
   setTimeout(() => {
@@ -3363,6 +3439,89 @@ document.addEventListener('click', e => {
 function renderSchoolPills(){ initAlumniSchoolDrop(); }
 function setAlumniSchool(school){ pickAlumniSchool(school); }
 
+// ═══ PHASE 11: ALUMNI FINDER — sidebar filters + card-based feed ═══
+
+// Sector multi-select state. Empty Set = no filter (show all).
+let _alumniSectors = new Set();
+
+// All sectors that appear in our DP[] data, with display labels.
+const ALUMNI_SECTORS = [
+  {key:'tech',       label:'Tech & Innovation'},
+  {key:'finance',    label:'Finance'},
+  {key:'consulting', label:'Consulting'},
+  {key:'consumer',   label:'Consumer & Retail'},
+  {key:'healthcare', label:'Healthcare'},
+  {key:'industrial', label:'Industrial'},
+  {key:'logistics',  label:'Logistics'},
+  {key:'energy',     label:'Energy'},
+  {key:'sovereign',  label:'Sovereign / Public'},
+];
+
+function renderAlumniSectorList(){
+  const el = document.getElementById('al-sector-list');
+  if(!el) return;
+  el.innerHTML = ALUMNI_SECTORS.map(s => {
+    const isOn = _alumniSectors.has(s.key);
+    return `<div class="al-sector-row ${isOn?'on':''}" onclick="toggleAlumniSector('${s.key}')" data-sector="${s.key}">
+      <span class="al-sector-check">${isOn?'✓':''}</span>
+      <span>${s.label}</span>
+    </div>`;
+  }).join('');
+}
+
+function toggleAlumniSector(sector){
+  if(_alumniSectors.has(sector)) _alumniSectors.delete(sector);
+  else                            _alumniSectors.add(sector);
+  renderAlumniSectorList();
+  renderAlumniSearch();
+}
+
+// Check if a program is already in the user's pipeline (apps[]).
+// Match by program_id (preferred) OR by case-insensitive name (fallback for legacy apps).
+function _findAppForProgram(p){
+  if(!p) return null;
+  return apps.find(a =>
+    (a.program_id && a.program_id === p.id) ||
+    ((a.name||'').toLowerCase().trim() === (p.name||'').toLowerCase().trim() &&
+     (a.org ||'').toLowerCase().trim() === (p.org ||'').toLowerCase().trim())
+  );
+}
+
+// Add a tracked program to My Applications as a Networking-stage app.
+// Pre-fills org, geo (mapped to friendly label), deadline, and a sensible next-step.
+async function addProgramToApplications(progId){
+  const p = progs.find(x => x.id === progId);
+  if(!p){ toast('Program not found'); return; }
+  const existing = _findAppForProgram(p);
+  if(existing){
+    toast(`Already in your pipeline (${existing.status})`);
+    return;
+  }
+  const geoLabel = ({europe:'Europe', uae:'UAE / Gulf', global:'Global'})[p.geo] || p.geo || '';
+  const a = {
+    id: null,
+    _db: false,
+    program_id: p.id,
+    name: p.name,
+    org: p.org,
+    geo: geoLabel,
+    status: 'networking',
+    date: new Date().toISOString().split('T')[0],
+    deadline: p.deadline || '',
+    next: 'Find alumni and reach out',
+    contact: '',
+    notes: ''
+  };
+  const newId = await saveApplicationToDB(a);
+  if(!newId){ toast('Could not save — please try again'); return; }
+  a.id = newId; a._db = true;
+  apps.unshift(a);
+  if(typeof renderApplications === 'function') renderApplications();
+  if(typeof renderProgressStrip === 'function') renderProgressStrip();
+  renderAlumniSearch();   // re-render so the button flips to "✓ In Applications"
+  toast(`✓ ${p.org} added to Applications (Networking)`);
+}
+
 function renderAlumniSearch(){
   const container = document.getElementById('alumni-search-rows');
   if(!container) return;
@@ -3373,99 +3532,111 @@ function renderAlumniSearch(){
   const schoolShort = schoolLabel ? schoolLabel.split(' ')[0].replace(/[(),]/g,'') : null;
 
   const filtered = progs.filter(p => {
+    // Sidebar sector filter (multi-select)
+    if(_alumniSectors.size > 0 && !_alumniSectors.has(p.sector)) return false;
+    // Search box filter
     if(!q) return true;
     return p.name.toLowerCase().includes(q) ||
       p.org.toLowerCase().includes(q) ||
       (p.fn||'').includes(q) ||
       (p.sector||'').includes(q) ||
+      (p.loc||'').toLowerCase().includes(q) ||
       (p.tags||[]).some(t=>t.toLowerCase().includes(q));
   });
 
+  // Update count in header
+  const countEl = document.getElementById('alumni-count');
+  if(countEl){
+    const schoolBit = schoolShort ? ` · ${schoolShort}` : '';
+    countEl.textContent = filtered.length === progs.length
+      ? `${progs.length} programs${schoolBit}`
+      : `${filtered.length} of ${progs.length} programs${schoolBit}`;
+  }
+
   if(!filtered.length){
-    container.innerHTML='<div class="empty">No programs match. Try a broader search.</div>';
+    container.innerHTML = `<div class="empty-state">
+      <div class="empty-state-icon">🔍</div>
+      <div class="empty-state-title">No programs match</div>
+      <div class="empty-state-body">Try clearing sector filters or broadening the search.</div>
+    </div>`;
     return;
   }
 
-  const sm={open:'b-open',rolling:'b-rolling',watch:'b-watch',closed:'b-closed'};
+  const STATUS_MAP = {open:['s-open','OPEN'], rolling:['s-rolling','ROLLING'], watch:['s-watch','OPENING SOON'], closed:['s-closed','CLOSED']};
 
-  container.innerHTML = filtered.map((p,i) => {
-    // Extract a cleaner "role keyword" — strip generic LDP/MBA boilerplate
-    const roleKw = p.name
-      .replace(/MBA|Leadership Development Program|Programme|Program|Graduate|Associate/gi,'')
-      .replace(/\s+/g,' ')
-      .trim()
-      .split(' ').slice(0,4).join(' ') || p.org;
+  container.innerHTML = `<div style="display:flex;flex-direction:column;gap:10px">${filtered.map(p => {
+    const orgEnc = encodeURIComponent(p.org);
+    const schoolEnc = schoolLabel ? encodeURIComponent(schoolLabel) : '';
+    const schoolShortEnc = schoolShort ? encodeURIComponent(schoolShort) : '';
 
-    const orgEnc  = encodeURIComponent(p.org);
-    const roleEnc = encodeURIComponent(roleKw);
-
-    // Broad LinkedIn searches (no school filter — always available)
-    const companyUrl = `https://www.linkedin.com/search/results/people/?keywords=${orgEnc}`;
-    const roleUrl    = `https://www.linkedin.com/search/results/people/?keywords=${roleEnc}`;
-
-    // School-filtered URLs (only if a school is selected)
-    const schoolCompanyUrl = slug ? `https://www.linkedin.com/school/${slug}/people/?keywords=${orgEnc}` : null;
-    const schoolRoleUrl    = slug ? `https://www.linkedin.com/school/${slug}/people/?keywords=${roleEnc}` : null;
-
-    // SEARCHES COLUMN — 4 chips when school is set, 2 when not.
-    // School-filtered ones get a small badge so the warm-intro lever is visually obvious.
+    // ─── Two LinkedIn searches (Phase 11 spec: role search dropped) ───
+    // Search A (company-side angle): broad people search with both keywords.
+    //   Approximates "company page → employees → filter by school".
+    //   We can't link directly to a company /people/ tab because we don't have LinkedIn company slugs.
+    // Search B (school-side angle): school's verified alumni page filtered by company keyword.
     let searchChips = '';
     if(slug){
+      const schoolToCompanyUrl = `https://www.linkedin.com/school/${slug}/people/?keywords=${orgEnc}`;
+      const companySideUrl     = `https://www.linkedin.com/search/results/people/?keywords=${schoolShortEnc}%20${orgEnc}`;
       searchChips = `
-        <a href="${schoolCompanyUrl}" target="_blank" rel="noopener noreferrer" class="al-chip al-chip-school" title="Alumni from ${schoolLabel} who work at ${p.org}">
-          <span class="al-chip-badge">★ ${schoolShort}</span><span class="al-chip-text">at ${p.org}</span><span class="al-chip-arrow">↗</span>
+        <a href="${schoolToCompanyUrl}" target="_blank" rel="noopener noreferrer" class="al-mini-chip school" title="Open ${schoolLabel}'s alumni page filtered for ${p.org}">
+          <span class="al-mini-chip-star">★</span><span>${schoolShort} alumni at ${p.org}</span><span class="al-mini-chip-arrow">↗</span>
         </a>
-        <a href="${schoolRoleUrl}" target="_blank" rel="noopener noreferrer" class="al-chip al-chip-school" title="Alumni from ${schoolLabel} doing this role">
-          <span class="al-chip-badge">★ ${schoolShort}</span><span class="al-chip-text">in this role</span><span class="al-chip-arrow">↗</span>
-        </a>
-        <a href="${companyUrl}" target="_blank" rel="noopener noreferrer" class="al-chip" title="Anyone at ${p.org}">
-          <span class="al-chip-text">Anyone at ${p.org}</span><span class="al-chip-arrow">↗</span>
-        </a>
-        <a href="${roleUrl}" target="_blank" rel="noopener noreferrer" class="al-chip" title="Anyone doing this role">
-          <span class="al-chip-text">Anyone in this role</span><span class="al-chip-arrow">↗</span>
+        <a href="${companySideUrl}" target="_blank" rel="noopener noreferrer" class="al-mini-chip school" title="LinkedIn people search for ${p.org} employees mentioning ${schoolShort}">
+          <span class="al-mini-chip-star">★</span><span>${p.org} people mentioning ${schoolShort}</span><span class="al-mini-chip-arrow">↗</span>
         </a>`;
     } else {
+      const broadUrl = `https://www.linkedin.com/search/results/people/?keywords=${orgEnc}`;
       searchChips = `
-        <a href="${companyUrl}" target="_blank" rel="noopener noreferrer" class="al-chip">
-          <span class="al-chip-text">Anyone at ${p.org}</span><span class="al-chip-arrow">↗</span>
+        <a href="${broadUrl}" target="_blank" rel="noopener noreferrer" class="al-mini-chip" title="Broad LinkedIn search">
+          <span>Anyone at ${p.org}</span><span class="al-mini-chip-arrow">↗</span>
         </a>
-        <a href="${roleUrl}" target="_blank" rel="noopener noreferrer" class="al-chip">
-          <span class="al-chip-text">Anyone in this role</span><span class="al-chip-arrow">↗</span>
-        </a>
-        <div style="font-size:10px;color:var(--text3);font-style:italic;margin-top:2px;line-height:1.4">Pick your school above to unlock alumni-filtered searches.</div>`;
+        <span class="al-card-empty-school">Pick your school in the sidebar to unlock alumni-filtered searches</span>`;
     }
 
-    // REACH OUT COLUMN — prominent connection-message action.
-    // When no school, disabled with explanatory text. When set, big green button.
-    const reachOut = slug
-      ? `<button onclick='openConnectMessage(${JSON.stringify({org:p.org, role:roleKw, prog:p.name, school:schoolLabel}).replace(/'/g,"&#39;")})' class="al-reach-btn">
-           <span style="font-size:15px;line-height:1">📋</span>
-           <span>
-             <span style="display:block;font-size:12px;font-weight:600">Connection message</span>
-             <span style="display:block;font-size:10px;opacity:.85;margin-top:1px">3 templates · 300 char max</span>
-           </span>
-         </button>`
-      : `<div class="al-reach-disabled">
-           <span style="font-size:15px;opacity:.4">📋</span>
-           <span style="font-size:11px;color:var(--text3);line-height:1.4">Pick your school to enable connection templates</span>
-         </div>`;
+    // ─── Two action buttons ───
+    // Primary: Draft Message → existing openConnectMessage modal (requires school)
+    // Secondary: Add to Applications → addProgramToApplications (works with or without school)
+    const draftBtn = slug
+      ? `<button class="al-btn-primary" onclick='openConnectMessage(${JSON.stringify({org:p.org, role:p.name, prog:p.name, school:schoolLabel}).replace(/'/g,"&#39;")})'>📋 Draft Message</button>`
+      : `<button class="al-btn-primary" disabled title="Pick your school in the sidebar first">📋 Draft Message</button>`;
 
-    const bc = sm[p.status]||'b-closed';
-    const rowBg = i%2===0 ? '' : 'background:var(--bg3)';
-    return `<div class="al-row" style="${rowBg}">
-      <div class="al-cell-prog">
-        <div class="al-prog-name">${p.url?`<a href="${p.url}" target="_blank" rel="noopener noreferrer">${p.name}</a>`:p.name}</div>
-        <div class="al-prog-org">${p.org}</div>
-        <div class="al-prog-meta">${cap(p.fn)} · ${cap(p.sector)}</div>
+    const existingApp = _findAppForProgram(p);
+    const addBtn = existingApp
+      ? `<button class="al-btn-secondary added" disabled title="Already in your pipeline as ${existingApp.status}">✓ In Applications</button>`
+      : `<button class="al-btn-secondary" onclick="addProgramToApplications(${p.id})">+ Add to Applications</button>`;
+
+    // Status pill
+    const [statusCls, statusLbl] = STATUS_MAP[p.status] || ['s-closed','—'];
+
+    // Logo block — org initial (since we don't have actual logos)
+    const initial = (p.org||'?').charAt(0).toUpperCase();
+
+    // Tags row
+    const dlText = p.deadline
+      ? `<span><strong>Deadline:</strong> ${new Date(p.deadline).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</span>`
+      : (p.dlnote ? `<span><strong>Deadline:</strong> ${p.dlnote}</span>` : '');
+
+    return `<div class="al-card">
+      <div class="al-card-logo">${initial}</div>
+      <div class="al-card-body">
+        <div class="al-card-row1">
+          <div class="al-card-title">${p.url?`<a href="${p.url}" target="_blank" rel="noopener noreferrer">${p.name}</a>`:p.name}</div>
+          <span class="al-card-status ${statusCls}">${statusLbl}</span>
+        </div>
+        <div class="al-card-meta">${p.org} · ${p.loc || p.geo || ''}</div>
+        <div class="al-card-tags">
+          <span><strong>Type:</strong> ${cap(p.fn)} · ${cap(p.sector)}</span>
+          ${dlText}
+        </div>
+        <div class="al-card-search-row">${searchChips}</div>
       </div>
-      <div class="al-cell-loc">
-        <div class="al-loc-text">${p.loc||p.geo}</div>
-        <span class="badge ${bc}" style="font-size:10px;margin-top:5px;display:inline-block">${cap(p.status)}</span>
+      <div class="al-card-actions">
+        ${draftBtn}
+        ${addBtn}
       </div>
-      <div class="al-cell-search">${searchChips}</div>
-      <div class="al-cell-reach">${reachOut}</div>
     </div>`;
-  }).join('');
+  }).join('')}</div>`;
 }
 
 // ─── Connection request template modal ───────────────────────────
