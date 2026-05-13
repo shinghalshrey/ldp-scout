@@ -9,7 +9,7 @@
 <meta http-equiv="Expires" content="0">
 <title>LDP Scout — MBA Leadership Program Tracker</title>
 <!-- Build version: bumped automatically on each deploy to bust caches -->
-<meta name="build-version" content="2026-05-12-v4">
+<meta name="build-version" content="2026-05-13-p7">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,300;1,9..144,400&family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -125,9 +125,31 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 .sech h2{font-family:var(--serif);font-size:24px;font-weight:400;letter-spacing:-0.3px}
 .sech p{font-size:12px;color:var(--text3);margin-top:4px}
 
-/* INFO TIP */
-.itip{font-size:12px;color:var(--text2);background:var(--blue-bg);border:1px solid rgba(26,79,168,.15);border-left:3px solid var(--blue);border-radius:0 8px 8px 0;padding:11px 14px;margin-bottom:18px;line-height:1.65}
-.itip strong{color:var(--blue)}
+/* INFO CARD (Phase 3) — generalized from legacy .itip */
+.info-card,.itip{position:relative;font-size:12px;color:var(--text2);background:var(--blue-bg);border:1px solid rgba(26,79,168,.15);border-left:3px solid var(--blue);border-radius:0 8px 8px 0;padding:11px 38px 11px 14px;margin-bottom:18px;line-height:1.65}
+.info-card strong,.itip strong{color:var(--blue)}
+.info-card[data-dismissed="true"]{display:none}
+.info-card-close{position:absolute;top:5px;right:6px;background:transparent;border:none;color:var(--text3);font-size:20px;line-height:1;cursor:pointer;padding:3px 7px;border-radius:4px;font-family:var(--sans)}
+.info-card-close:hover{background:rgba(0,0,0,.05);color:var(--text)}
+.info-card-tour{display:inline-block;margin-top:8px;font-size:11px;font-weight:500;color:var(--blue);cursor:pointer;text-decoration:none;letter-spacing:.01em}
+.info-card-tour:hover{text-decoration:underline}
+.info-card-reopen{display:none;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:var(--bg3);color:var(--text3);font-size:11px;font-weight:600;cursor:pointer;margin-left:10px;vertical-align:middle;border:1px solid var(--border2);user-select:none;font-family:var(--sans);line-height:1}
+.info-card-reopen.show{display:inline-flex}
+.info-card-reopen:hover{background:var(--blue-bg);color:var(--blue);border-color:var(--blue)}
+
+/* GUIDED TOUR (Phase 4) */
+.tour-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:201;display:none;pointer-events:auto}
+.tour-backdrop.on{display:block}
+.tour-spotlight{position:fixed;border-radius:6px;background:transparent;box-shadow:0 0 0 9999px rgba(0,0,0,.45);z-index:201;pointer-events:none;transition:top .18s ease,left .18s ease,width .18s ease,height .18s ease}
+.tour-tooltip{position:fixed;max-width:300px;background:var(--bg2);border:1px solid var(--border2);border-radius:10px;padding:16px 18px;box-shadow:0 8px 24px rgba(0,0,0,.18);z-index:202;font-family:var(--sans)}
+.tour-tooltip h4{margin:0 0 6px 0;font-size:14px;font-weight:600;color:var(--text);font-family:var(--sans);letter-spacing:-0.1px}
+.tour-tooltip p{margin:0;font-size:12px;color:var(--text2);line-height:1.55}
+.tour-tooltip-foot{display:flex;align-items:center;justify-content:space-between;margin-top:14px;gap:12px}
+.tour-step-count{font-size:11px;color:var(--text3);font-variant-numeric:tabular-nums;letter-spacing:.02em}
+.tour-btn{background:var(--blue);color:#fff;border:1px solid var(--blue);border-radius:6px;padding:6px 14px;font-size:12px;font-weight:500;cursor:pointer;font-family:var(--sans);line-height:1.3}
+.tour-btn:hover{filter:brightness(.94)}
+.tour-btn.ghost{background:transparent;color:var(--text2);border-color:var(--border2)}
+.tour-btn.ghost:hover{background:var(--bg3);color:var(--text)}
 
 /* ALUMNI GRID */
 .agrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
@@ -282,6 +304,21 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 .toast{position:fixed;bottom:22px;right:22px;background:var(--text);color:var(--bg2);padding:9px 18px;border-radius:8px;font-size:13px;font-weight:500;z-index:300;transform:translateY(50px);opacity:0;transition:all .2s;pointer-events:none}
 .toast.show{transform:translateY(0);opacity:1}
 
+/* PHASE 2 ONBOARDING MODAL — 3-step wizard (.onb-*) */
+#ov-onboard{z-index:800} /* above .landing-overlay (700) */
+.onb-modal{width:520px;max-width:95vw}
+.onb-progress{display:flex;align-items:center;justify-content:center;gap:0;margin:-6px 0 22px}
+.onb-step{width:28px;height:28px;border-radius:50%;background:var(--bg3);border:1.5px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--text3);font-family:var(--sans);transition:all .18s;flex-shrink:0}
+.onb-step.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.onb-bar{flex:1;max-width:60px;height:2px;background:var(--border2);margin:0 8px;transition:background .18s}
+.onb-bar.on{background:var(--accent)}
+.onb-panel{min-height:200px}
+.onb-sub{font-size:13px;color:var(--text2);line-height:1.6;margin-top:-6px}
+@media (max-width:480px){
+  #ov-onboard .modal.onb-modal{width:100vw;max-width:100vw;height:100vh;max-height:100vh;border-radius:0;padding:24px 20px;display:flex;flex-direction:column}
+  #ov-onboard .onb-panel{flex:1}
+}
+
 /* ONBOARDING MODAL */
 .onboard-overlay{position:fixed;inset:0;background:rgba(24,24,15,0.7);z-index:600;display:none;align-items:center;justify-content:center;backdrop-filter:blur(8px)}
 .onboard-overlay.open{display:flex}
@@ -306,6 +343,42 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 .ics-btn:hover{background:var(--teal);color:#fff}
 .dlitem-actions{display:flex;gap:6px;margin-left:auto;flex-shrink:0}
 
+/* DEADLINES PAGE (Phase 5) */
+.dl-controls{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+.dl-toggle{display:inline-flex;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:2px}
+.dl-toggle-btn{background:transparent;border:none;color:var(--text2);font-size:12px;font-family:var(--sans);padding:6px 14px;border-radius:6px;cursor:pointer;font-weight:500;transition:all .15s}
+.dl-toggle-btn.on{background:var(--bg2);color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,.06)}
+.dl-toggle-btn:not(.on):hover{color:var(--text)}
+.dl-bulk-export{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--sans);white-space:nowrap;transition:all .15s;display:inline-flex;align-items:center;gap:6px}
+.dl-bulk-export:hover{background:var(--accent2);transform:translateY(-1px)}
+.dl-bulk-export:disabled{opacity:.5;cursor:not-allowed;transform:none}
+
+.dl-timeline{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:18px 22px 14px;margin-bottom:18px;box-shadow:var(--shadow)}
+.dl-tl-track{position:relative;height:10px;background:var(--bg3);border-radius:5px;border:1px solid var(--border)}
+.dl-tl-marker{position:absolute;top:50%;transform:translate(-50%,-50%);width:11px;height:11px;border-radius:50%;border:2px solid var(--bg2);box-shadow:0 0 0 1px rgba(0,0,0,.08);cursor:default;transition:transform .12s}
+.dl-tl-marker:hover{transform:translate(-50%,-50%) scale(1.35);z-index:2}
+.dl-tl-axis{display:flex;justify-content:space-between;margin-top:10px;font-family:var(--mono);font-size:10px;color:var(--text3);letter-spacing:.04em}
+.dl-tl-tick{}
+.dl-tl-empty{font-size:12px;color:var(--text3);text-align:center;padding:4px 0;font-style:italic}
+
+.dl-buckets{display:flex;flex-direction:column;gap:12px}
+.dl-bucket{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+.dl-bucket summary{display:flex;align-items:center;gap:10px;padding:11px 16px;cursor:pointer;font-size:13px;font-weight:600;color:var(--text);list-style:none;user-select:none;border-bottom:1px solid transparent;transition:background .12s}
+.dl-bucket summary::-webkit-details-marker{display:none}
+.dl-bucket summary::before{content:'▸';font-size:10px;color:var(--text3);transition:transform .15s;display:inline-block;width:10px}
+.dl-bucket[open] summary::before{transform:rotate(90deg)}
+.dl-bucket[open] summary{border-bottom-color:var(--border)}
+.dl-bucket summary:hover{background:var(--bg3)}
+.dl-bucket-count{margin-left:auto;font-family:var(--mono);font-size:11px;font-weight:500;background:var(--bg3);color:var(--text2);padding:2px 9px;border-radius:10px;border:1px solid var(--border)}
+.dl-bucket-rows{display:flex;flex-direction:column}
+.dl-bucket-rows .dlitem{border:none;border-radius:0;border-bottom:1px solid var(--border);box-shadow:none;background:transparent}
+.dl-bucket-rows .dlitem:last-child{border-bottom:none}
+.dl-bucket-empty{font-size:12px;color:var(--text3);padding:14px 18px;font-style:italic}
+
+.dl-nudge{display:inline-block;font-size:10px;padding:3px 8px;border-radius:4px;margin-top:5px;font-weight:500;line-height:1.4}
+.dl-nudge-warn{background:var(--coral-bg);color:var(--coral);border:1px solid rgba(179,58,26,.18)}
+.dl-nudge-info{background:var(--blue-bg);color:var(--blue);border:1px solid rgba(26,79,168,.18)}
+
 /* ICS CHOICE MODAL */
 .ics-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:400;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
 .ics-modal-overlay.open{display:flex}
@@ -325,10 +398,30 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 /* FIT PROMPT BANNER */
 .fit-prompt-banner{display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,var(--accent-bg),#f0faf5);border:1px solid rgba(29,106,69,.2);border-radius:10px;padding:11px 16px;margin-bottom:16px;cursor:pointer;transition:all .15s}
 .fit-prompt-banner:hover{border-color:var(--accent);box-shadow:var(--shadow)}
+/* Phase 7: stale-scan variant — amber tint instead of accent green */
+.fit-prompt-banner.stale{background:linear-gradient(135deg,var(--amber-bg),#fff8e1);border-color:rgba(138,94,0,.25)}
+.fit-prompt-banner.stale:hover{border-color:var(--amber)}
+.fit-prompt-banner.stale .fpb-text strong{color:var(--amber)}
+.fit-prompt-banner.stale .fpb-cta{background:var(--amber)}
 .fpb-icon{font-size:18px;flex-shrink:0}
 .fpb-text{flex:1;font-size:12px;color:var(--text2);line-height:1.5}
 .fpb-text strong{color:var(--accent)}
 .fpb-cta{font-size:11px;padding:5px 12px;background:var(--accent);color:#fff;border-radius:6px;font-weight:600;white-space:nowrap;flex-shrink:0}
+
+/* PROGRESS STRIP (Phase 7) — onboarding progress shown under topbar */
+.progress-strip{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;padding:8px 28px;background:var(--bg2);border-bottom:1px solid var(--border);font-size:11px;font-family:var(--sans);position:sticky;top:56px;z-index:99}
+.ps-step{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:14px;color:var(--text3);background:transparent;border:1px solid transparent;transition:color .15s,background .15s,border-color .15s;line-height:1.4;font-weight:500;white-space:nowrap}
+.ps-step.on{color:var(--accent);background:var(--accent-bg);border-color:rgba(29,106,69,.18)}
+.ps-step.on::before{content:'✓';font-size:10px;font-weight:700;margin-right:-2px}
+
+/* AI FIT TAB ATTENTION DOT (Phase 7) — coral pulsing dot on nav-tab */
+.nav-tab{position:relative}
+.nav-tab.needs-attention::after{content:'';position:absolute;top:6px;right:6px;width:7px;height:7px;border-radius:50%;background:var(--coral);box-shadow:0 0 0 0 rgba(192,57,43,.55);animation:nta-pulse 1.6s ease-out infinite;pointer-events:none}
+@keyframes nta-pulse{
+  0%   { box-shadow:0 0 0 0 rgba(192,57,43,.55); }
+  70%  { box-shadow:0 0 0 7px rgba(192,57,43,0); }
+  100% { box-shadow:0 0 0 0 rgba(192,57,43,0); }
+}
 
 /* SCHOOL DROPDOWN */
 .school-select-wrap{position:relative}
@@ -435,6 +528,44 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 .lp-trust-text{font-size:14px;color:var(--text2);line-height:1.7;max-width:640px;margin:0 auto 32px}
 .lp-trust-text strong{color:var(--text)}
 
+/* LANDING PHASE 6: HOW IT WORKS */
+.lp-howto{background:var(--bg2);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+.lp-howto-inner{max-width:1400px;margin:0 auto;padding:64px 60px}
+.lp-howto-title{font-family:var(--serif);font-size:32px;font-weight:300;text-align:center;margin-bottom:8px;letter-spacing:-.5px}
+.lp-howto-sub{text-align:center;color:var(--text3);font-size:14px;margin-bottom:40px}
+.lp-howto-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+.lp-howto-step{background:var(--bg);border:1px solid var(--border);border-radius:14px;padding:28px 26px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.lp-howto-num{font-family:var(--serif);font-size:38px;font-weight:300;color:var(--accent);line-height:1;margin-bottom:6px}
+.lp-howto-step h4{font-size:15px;font-weight:600;margin:0;color:var(--text);line-height:1.35}
+.lp-howto-step p{font-size:13px;color:var(--text2);line-height:1.6;margin:0}
+
+/* LANDING PHASE 6: SAMPLE FIT SCAN PREVIEW */
+.lp-sample{margin-bottom:56px}
+.lp-sample-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.12em;color:var(--accent);text-align:center;margin-bottom:18px}
+.lp-sample-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.lp-sample-tier{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:18px 16px;border-left-width:3px;display:flex;flex-direction:column;min-width:0}
+.lp-sample-rank{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;display:inline-block;white-space:nowrap}
+.lp-sample-prog{font-size:13px;font-weight:600;margin-bottom:6px;color:var(--text);line-height:1.35;overflow-wrap:break-word}
+.lp-sample-reason{font-size:12px;color:var(--text2);line-height:1.5}
+.lp-sample-best{border-left-color:var(--accent);background:var(--accent-bg)}
+.lp-sample-best .lp-sample-rank{color:var(--accent)}
+.lp-sample-strong{border-left-color:var(--blue);background:var(--blue-bg)}
+.lp-sample-strong .lp-sample-rank{color:var(--blue)}
+.lp-sample-achievable{border-left-color:var(--amber);background:var(--amber-bg)}
+.lp-sample-achievable .lp-sample-rank{color:var(--amber)}
+.lp-sample-stretch{border-left-color:var(--coral);background:var(--coral-bg)}
+.lp-sample-stretch .lp-sample-rank{color:var(--coral)}
+
+/* LANDING PHASE 6: WHAT YOU WON'T FIND HERE */
+.lp-anti{background:var(--bg3);border-top:1px solid var(--border)}
+.lp-anti-inner{max-width:1400px;margin:0 auto;padding:56px 60px;text-align:center}
+.lp-anti-title{font-family:var(--serif);font-size:28px;font-weight:300;margin-bottom:8px;letter-spacing:-.3px}
+.lp-anti-sub{font-size:13px;color:var(--text3);margin-bottom:28px}
+.lp-anti-list{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;max-width:960px;margin:0 auto}
+.lp-anti-item{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:11px 16px;font-size:13px;color:var(--text2);display:flex;align-items:center;gap:9px;line-height:1.45;max-width:100%}
+.lp-anti-item .lp-anti-x{color:var(--coral);font-weight:700;font-size:13px;flex-shrink:0}
+.lp-anti-item strong{color:var(--text);font-weight:600;margin-right:2px}
+
 /* ── MOBILE RESPONSIVE ── */
 @media (max-width: 768px) {
   /* Landing page */
@@ -449,9 +580,26 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
   .lp-features-section { padding: 48px 20px; }
   .lp-bottom { padding: 40px 20px; }
 
+  /* Landing Phase 6 — responsive */
+  .lp-howto-inner { padding: 44px 20px; }
+  .lp-howto-title { font-size: 24px; margin-bottom: 6px; }
+  .lp-howto-sub   { margin-bottom: 24px; }
+  .lp-howto-grid  { grid-template-columns: 1fr; gap: 12px; }
+  .lp-howto-step  { padding: 20px 18px; }
+  .lp-howto-num   { font-size: 30px; }
+  .lp-sample      { margin-bottom: 36px; }
+  .lp-sample-grid { grid-template-columns: repeat(2,1fr); gap: 10px; }
+  .lp-anti-inner  { padding: 40px 20px; }
+  .lp-anti-title  { font-size: 22px; }
+  .lp-anti-list   { flex-direction: column; align-items: stretch; gap: 8px; }
+  .lp-anti-item   { font-size: 12px; padding: 10px 14px; text-align: left; }
+
   /* Topbar */
   .topbar { padding: 0 12px; gap: 8px; }
   .topbar-brand { font-size: 16px; }
+  /* Phase 7: progress strip on mobile — tighter padding, allow horizontal scroll if many steps */
+  .progress-strip { padding: 6px 12px; gap: 6px; font-size: 10px; }
+  .ps-step { padding: 3px 8px; }
   .tab-bar { gap: 4px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .nav-tab { font-size: 12px; padding: 6px 10px; white-space: nowrap; }
   #user-info { display: none; }
@@ -491,6 +639,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
   .lp-title { font-size: 30px; }
   .topbar-brand { display: none; }
   .lp-mark-text { display: none; }
+  /* Landing Phase 6 — narrow mobile */
+  .lp-sample-grid { grid-template-columns: 1fr; }
 }
 
 /* ── LANDING PAGE V2 — refined ── */
@@ -707,8 +857,61 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
     <div><div class="lp-stat-n">37+</div><div class="lp-stat-l">European MBA schools<br>supported in alumni finder</div></div>
   </div>
 
+  <!-- HOW IT WORKS (Phase 6) -->
+  <div class="lp-howto">
+    <div class="lp-howto-inner">
+      <div class="lp-howto-title">How it works in 3 steps</div>
+      <div class="lp-howto-sub">From inbox to interview prep in one afternoon.</div>
+      <div class="lp-howto-grid">
+        <div class="lp-howto-step">
+          <div class="lp-howto-num">①</div>
+          <h4>Sign in with school email</h4>
+          <p>One-time 8-digit code — no password, no spam. We verify you&rsquo;re at an active MBA program.</p>
+        </div>
+        <div class="lp-howto-step">
+          <div class="lp-howto-num">②</div>
+          <h4>Upload your CV</h4>
+          <p>PDF, DOCX, or plain text. Analysed via a secure proxy — never stored, never shared.</p>
+        </div>
+        <div class="lp-howto-step">
+          <div class="lp-howto-num">③</div>
+          <h4>Get tier-ranked programs + alumni searches</h4>
+          <p>48 LDPs sorted Best Fit &rarr; Long Shot, plus pre-built LinkedIn searches and copy-paste connection messages.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- FEATURES -->
   <div class="lp-features-section">
+
+    <!-- SAMPLE FIT SCAN PREVIEW (Phase 6) -->
+    <div class="lp-sample">
+      <div class="lp-sample-label">Sample fit scan — what you&rsquo;ll see after uploading</div>
+      <div class="lp-sample-grid">
+        <div class="lp-sample-tier lp-sample-best">
+          <div class="lp-sample-rank">★★★★★ Best Fit</div>
+          <div class="lp-sample-prog">Amazon Pathways Operations</div>
+          <div class="lp-sample-reason">Ops background + 3-yr leadership = direct match.</div>
+        </div>
+        <div class="lp-sample-tier lp-sample-strong">
+          <div class="lp-sample-rank">★★★★ Strong</div>
+          <div class="lp-sample-prog">BCG Bridge to Consulting</div>
+          <div class="lp-sample-reason">Strategy MBA, no consulting yet — networking matters.</div>
+        </div>
+        <div class="lp-sample-tier lp-sample-achievable">
+          <div class="lp-sample-rank">★★★ Achievable</div>
+          <div class="lp-sample-prog">Unilever IGNITE Marketing</div>
+          <div class="lp-sample-reason">FMCG pivot — position your brand work explicitly.</div>
+        </div>
+        <div class="lp-sample-tier lp-sample-stretch">
+          <div class="lp-sample-rank">★★ Long Shot</div>
+          <div class="lp-sample-prog">Goldman IBD Associate Pathways</div>
+          <div class="lp-sample-reason">IB gap — apply only with strong alumni intros.</div>
+        </div>
+      </div>
+    </div>
+
     <div class="lp-features-title">Everything you need to land an LDP</div>
     <div class="lp-features-sub">Built around the actual MBA recruiting workflow — not a generic job board</div>
     <div class="lp-features">
@@ -741,6 +944,21 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
         <div class="lp-feat-v2-icon">🔒</div>
         <div class="lp-feat-title">Private by Design</div>
         <div class="lp-feat-text">Your applications and resume are private to your account. Community intel is opt-in. Resume analysis runs server-side via a secure proxy — never exposed to other users.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- WHAT YOU WON'T FIND HERE (Phase 6) -->
+  <div class="lp-anti">
+    <div class="lp-anti-inner">
+      <div class="lp-anti-title">What you won&rsquo;t find here</div>
+      <div class="lp-anti-sub">Curation beats coverage. We filter the noise so you don&rsquo;t waste application energy.</div>
+      <div class="lp-anti-list">
+        <div class="lp-anti-item"><span class="lp-anti-x">✗</span><span><strong>Generic job listings.</strong> Only verified MBA rotational programs.</span></div>
+        <div class="lp-anti-item"><span class="lp-anti-x">✗</span><span><strong>MiM positions.</strong> Master&rsquo;s-in-Management roles are filtered out.</span></div>
+        <div class="lp-anti-item"><span class="lp-anti-x">✗</span><span><strong>Undergrad rotations.</strong> Graduate-level entry only.</span></div>
+        <div class="lp-anti-item"><span class="lp-anti-x">✗</span><span><strong>Internships posing as LDPs.</strong> Full-time roles only.</span></div>
+        <div class="lp-anti-item"><span class="lp-anti-x">✗</span><span><strong>Stale data.</strong> Every program timestamped to its last verification.</span></div>
       </div>
     </div>
   </div>
@@ -784,16 +1002,30 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
   </div>
 </div>
 
+<!-- PROGRESS STRIP (Phase 7) — hidden until rendered by JS -->
+<div class="progress-strip" id="progress-strip" style="display:none">
+  <div class="ps-step" data-step="profile">① Profile</div>
+  <div class="ps-step" data-step="resume">② Resume</div>
+  <div class="ps-step" data-step="search">③ First search</div>
+  <div class="ps-step" data-step="application">④ First application</div>
+</div>
+
 <div class="main">
 
 <!-- PROGRAMS PAGE -->
 <div class="page active" id="page-programs">
-  <div class="stat-row" id="prog-stats"></div>
-  <div class="fit-prompt-banner" onclick="showPage('aifit')" title="Go to AI Fit Scan">
-    <div class="fpb-icon">✦</div>
-    <div class="fpb-text"><strong>Fit column powered by AI.</strong> Upload your résumé on the AI Fit Scan tab to get personalised tier rankings, gap analysis, and coaching across all programs — results sync back here automatically.</div>
-    <div class="fpb-cta">Scan My Résumé →</div>
+  <div class="sech"><h2>Programs<span class="info-card-reopen" data-hint-key="programs_v1" onclick="reopenInfoCard('programs_v1')" title="Show page tips">?</span></h2><p>All 48 verified MBA LDP rotational programs — filter, search, and save to your application pipeline.</p></div>
+
+  <div class="info-card" data-hint-key="programs_v1">
+    <button class="info-card-close" onclick="dismissInfoCard('programs_v1')" aria-label="Dismiss tip">×</button>
+    <strong>Master list of 48 verified MBA LDPs</strong><br>
+    Filter, search, and save programs to your pipeline.<br>
+    <strong style="color:var(--text)">① Filter by geo/function/status</strong> · <strong style="color:var(--text)">② Click a row to open details</strong> · <strong style="color:var(--text)">③ Click the careers-page link to apply</strong>
+    <a class="info-card-tour" onclick="tourStart('programs')">Tour this page →</a>
   </div>
+
+  <div class="stat-row" id="prog-stats"></div>
+  <div id="fit-banner-mount"></div>
   <div class="filter-row">
     <input class="si-input" id="prog-search" type="text" placeholder="Search programs, firms, keywords..." oninput="renderPrograms()">
     <div class="divider"></div>
@@ -839,13 +1071,15 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 
 <!-- ALUMNI PAGE -->
 <div class="page" id="page-alumni">
-  <div class="sech"><h2>Alumni Finder</h2><p>Build the right LinkedIn searches and connection messages to reach the right people inside target programs — before applications open.</p></div>
+  <div class="sech"><h2>Alumni Finder<span class="info-card-reopen" data-hint-key="alumni_v1" onclick="reopenInfoCard('alumni_v1')" title="Show page tips">?</span></h2><p>Build the right LinkedIn searches and connection messages to reach the right people inside target programs — before applications open.</p></div>
 
-  <div class="itip" style="margin-bottom:16px">
+  <div class="info-card" data-hint-key="alumni_v1" style="margin-bottom:16px">
+    <button class="info-card-close" onclick="dismissInfoCard('alumni_v1')" aria-label="Dismiss tip">×</button>
     <strong>How to use this page:</strong><br>
     <strong style="color:var(--text)">① Pick your school</strong> — so we filter searches to your alumni network.<br>
     <strong style="color:var(--text)">② Run 2 searches per program</strong> — <em>"School + Company"</em> finds warm alumni intros, <em>"School + Role"</em> finds people doing the exact LDP role. <em>"Company"</em> and <em>"Role"</em> are broader searches if alumni results are thin.<br>
     <strong style="color:var(--text)">③ Copy the connection request</strong> — Click "📋 Message" on any row for a ready-to-paste 300-character message. Edit the placeholders before sending.
+    <a class="info-card-tour" onclick="tourStart('alumni')">Tour this page →</a>
   </div>
 
   <!-- SCHOOL SELECTOR + SEARCH -->
@@ -887,7 +1121,15 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 
 <!-- APPLICATIONS PAGE -->
 <div class="page" id="page-applications">
-  <div class="sech"><h2>My Applications</h2><p id="app-sub"></p></div>
+  <div class="sech"><h2>My Applications<span class="info-card-reopen" data-hint-key="apps_v1" onclick="reopenInfoCard('apps_v1')" title="Show page tips">?</span></h2><p id="app-sub"></p></div>
+
+  <div class="info-card" data-hint-key="apps_v1">
+    <button class="info-card-close" onclick="dismissInfoCard('apps_v1')" aria-label="Dismiss tip">×</button>
+    <strong>Your active pipeline</strong><br>
+    Track every program you're pursuing across stages.<br>
+    <strong style="color:var(--text)">① Log applications via + button</strong> · <strong style="color:var(--text)">② Click a card to update its stage</strong> · <strong style="color:var(--text)">③ Add notes per card</strong>
+    <a class="info-card-tour" onclick="tourStart('applications')">Tour this page →</a>
+  </div>
   <div class="filter-row" style="margin-bottom:18px">
     <input class="si-input" id="app-search" type="text" placeholder="Search applications..." oninput="renderApplications()">
     <div class="spacer"></div>
@@ -898,14 +1140,41 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 
 <!-- DEADLINES PAGE -->
 <div class="page" id="page-deadlines">
-  <div class="sech"><h2>Upcoming Deadlines</h2><p>Sorted by urgency — prioritise items in red. Click 📅 to export a reminder to your calendar.</p></div>
-  <div class="dllist" id="dl-list"></div>
+  <div class="sech"><h2>Upcoming Deadlines<span class="info-card-reopen" data-hint-key="deadlines_v1" onclick="reopenInfoCard('deadlines_v1')" title="Show page tips">?</span></h2><p>Plan your application sprint: 90-day horizon, urgency buckets, and one-click calendar export.</p></div>
+
+  <div class="info-card" data-hint-key="deadlines_v1">
+    <button class="info-card-close" onclick="dismissInfoCard('deadlines_v1')" aria-label="Dismiss tip">×</button>
+    <strong>Time-sorted urgency view</strong><br>
+    Red = act now. Export to calendar in one click.<br>
+    <strong style="color:var(--text)">① Toggle All vs My Apps</strong> · <strong style="color:var(--text)">② Export bulk ICS</strong> · <strong style="color:var(--text)">③ Status nudges show what to do next</strong>
+    <a class="info-card-tour" onclick="tourStart('deadlines')">Tour this page →</a>
+  </div>
+
+  <div class="dl-controls">
+    <div class="dl-toggle" role="tablist" aria-label="Deadline scope">
+      <button class="dl-toggle-btn on" data-scope="all"  onclick="setDLScope('all')"  role="tab" aria-selected="true">All</button>
+      <button class="dl-toggle-btn"    data-scope="mine" onclick="setDLScope('mine')" role="tab" aria-selected="false">My pipeline</button>
+    </div>
+    <button class="dl-bulk-export" onclick="exportAllDeadlines()" title="Download all visible dated deadlines as a single ICS file">📅 Export all to calendar</button>
+  </div>
+
+  <div class="dl-timeline" id="dl-timeline"></div>
+
+  <div class="dl-buckets" id="dl-buckets"></div>
 </div>
 
 <!-- AI FIT PAGE -->
 <div class="page" id="page-aifit">
+  <div class="info-card" data-hint-key="aifit_v1">
+    <button class="info-card-close" onclick="dismissInfoCard('aifit_v1')" aria-label="Dismiss tip">×</button>
+    <strong>Get tier-ranked program fit</strong><br>
+    Two-step scan: tier classification, then gap analysis across 6 dimensions.<br>
+    <strong style="color:var(--text)">① Upload your CV</strong> · <strong style="color:var(--text)">② Hit Analyse</strong> · <strong style="color:var(--text)">③ Results sync back to Programs Fit column</strong>
+    <a class="info-card-tour" onclick="tourStart('aifit')">Tour this page →</a>
+  </div>
+
   <div class="ai-hero">
-    <h2>AI Resume Fit Scanner</h2>
+    <h2>AI Resume Fit Scanner<span class="info-card-reopen" data-hint-key="aifit_v1" onclick="reopenInfoCard('aifit_v1')" title="Show page tips">?</span></h2>
     <p>Upload your résumé and get an instant tier-ranked fit analysis across all tracked programs — with specific reasoning per program and structured resume coaching.</p>
     <div class="ai-steps">
       <div class="ai-step"><div class="ai-step-num">1</div>Upload resume (PDF, DOCX, or text)</div>
@@ -1008,6 +1277,67 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 </div>
 </div>
 
+<!-- ONBOARDING MODAL (Phase 2) -->
+<div class="overlay" id="ov-onboard">
+<div class="modal onb-modal">
+  <div class="onb-progress">
+    <div class="onb-step on" id="onb-step-ind-1">1</div>
+    <div class="onb-bar" id="onb-bar-1"></div>
+    <div class="onb-step" id="onb-step-ind-2">2</div>
+    <div class="onb-bar" id="onb-bar-2"></div>
+    <div class="onb-step" id="onb-step-ind-3">3</div>
+  </div>
+
+  <!-- STEP 1: Name -->
+  <div class="onb-panel" id="onb-panel-1" style="display:block">
+    <div class="mtitle">Welcome to LDP Scout</div>
+    <div class="onb-sub">Let's get you set up in 3 quick steps. First, what should we call you?</div>
+    <div class="fg full" style="margin-top:18px">
+      <label>Your Full Name</label>
+      <input id="onb-name" placeholder="e.g. Alex Johnson" autocomplete="name">
+    </div>
+  </div>
+
+  <!-- STEP 2: School -->
+  <div class="onb-panel" id="onb-panel-2" style="display:none">
+    <div class="mtitle">Which MBA program are you in?</div>
+    <div class="onb-sub">We use this to surface alumni at your target firms and tailor program recommendations.</div>
+    <div class="fg full" style="margin-top:18px;position:relative" id="onb-school-wrap">
+      <label>Your Business School</label>
+      <div id="onb-school-display"
+        onclick="onbToggleSchoolDrop()"
+        style="background:var(--bg3);border:1px solid var(--border2);border-radius:7px;padding:10px 13px;font-size:13px;cursor:pointer;color:var(--text3);user-select:none">
+        Select your school
+      </div>
+      <div id="onb-school-drop" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg2);border:1px solid var(--border2);border-radius:7px;margin-top:4px;max-height:240px;overflow-y:auto;z-index:10;box-shadow:var(--shadow-md)">
+        <input id="onb-school-filter" oninput="onbFilterSchoolDrop()" placeholder="Type to filter..."
+          style="width:100%;border:none;border-bottom:1px solid var(--border);padding:9px 14px;font-size:12px;background:var(--bg3);outline:none;font-family:var(--sans);color:var(--text)">
+        <div id="onb-school-opts"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 3: Resume -->
+  <div class="onb-panel" id="onb-panel-3" style="display:none">
+    <div class="mtitle">Upload your résumé (optional)</div>
+    <div class="onb-sub">Get an instant AI fit score across all tracked programs. You can always do this later from the AI Fit Scan tab.</div>
+    <div class="upload-zone" id="onb-upload-zone" style="margin-top:18px;padding:28px">
+      <input type="file" accept=".pdf,.txt,.doc,.docx" onchange="onbHandleFileSelect(event)" id="onb-resume-file-input">
+      <span class="uz-icon">📄</span>
+      <div class="uz-title">Drop your résumé here or click to browse</div>
+      <div class="uz-sub">PDF, DOCX, or plain text · Max 5MB</div>
+      <div class="uz-file-name" id="onb-file-name-display" style="display:none"></div>
+    </div>
+    <div id="onb-step3-status" style="font-size:12px;color:var(--text3);margin-top:10px;text-align:center"></div>
+  </div>
+
+  <div class="mfoot">
+    <button class="bcn" id="onb-skip-btn" onclick="onbSkip()">Skip for now</button>
+    <button class="bsv" id="onb-next-btn" onclick="onbNext()">Next →</button>
+  </div>
+</div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <!-- ICS REMINDER CHOICE MODAL -->
@@ -1033,6 +1363,22 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
     <button class="ics-cancel" onclick="document.getElementById('ics-modal-overlay').classList.remove('open')">Cancel</button>
   </div>
 </div>
+
+<!-- GUIDED TOUR (Phase 4) -->
+<div class="tour-backdrop" id="tour-backdrop"></div>
+<div class="tour-spotlight" id="tour-spotlight" style="display:none"></div>
+<div class="tour-tooltip" id="tour-tooltip" style="display:none" role="dialog" aria-label="Guided tour">
+  <h4 id="tour-tooltip-title">Tour step</h4>
+  <p id="tour-tooltip-body"></p>
+  <div class="tour-tooltip-foot">
+    <span class="tour-step-count" id="tour-step-count">1 / 1</span>
+    <div style="display:flex;gap:8px">
+      <button class="tour-btn ghost" id="tour-skip-btn" onclick="tourSkip()">Skip</button>
+      <button class="tour-btn" id="tour-next-btn" onclick="tourNext()">Next</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ═══════════════ DATA ═══════════════
 // Global last-verified date — bump this when you re-run program audits.
@@ -1322,16 +1668,28 @@ async function onSignIn(){
   await loadUserResume();
   renderPrograms();
   renderApplications();
+  // Phase 2: trigger first-run onboarding if neither timestamp is set
+  if(onbShouldShow()) onbOpen();
+  // Phase 3: apply per-page info-card dismissal state from userProfile
+  initInfoCards();
+  // Phase 7: render onboarding progress strip + AI Fit attention dot
+  renderProgressStrip();
+  updateFitTabIndicator();
 }
 
 function onSignOut(){
   apps = [];
   userProfile = null;
   resumeText = '';
+  resumeLastScanAt = null;   // Phase 7
   showLanding();
   // Clear UI
   document.getElementById('app-kanban').innerHTML='';
   document.getElementById('ai-results').innerHTML='';
+  // Phase 7: hide progress strip + clear AI Fit attention dot on sign-out
+  const ps = document.getElementById('progress-strip');
+  if(ps) ps.style.display = 'none';
+  document.querySelectorAll('.nav-tab.needs-attention').forEach(t => t.classList.remove('needs-attention'));
 }
 
 function updateAuthUI() {
@@ -1535,6 +1893,9 @@ function showAuthModal() {
 // SUPABASE DATA LAYER — profiles, applications, resumes
 // ════════════════════════════════════════════════════════════════
 
+// ─── PHASE 1 EDIT: schema additions + saveUserProfile refactored to fetch-merge-update ───
+// Original loadUserProfile and saveUserProfile preserved below as comments for rollback.
+/*
 async function loadUserProfile(){
   if(!currentUser) return;
   try {
@@ -1576,6 +1937,362 @@ async function saveUserProfile(updates){
   } catch(e){
     console.error('saveUserProfile failed:', e);
     toast('Could not save profile — check connection.');
+  }
+}
+*/
+
+async function loadUserProfile(){
+  if(!currentUser) return;
+  try {
+    const { data, error } = await sb.from('user_profiles').select('*').eq('user_id', currentUser.id).maybeSingle();
+    if(error) throw error;
+    if(data){
+      userProfile = {
+        full_name:   data.full_name,
+        school_key:  data.school_key,
+        school_label:data.school_label,
+        mba_year:    data.mba_year,
+        target_geos: data.target_geos || [],
+        target_fns:  data.target_fns || [],
+        goals_note:  data.goals_note,
+        // For backward-compat with old code referencing userProfile.schools
+        schools:     data.school_key ? [data.school_key] : [],
+        // Phase 1 additions
+        onboarding_completed_at: data.onboarding_completed_at || null,
+        onboarding_skipped_at:   data.onboarding_skipped_at   || null,
+        tours_completed:         data.tours_completed         || [],
+        hints_dismissed:         data.hints_dismissed         || [],
+        digest_opt_in:           !!data.digest_opt_in
+      };
+      activeAlumniSchool = data.school_key || activeAlumniSchool;
+    } else {
+      // First-time user — create a stub profile row
+      const stub = { user_id: currentUser.id, email: currentUser.email };
+      await sb.from('user_profiles').upsert(stub, {onConflict:'user_id'});
+      userProfile = {
+        schools: [],
+        onboarding_completed_at: null,
+        onboarding_skipped_at:   null,
+        tours_completed:         [],
+        hints_dismissed:         [],
+        digest_opt_in:           false
+      };
+    }
+  } catch(e){
+    console.warn('loadUserProfile failed:', e);
+    userProfile = {
+      schools: [],
+      onboarding_completed_at: null,
+      onboarding_skipped_at:   null,
+      tours_completed:         [],
+      hints_dismissed:         [],
+      digest_opt_in:           false
+    };
+  }
+}
+
+async function saveUserProfile(updates){
+  if(!currentUser) return;
+  try {
+    // Check if a row exists for this user
+    const { data: existing, error: fetchErr } = await sb
+      .from('user_profiles')
+      .select('user_id')
+      .eq('user_id', currentUser.id)
+      .maybeSingle();
+    if(fetchErr) throw fetchErr;
+
+    if(existing){
+      // Row exists — update only the supplied columns
+      const { error } = await sb
+        .from('user_profiles')
+        .update(updates)
+        .eq('user_id', currentUser.id);
+      if(error) throw error;
+    } else {
+      // First write — insert with stub fields plus the supplied updates
+      const payload = { user_id: currentUser.id, email: currentUser.email, ...updates };
+      const { error } = await sb.from('user_profiles').insert(payload);
+      if(error) throw error;
+    }
+    // Refresh the in-memory copy
+    await loadUserProfile();
+    // Phase 7: profile state may have changed — re-render onboarding progress
+    renderProgressStrip();
+  } catch(e){
+    console.error('saveUserProfile failed:', e);
+    toast('Could not save profile — check connection.');
+  }
+}
+
+async function markTourCompleted(tourKey){
+  if(!currentUser || !userProfile) return;
+  const current = userProfile.tours_completed || [];
+  if(current.includes(tourKey)) return;  // idempotent
+  await saveUserProfile({ tours_completed: [...current, tourKey] });
+  // Phase 7: completing the alumni tour ticks the "first search" step (saveUserProfile already
+  // re-rendered the strip transitively, but call again to be defensive against future refactors)
+  renderProgressStrip();
+}
+
+async function markHintDismissed(hintKey){
+  if(!currentUser || !userProfile) return;
+  const current = userProfile.hints_dismissed || [];
+  if(current.includes(hintKey)) return;  // idempotent
+  await saveUserProfile({ hints_dismissed: [...current, hintKey] });
+}
+
+// ─── PHASE 3: INFO CARDS ───
+// Each .info-card has a data-hint-key. Dismissal state is persisted in
+// userProfile.hints_dismissed (Supabase). A matching .info-card-reopen[data-hint-key]
+// span in the page header toggles back the card.
+
+function _setInfoCardState(key, dismissed){
+  document.querySelectorAll(`.info-card[data-hint-key="${key}"]`).forEach(el=>{
+    el.setAttribute('data-dismissed', dismissed ? 'true' : 'false');
+  });
+  document.querySelectorAll(`.info-card-reopen[data-hint-key="${key}"]`).forEach(el=>{
+    el.classList.toggle('show', dismissed);
+  });
+}
+
+function initInfoCards(){
+  const dismissedKeys = (userProfile && userProfile.hints_dismissed) || [];
+  document.querySelectorAll('.info-card[data-hint-key]').forEach(card=>{
+    const key = card.getAttribute('data-hint-key');
+    _setInfoCardState(key, dismissedKeys.includes(key));
+  });
+}
+
+async function dismissInfoCard(key){
+  _setInfoCardState(key, true);
+  await markHintDismissed(key);
+}
+
+async function reopenInfoCard(key){
+  _setInfoCardState(key, false);
+  if(!currentUser || !userProfile) return;
+  await saveUserProfile({ hints_dismissed: (userProfile.hints_dismissed || []).filter(x => x !== key) });
+}
+
+// ─── PHASE 7: SMART BANNER, PROGRESS STRIP, AI FIT TAB INDICATOR ───
+// Three coordinated UI affordances that react to user state changes:
+//   renderFitBanner()        — three-state banner on Programs (no resume / stale / fresh)
+//   renderProgressStrip()    — 4-step onboarding strip under topbar, hidden when complete
+//   updateFitTabIndicator()  — coral pulsing dot on AI Fit nav tab when no resume on file
+
+const FIT_BANNER_STALE_DAYS = 30;
+
+function _daysSince(iso){
+  if(!iso) return null;
+  const t = new Date(iso).getTime();
+  if(isNaN(t)) return null;
+  return Math.floor((Date.now() - t) / 86400000);
+}
+
+function renderFitBanner(){
+  const mount = document.getElementById('fit-banner-mount');
+  if(!mount) return;
+
+  // State 1: no resume — original CTA
+  if(!resumeText){
+    mount.innerHTML = `<div class="fit-prompt-banner" onclick="showPage('aifit')" title="Go to AI Fit Scan">
+      <div class="fpb-icon">✦</div>
+      <div class="fpb-text"><strong>Fit column powered by AI.</strong> Upload your résumé on the AI Fit Scan tab to get personalised tier rankings, gap analysis, and coaching across all programs — results sync back here automatically.</div>
+      <div class="fpb-cta">Scan My Résumé →</div>
+    </div>`;
+    return;
+  }
+
+  const days = _daysSince(resumeLastScanAt);
+
+  // Edge case: resume exists but never scanned (last_scan_at null) — prompt to run first scan
+  if(days === null){
+    mount.innerHTML = `<div class="fit-prompt-banner stale" onclick="showPage('aifit')" title="Run your first AI fit scan">
+      <div class="fpb-icon">✦</div>
+      <div class="fpb-text"><strong>Your résumé is on file — but you haven't scanned it yet.</strong> Run an AI fit scan to populate tier rankings across all 48 programs.</div>
+      <div class="fpb-cta">Run Scan →</div>
+    </div>`;
+    return;
+  }
+
+  // State 2: scan is stale (>30 days)
+  if(days > FIT_BANNER_STALE_DAYS){
+    mount.innerHTML = `<div class="fit-prompt-banner stale" onclick="showPage('aifit')" title="Re-run AI fit scan">
+      <div class="fpb-icon">✦</div>
+      <div class="fpb-text"><strong>Your scan is ${days} days old.</strong> Re-run to refresh fit scores — programs change, and so does your résumé.</div>
+      <div class="fpb-cta">Re-scan →</div>
+    </div>`;
+    return;
+  }
+
+  // State 3: scan is fresh — hide entirely
+  mount.innerHTML = '';
+}
+
+function renderProgressStrip(){
+  const strip = document.getElementById('progress-strip');
+  if(!strip) return;
+
+  // Not signed in? Hide.
+  if(!currentUser){ strip.style.display = 'none'; return; }
+
+  const profileDone     = !!(userProfile && userProfile.full_name && userProfile.school_key);
+  const resumeDone      = !!resumeText;
+  const searchDone      = !!(userProfile && (userProfile.tours_completed || []).includes('alumni'));
+  const applicationDone = Array.isArray(apps) && apps.length > 0;
+
+  // All four done? Hide the strip entirely — user has graduated past onboarding.
+  if(profileDone && resumeDone && searchDone && applicationDone){
+    strip.style.display = 'none';
+    return;
+  }
+
+  const stateMap = { profile:profileDone, resume:resumeDone, search:searchDone, application:applicationDone };
+  strip.querySelectorAll('.ps-step').forEach(el => {
+    const k = el.getAttribute('data-step');
+    el.classList.toggle('on', !!stateMap[k]);
+  });
+  strip.style.display = 'flex';
+}
+
+function updateFitTabIndicator(){
+  // Coral pulsing dot on AI Fit tab when no resume on file.
+  // Selector matches the inline onclick="showPage('aifit')" tab.
+  document.querySelectorAll('.nav-tab').forEach(tab => {
+    const onclickAttr = tab.getAttribute('onclick') || '';
+    if(onclickAttr.includes("showPage('aifit')")){
+      tab.classList.toggle('needs-attention', !resumeText && !!currentUser);
+    }
+  });
+}
+
+// ─── PHASE 4: GUIDED PRODUCT TOURS ───
+// Vanilla coachmark engine. First visit to each tab (after onboarding) auto-runs the
+// tour for that tab. Completion is synced via userProfile.tours_completed (Supabase).
+// "Tour this page" links inside info cards re-run on demand.
+
+const TOURS = {
+  programs: [
+    {target:'#prog-stats',         title:'Pipeline at a glance',  body:'Snapshot of all 48 LDPs by status — open, rolling, watch-list, and closed. Updates as you filter below.'},
+    {target:'.filter-row',         title:'Filter and search',     body:'Cut the list by geography, function, status, or type. The search box matches program names, firms, and keywords.'},
+    {target:'.thead',              title:'Sortable columns',      body:'Click any column header to sort. The Fit column is powered by the AI Fit Scanner once you upload a résumé.'},
+    {target:'.prow:first-child',   title:'Open program details',  body:'Click any row to open full details — deadline, location, fit reasoning. The program name links straight to the official careers page.'}
+  ],
+  aifit: [
+    {target:'#upload-zone',  title:'Upload your résumé', body:'Drop in a PDF, DOCX, or plain-text file (max 5MB). Processed via a secure proxy — never stored, never shared.'},
+    {target:'#analyze-btn',  title:'Run the analysis',   body:'Two-step scan: tier classification first, then a gap analysis across 6 dimensions per program.'},
+    {target:'#ai-results',   title:'Tier-ranked results',body:'Results land here and sync back into the Fit column on the Programs tab. Re-run anytime with an updated résumé.'}
+  ],
+  alumni: [
+    {target:'#alumni-school-wrap',                 title:'Pick your school', body:'We use this to scope LinkedIn searches to your own alumni network — that\u2019s the warm-intro lever.'},
+    {target:'#alumni-search-rows .prow:first-child', title:'Run the searches', body:'Each row gives you 4 LinkedIn searches plus a copy-paste 300-character connection message. Edit the placeholders before sending.'}
+  ],
+  applications: [
+    {target:'.add-btn',     title:'Log a new application', body:'Click here to add an application. Fill in the program name, stage, deadline, and notes.'},
+    {target:'#app-kanban',  title:'Move cards through the funnel', body:'Six stages: Networking \u2192 Drafting \u2192 Applied \u2192 Interview \u2192 Offer (or Rejected). Click any card to update its stage, dates, or notes.'}
+  ],
+  deadlines: [
+    {target:'.dl-timeline',    title:'Urgency-sorted timeline', body:'Red = act now, amber = approaching, grey = comfortable. The list re-sorts itself as dates roll.'},
+    {target:'.dl-toggle',      title:'All vs My Apps',          body:'Toggle between every tracked deadline and just the ones tied to applications you\u2019ve logged.'},
+    {target:'.dl-bulk-export', title:'Bulk export to calendar', body:'Drop every visible deadline into a single ICS file — load once into Google, Outlook, or Apple Calendar.'}
+  ]
+};
+
+let _tourKey = null;
+let _tourQueue = [];
+let _tourIdx = 0;
+
+function tourStart(pageKey){
+  if(!TOURS[pageKey]){ console.warn('tourStart: unknown pageKey', pageKey); return; }
+  _tourKey = pageKey;
+  _tourQueue = TOURS[pageKey];
+  _tourIdx = 0;
+  document.getElementById('tour-backdrop').classList.add('on');
+  tourShow();
+}
+
+function tourShow(){
+  if(_tourIdx >= _tourQueue.length){ tourEnd(true); return; }
+  const step = _tourQueue[_tourIdx];
+
+  // Scope to the currently active page so generic selectors like ".add-btn"
+  // (which appears on multiple pages) resolve to the right element.
+  const scoped = '.page.active ' + step.target;
+  const target = document.querySelector(scoped) || document.querySelector(step.target);
+
+  // Missing target → silently skip this step. Phase-5 selectors that don't exist
+  // yet take this path automatically.
+  if(!target){ tourNext(); return; }
+
+  // Scroll into view if needed (instant, so geometry below is accurate)
+  let rect = target.getBoundingClientRect();
+  if(rect.top < 60 || rect.bottom > window.innerHeight - 60){
+    target.scrollIntoView({block:'center', inline:'nearest'});
+    rect = target.getBoundingClientRect();
+  }
+
+  const PAD = 8;
+  const spot = document.getElementById('tour-spotlight');
+  spot.style.display = 'block';
+  spot.style.top    = (rect.top    - PAD) + 'px';
+  spot.style.left   = (rect.left   - PAD) + 'px';
+  spot.style.width  = (rect.width  + PAD*2) + 'px';
+  spot.style.height = (rect.height + PAD*2) + 'px';
+
+  // Tooltip content
+  const tip = document.getElementById('tour-tooltip');
+  document.getElementById('tour-tooltip-title').textContent = step.title;
+  document.getElementById('tour-tooltip-body').textContent  = step.body;
+  document.getElementById('tour-step-count').textContent    = (_tourIdx + 1) + ' / ' + _tourQueue.length;
+  document.getElementById('tour-next-btn').textContent      = (_tourIdx === _tourQueue.length - 1) ? 'Done' : 'Next';
+
+  // Show tooltip first so we can measure it
+  tip.style.display = 'block';
+  tip.style.visibility = 'hidden';
+  tip.style.top = '0px';
+  tip.style.left = '0px';
+  const tipH = tip.offsetHeight || 140;
+  const tipW = tip.offsetWidth  || 300;
+
+  const MARGIN = 12;
+  const VPAD = 20;
+  let top  = rect.bottom + PAD + MARGIN;       // default: below target
+  if(top + tipH > window.innerHeight - VPAD){  // off-screen below → place above
+    top = rect.top - PAD - MARGIN - tipH;
+  }
+  if(top < VPAD) top = VPAD;
+
+  let left = rect.left;
+  const maxLeft = window.innerWidth - 320;     // spec: viewport - 320
+  if(left > maxLeft) left = maxLeft;
+  if(left < VPAD) left = VPAD;
+
+  tip.style.top  = top  + 'px';
+  tip.style.left = left + 'px';
+  tip.style.visibility = 'visible';
+}
+
+function tourNext(){
+  _tourIdx++;
+  if(_tourIdx >= _tourQueue.length){ tourEnd(true); return; }
+  tourShow();
+}
+
+function tourSkip(){
+  tourEnd(false);
+}
+
+async function tourEnd(completed){
+  const key = _tourKey;
+  document.getElementById('tour-backdrop').classList.remove('on');
+  document.getElementById('tour-spotlight').style.display = 'none';
+  document.getElementById('tour-tooltip').style.display   = 'none';
+  _tourKey = null;
+  _tourQueue = [];
+  _tourIdx = 0;
+  if(completed && key){
+    await markTourCompleted(key);
   }
 }
 
@@ -1625,11 +2342,17 @@ async function saveApplicationToDB(app){
       // Update existing
       const { error } = await sb.from('user_applications').update(row).eq('id', app.id).eq('user_id', currentUser.id);
       if(error) throw error;
+      // Phase 7: edits don't change apps.length, but defensive re-render is cheap
+      renderProgressStrip();
       return app.id;
     } else {
       // Insert new
       const { data, error } = await sb.from('user_applications').insert(row).select('id').single();
       if(error) throw error;
+      // Phase 7: the caller (saveApp) updates apps[] AFTER we return, so this render sees
+      // stale apps[].length. The saveApp caller also re-renders post-cache-update, which is
+      // the authoritative final state. Keeping this hook for spec compliance + defense in depth.
+      renderProgressStrip();
       return data.id;
     }
   } catch(e){
@@ -1651,12 +2374,13 @@ async function deleteApplicationFromDB(id){
 }
 
 async function loadUserResume(){
-  if(!currentUser){ resumeText = ''; return; }
+  if(!currentUser){ resumeText = ''; resumeLastScanAt = null; return; }
   try {
     const { data, error } = await sb.from('user_resumes').select('*').eq('user_id', currentUser.id).maybeSingle();
     if(error) throw error;
     if(data){
       resumeText = data.raw_text || '';
+      resumeLastScanAt = data.last_scan_at || null;   // Phase 7
       // Surface filename in UI if present
       if(data.file_name){
         const nd = document.getElementById('file-name-display');
@@ -1668,10 +2392,12 @@ async function loadUserResume(){
       }
     } else {
       resumeText = '';
+      resumeLastScanAt = null;
     }
   } catch(e){
     console.warn('loadUserResume failed:', e);
     resumeText = '';
+    resumeLastScanAt = null;
   }
 }
 
@@ -1687,6 +2413,11 @@ async function saveResumeToDB(rawText, fileName){
     };
     const { error } = await sb.from('user_resumes').upsert(row, {onConflict:'user_id'});
     if(error) throw error;
+    // Phase 7: a new upload resets the scan timestamp; resume step now complete.
+    resumeLastScanAt = null;
+    renderProgressStrip();
+    updateFitTabIndicator();
+    renderFitBanner();
   } catch(e){
     console.error('saveResumeToDB failed:', e);
     toast('Resume saved locally but cloud sync failed — please retry.');
@@ -1703,11 +2434,201 @@ async function saveScanToHistory(result){
       program_count: progs.length
     });
     // Mark resume last-scanned
-    await sb.from('user_resumes').update({ last_scan_at: new Date().toISOString() }).eq('user_id', currentUser.id);
+    const nowIso = new Date().toISOString();
+    await sb.from('user_resumes').update({ last_scan_at: nowIso }).eq('user_id', currentUser.id);
+    // Phase 7: keep in-memory mirror in sync; refresh the smart banner
+    resumeLastScanAt = nowIso;
+    renderFitBanner();
   } catch(e){
     console.warn('saveScanToHistory failed (non-blocking):', e);
   }
 }
+// ────────────────────────────────────────────────────────────────
+
+// ═══════════════ PHASE 2: ONBOARDING STATE MACHINE ═══════════════
+let _onbStep = 1;
+let _onbResumeFile = null;
+let _onbSchoolKey = null;
+let _onbSchoolLabel = null;
+
+function onbShouldShow(){
+  return !!(currentUser && userProfile && !userProfile.onboarding_completed_at && !userProfile.onboarding_skipped_at);
+}
+
+function onbOpen(){
+  // Reset state each time we open (no mid-state persistence between sessions — by design)
+  _onbStep = 1;
+  _onbResumeFile = null;
+  _onbSchoolKey = null;
+  _onbSchoolLabel = null;
+  // Pre-fill name from existing profile if present (rare — only if a partial save happened earlier)
+  const nameEl = document.getElementById('onb-name');
+  if(nameEl) nameEl.value = userProfile?.full_name || '';
+  const fileDisp = document.getElementById('onb-file-name-display');
+  if(fileDisp){ fileDisp.style.display='none'; fileDisp.textContent=''; }
+  const status = document.getElementById('onb-step3-status');
+  if(status) status.textContent = '';
+  const uz = document.getElementById('onb-upload-zone');
+  if(uz) uz.classList.remove('has-file');
+  const fi = document.getElementById('onb-resume-file-input');
+  if(fi) fi.value = '';
+  onbRenderSchoolOpts('');
+  onbUpdateSchoolDisplay();
+  document.getElementById('ov-onboard').classList.add('open');
+  onbGoto(1);
+  setTimeout(()=>{ const n=document.getElementById('onb-name'); if(n) n.focus(); }, 50);
+}
+
+function onbClose(){
+  document.getElementById('ov-onboard').classList.remove('open');
+}
+
+function onbGoto(step){
+  _onbStep = step;
+  for(let i=1; i<=3; i++){
+    const panel = document.getElementById('onb-panel-'+i);
+    if(panel) panel.style.display = (i===step) ? 'block' : 'none';
+    const ind = document.getElementById('onb-step-ind-'+i);
+    if(ind) ind.classList.toggle('on', i<=step);
+  }
+  // Bars light up when the step they CONNECT INTO is reached
+  for(let i=1; i<=2; i++){
+    const bar = document.getElementById('onb-bar-'+i);
+    if(bar) bar.classList.toggle('on', step > i);
+  }
+  // Adjust button labels for final step
+  const nextBtn = document.getElementById('onb-next-btn');
+  if(nextBtn){
+    nextBtn.textContent = (step === 3) ? '✦ Scan my résumé' : 'Next →';
+    nextBtn.disabled = (step === 3 && !_onbResumeFile);
+    nextBtn.style.opacity = nextBtn.disabled ? '0.5' : '1';
+  }
+}
+
+async function onbNext(){
+  if(_onbStep === 1){
+    const val = (document.getElementById('onb-name').value || '').trim();
+    if(!val){ toast('Please enter your name to continue.'); return; }
+    await saveUserProfile({ full_name: val });
+    onbGoto(2);
+  } else if(_onbStep === 2){
+    if(!_onbSchoolKey){ toast('Please pick your school to continue.'); return; }
+    await saveUserProfile({ school_key: _onbSchoolKey, school_label: _onbSchoolLabel });
+    activeAlumniSchool = _onbSchoolKey;
+    onbGoto(3);
+  } else if(_onbStep === 3){
+    if(!_onbResumeFile){
+      // Nothing to scan — user must use Skip
+      toast('Add a résumé to scan, or click "Skip for now".');
+      return;
+    }
+    const nextBtn = document.getElementById('onb-next-btn');
+    const skipBtn = document.getElementById('onb-skip-btn');
+    const status = document.getElementById('onb-step3-status');
+    nextBtn.disabled = true; nextBtn.style.opacity='0.5';
+    skipBtn.disabled = true; skipBtn.style.opacity='0.5';
+    if(status) status.textContent = 'Parsing your résumé…';
+    try {
+      // Reuse the AI Fit pipeline directly — populates resumeText and persists to Supabase
+      await handleFileUpload({ target:{ files:[_onbResumeFile] } });
+      if(!resumeText || resumeText.length < 200){
+        throw new Error('Could not extract enough text from this résumé. Please try a different file.');
+      }
+      if(status) status.textContent = 'Analysing fit across all programs…';
+      await runAIAnalysis();
+      await onbComplete();
+      showPage('aifit');
+    } catch(err){
+      console.error('Onboarding scan failed:', err);
+      if(status) status.textContent = '⚠ ' + (err.message || 'Scan failed — you can retry from the AI Fit Scan tab.');
+      nextBtn.disabled = false; nextBtn.style.opacity='1';
+      skipBtn.disabled = false; skipBtn.style.opacity='1';
+    }
+  }
+}
+
+async function onbSkip(){
+  await saveUserProfile({ onboarding_skipped_at: new Date().toISOString() });
+  onbClose();
+  showPage('programs');
+}
+
+async function onbComplete(){
+  await saveUserProfile({ onboarding_completed_at: new Date().toISOString() });
+  onbClose();
+}
+
+function onbHandleFileSelect(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  if(file.size > 5*1024*1024){
+    toast('File too large — please use a file under 5MB.');
+    event.target.value = '';
+    return;
+  }
+  _onbResumeFile = file;
+  const nd = document.getElementById('onb-file-name-display');
+  const uz = document.getElementById('onb-upload-zone');
+  if(nd){ nd.textContent = '✓ ' + file.name; nd.style.display='block'; }
+  if(uz) uz.classList.add('has-file');
+  const nextBtn = document.getElementById('onb-next-btn');
+  if(nextBtn){ nextBtn.disabled = false; nextBtn.style.opacity='1'; }
+  const status = document.getElementById('onb-step3-status');
+  if(status) status.textContent = '';
+}
+
+// ── Onboarding school dropdown (mirrors renderAlumniSchoolOpts but with onb-* IDs) ──
+function onbRenderSchoolOpts(q){
+  // Thin wrapper that reuses the ALL_MBA_SCHOOLS data source from renderAlumniSchoolOpts
+  const container = document.getElementById('onb-school-opts');
+  if(!container) return;
+  const filtered = ALL_MBA_SCHOOLS.filter(s => !q || s.label.toLowerCase().includes(q.toLowerCase()));
+  container.innerHTML = filtered.map(s => `
+    <div onclick="onbPickSchool('${s.key}')" style="padding:9px 14px;font-size:12px;cursor:pointer;color:${_onbSchoolKey===s.key?'var(--accent)':'var(--text)'};background:${_onbSchoolKey===s.key?'var(--accent-bg)':'transparent'};border-bottom:1px solid var(--border);transition:background .1s"
+      onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='${_onbSchoolKey===s.key?'var(--accent-bg)':'transparent'}'">
+      ${s.label}${_onbSchoolKey===s.key?' ✓':''}
+    </div>`).join('');
+}
+
+function onbToggleSchoolDrop(){
+  const drop = document.getElementById('onb-school-drop');
+  if(!drop) return;
+  const open = drop.style.display !== 'none';
+  drop.style.display = open ? 'none' : 'block';
+  if(!open){
+    const fi = document.getElementById('onb-school-filter');
+    if(fi){ fi.value=''; onbRenderSchoolOpts(''); fi.focus(); }
+  }
+}
+
+function onbFilterSchoolDrop(){
+  const q = (document.getElementById('onb-school-filter')||{}).value||'';
+  onbRenderSchoolOpts(q);
+}
+
+function onbUpdateSchoolDisplay(){
+  const el = document.getElementById('onb-school-display');
+  if(!el) return;
+  el.textContent = _onbSchoolLabel || 'Select your school';
+  el.style.color = _onbSchoolKey ? 'var(--text)' : 'var(--text3)';
+}
+
+function onbPickSchool(key){
+  const schoolObj = ALL_MBA_SCHOOLS.find(s=>s.key===key);
+  _onbSchoolKey = key;
+  _onbSchoolLabel = schoolObj?.label || key;
+  document.getElementById('onb-school-drop').style.display = 'none';
+  onbUpdateSchoolDisplay();
+}
+
+// Close onboarding school dropdown when clicking outside
+document.addEventListener('click', e => {
+  const wrap = document.getElementById('onb-school-wrap');
+  if(wrap && !wrap.contains(e.target)){
+    const drop = document.getElementById('onb-school-drop');
+    if(drop) drop.style.display = 'none';
+  }
+});
 // ────────────────────────────────────────────────────────────────
 
 let progs = JSON.parse(localStorage.getItem('ldps_progs')||'null')||JSON.parse(JSON.stringify(DP));
@@ -1718,6 +2639,10 @@ let selectedSchools = [];
 let eId   = {prog:null,alumni:null,app:null};
 let F     = {geo:'all',fn:'all',st:'all',asc:'all',ast:'all'};
 let resumeText = '';
+// Phase 7: ISO timestamp of last AI fit scan, or null. Mirrors user_resumes.last_scan_at.
+// Used by renderFitBanner to decide stale/fresh state. Kept separate from userProfile because
+// it sources from a different table (user_resumes) with its own update lifecycle.
+let resumeLastScanAt = null;
 let isUnlocked = true; // paywall removed
 
 function persist(){
@@ -1828,23 +2753,8 @@ function confirmICS(mode){
   if(_icsItem) downloadICS(_icsItem, mode);
 }
 
-// Legacy onboarding stubs — the standalone onboarding modal was removed.
-// Profile data is now captured progressively: school via Alumni tab dropdown,
-// name via future settings panel. These remain only so any stale onclick="" handlers
-// don't throw if they survived removal.
-async function saveOnboarding(){ /* no-op */ }
-function skipOnboarding(){ /* no-op */ }
-
-// Legacy stub — kept so any leftover references don't throw.
-// In the new auth-driven flow, profile is loaded by loadUserProfile() on sign-in.
-function applyProfile(){ /* no-op */ }
-
-// ═══════════════ PAYWALL ═══════════════
-
-function dismissPaywall(){
-  localStorage.setItem('ldps_dismissed','1');
-  
-}
+// Phase 2 cleanup: removed no-op stubs saveOnboarding / skipOnboarding / applyProfile / dismissPaywall.
+// Onboarding now lives in the onb* state machine; paywall was removed (isUnlocked = true).
 
 // ═══════════════ NAV ═══════════════
 const PAGE_ORDER=['programs','aifit','alumni','applications','deadlines'];
@@ -1863,6 +2773,15 @@ function showPage(id){
   if(idx>=0&&tabs[idx]) tabs[idx].classList.add('active');
   
   ({programs:renderPrograms,alumni:()=>{initAlumniSchoolDrop();renderAlumniSearch();},applications:renderApplications,deadlines:renderDeadlines,aifit:()=>{}})[id]?.();
+
+  // Phase 4: auto-launch the first-visit tour for this page (gated)
+  setTimeout(() => {
+    if(_tourKey || !currentUser) return;
+    if(!userProfile?.onboarding_completed_at) return;
+    if((userProfile?.tours_completed||[]).includes(id)) return;
+    if(document.querySelector('.overlay.open')) return;
+    tourStart(id);
+  }, 600);
 }
 
 // Legacy stub — the new lpSignUp() (defined above in auth section) handles signup.
@@ -1929,6 +2848,8 @@ function verifiedBadge(p){
 }
 
 function renderPrograms(){
+  // Phase 7: smart banner reflects resume + scan freshness
+  renderFitBanner();
   const q=(document.getElementById('prog-search')||{}).value?.toLowerCase()||'';
   let list=progs.filter(p=>{
     if(F.geo!=='all'&&p.geo!==F.geo) return false;
@@ -2311,28 +3232,305 @@ function renderApplications(){
 }
 
 // ═══════════════ DEADLINES ═══════════════
+// ─── PHASE 5: DEADLINES PLANNING HUB ───
+// Builds a unified item list from progs (canonical) + apps (free-standing only).
+// Each item carries metadata: rolling, inPipeline, appStatus, dlnote.
+// Render path: buildDeadlineItems → filter by scope → renderDLTimeline + buckets.
+
+let _dlScope = 'all';   // 'all' | 'mine'
+
+function setDLScope(scope){
+  if(scope !== 'all' && scope !== 'mine') return;
+  _dlScope = scope;
+  document.querySelectorAll('.dl-toggle-btn').forEach(b => {
+    const on = b.getAttribute('data-scope') === scope;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-selected', on ? 'true' : 'false');
+  });
+  renderDeadlines();
+}
+
+function buildDeadlineItems(){
+  const items = [];
+  const matchedAppIds = new Set();
+
+  // 1. Canonical: programs (with or without a fixed deadline)
+  for(const p of progs){
+    const hasDate   = !!p.deadline;
+    const isRolling = !hasDate && (p.status === 'rolling' || /rolling/i.test(p.dlnote || ''));
+    if(!hasDate && !isRolling) continue;   // no deadline info at all
+
+    const pname = (p.name || '').toLowerCase().trim();
+    const app = apps.find(a =>
+      (a.program_id && a.program_id === p.id) ||
+      (a.name && pname && a.name.toLowerCase().trim() === pname)
+    );
+    if(app) matchedAppIds.add(app.id);
+
+    items.push({
+      name: p.name,
+      org:  p.org || '',
+      date: hasDate ? new Date(p.deadline) : null,
+      deadline: p.deadline || '',
+      type: 'program',
+      rolling: isRolling,
+      inPipeline: !!app,
+      appStatus: app ? app.status : null,
+      dlnote: p.dlnote || ''
+    });
+  }
+
+  // 2. Free-standing applications (not linked back to any program)
+  for(const a of apps){
+    if(matchedAppIds.has(a.id)) continue;
+    if(!a.deadline) continue;
+    items.push({
+      name: a.name,
+      org:  a.org || '',
+      date: new Date(a.deadline),
+      deadline: a.deadline,
+      type: 'application',
+      rolling: false,
+      inPipeline: true,
+      appStatus: a.status,
+      dlnote: ''
+    });
+  }
+
+  return items;
+}
+
+function nudgeFor(item){
+  const days = item._days;  // set by bucketize for dated items
+  if(!item.inPipeline && !item.rolling){
+    return {tone:'info', text:'Not in your pipeline — add to Applications'};
+  }
+  if(item.rolling && !item.inPipeline){
+    return {tone:'warn', text:'Rolling — apply ASAP, no fixed deadline'};
+  }
+  if(item.appStatus === 'networking' && typeof days === 'number' && days <= 30 && days >= 0){
+    return {tone:'warn', text:'Apply this week — networking time is up'};
+  }
+  if(item.appStatus === 'applied' && typeof days === 'number' && days < 0){
+    return {tone:'info', text:'Deadline passed — follow up?'};
+  }
+  return null;
+}
+
+function bucketize(items){
+  const today = new Date(); today.setHours(0,0,0,0);
+  const buckets = {rolling:[], week:[], month:[], next60:[], later:[]};
+  for(const it of items){
+    if(it.rolling){ buckets.rolling.push(it); continue; }
+    if(!it.date) continue;
+    const days = Math.round((it.date - today) / 86400000);
+    it._days = days;
+    if(days < 0)        buckets.week.push(it);    // past-due (already filtered to applied-in-pipeline upstream)
+    else if(days <= 7)  buckets.week.push(it);
+    else if(days <= 30) buckets.month.push(it);
+    else if(days <= 60) buckets.next60.push(it);
+    else                buckets.later.push(it);
+  }
+  ['week','month','next60','later'].forEach(k => buckets[k].sort((a,b) => a.date - b.date));
+  buckets.rolling.sort((a,b) => (a.name||'').localeCompare(b.name||''));
+  return buckets;
+}
+
+function _dayLabel(days){
+  if(days === 0)  return 'TODAY!';
+  if(days === 1)  return '1 day';
+  if(days === -1) return '1 day ago';
+  if(days < 0)    return `${Math.abs(days)} days ago`;
+  return `${days} days`;
+}
+function _dayClass(days){
+  if(days < 0)      return 'urg';
+  if(days <= 14)    return 'urg';
+  if(days <= 45)    return 'soon';
+  return 'ok';
+}
+function _fmtDate(d){
+  return d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+}
+
+function _icsPayload(item){
+  // Build a clean payload for openICSModal — date-only items use the deadline string,
+  // rolling items have no calendar payload (button suppressed for those).
+  return {name:item.name, org:item.org, deadline:item.deadline, type:item.type};
+}
+
+function _renderRow(item){
+  const days  = item._days;
+  const cls   = (typeof days === 'number') ? _dayClass(days) : '';
+  const lbl   = (typeof days === 'number') ? _dayLabel(days) : '—';
+  const dateLabel = item.rolling
+    ? 'Rolling'
+    : (item.date ? _fmtDate(item.date) : '—');
+  const nudge = nudgeFor(item);
+  const nudgeHtml = nudge
+    ? `<div class="dl-nudge dl-nudge-${nudge.tone}">${nudge.text}</div>`
+    : '';
+  const actionsHtml = item.rolling
+    ? `<span style="font-size:10px;color:var(--text3)">${(item.dlnote||'').replace(/</g,'&lt;') || 'No fixed date'}</span>`
+    : `<button class="ics-btn" onclick='openICSModal(${JSON.stringify(_icsPayload(item)).replace(/'/g,"&#39;")})' title="Add to calendar">📅 Set reminder</button>`;
+
+  return `<div class="dlitem">
+    <div class="dldate">${dateLabel}</div>
+    <div style="flex:1;min-width:0">
+      <div class="dlname">${item.name}</div>
+      <div class="dlorg">${item.org}</div>
+      ${nudgeHtml}
+    </div>
+    <div class="dldays ${cls}">${lbl}</div>
+    <div class="dlitem-actions">${actionsHtml}</div>
+  </div>`;
+}
+
+function _renderBucket({key, label, items, open}){
+  const count = items.length;
+  if(count === 0) return '';
+  const rows = items.map(_renderRow).join('');
+  return `<details class="dl-bucket" data-bucket="${key}"${open ? ' open' : ''}>
+    <summary>${label}<span class="dl-bucket-count">${count}</span></summary>
+    <div class="dl-bucket-rows">${rows}</div>
+  </details>`;
+}
+
+function renderDLTimeline(items){
+  const container = document.getElementById('dl-timeline');
+  if(!container) return;
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  const dated = items
+    .filter(i => !i.rolling && i.date)
+    .map(i => {
+      const days = (typeof i._days === 'number') ? i._days : Math.round((i.date - today)/86400000);
+      return {...i, _days: days};
+    })
+    .filter(i => i._days >= 0 && i._days <= 90);
+
+  const axis = `<div class="dl-tl-axis">
+    <span class="dl-tl-tick">Today</span>
+    <span class="dl-tl-tick">+30d</span>
+    <span class="dl-tl-tick">+60d</span>
+    <span class="dl-tl-tick">+90d</span>
+  </div>`;
+
+  if(dated.length === 0){
+    container.innerHTML = `<div class="dl-tl-empty">No deadlines in the next 90 days.</div>${axis}`;
+    return;
+  }
+
+  const markers = dated.map(i => {
+    const pct = Math.max(0, Math.min(100, (i._days / 90) * 100));
+    const color = i._days <= 7  ? 'var(--coral)'
+                : i._days <= 30 ? 'var(--amber)'
+                : i._days <= 60 ? 'var(--gold)'
+                : 'var(--accent)';
+    const safe = (i.name || '').replace(/"/g,'&quot;');
+    return `<div class="dl-tl-marker" style="left:${pct.toFixed(1)}%;background:${color}" title="${safe} — ${i._days}d"></div>`;
+  }).join('');
+
+  container.innerHTML = `<div class="dl-tl-track">${markers}</div>${axis}`;
+}
+
 function renderDeadlines(){
-  const today=new Date();today.setHours(0,0,0,0);
-  const items=[
-    ...progs.filter(p=>p.deadline).map(p=>({name:p.name,org:p.org,date:new Date(p.deadline),type:'program',deadline:p.deadline})),
-    ...apps.filter(a=>a.deadline).map(a=>({name:a.name,org:a.org||'',date:new Date(a.deadline),type:'application',deadline:a.deadline}))
-  ].filter(i=>i.date>=today).sort((a,b)=>a.date-b.date);
-  document.getElementById('dl-list').innerHTML=items.length===0
-    ?'<div class="empty">No upcoming deadlines tracked. Add deadline dates to your programs and applications.</div>'
-    :items.map(i=>{
-      const d=Math.round((i.date-today)/86400000);
-      const cls=d<=14?'urg':d<=45?'soon':'ok';
-      const lbl=d===0?'TODAY!':d===1?'1 day':`${d} days`;
-      return `<div class="dlitem">
-        <div class="dldate">${i.date.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</div>
-        <div style="flex:1"><div class="dlname">${i.name}</div><div class="dlorg">${i.org}</div></div>
-        <span class="dltype">${i.type}</span>
-        <div class="dldays ${cls}">${lbl}</div>
-        <div class="dlitem-actions">
-          <button class="ics-btn" onclick="openICSModal(${JSON.stringify(i).replace(/"/g,'&quot;')})" title="Add to calendar">📅 Set reminder</button>
-        </div>
-      </div>`;
-    }).join('');
+  let items = buildDeadlineItems();
+
+  // Scope filter
+  if(_dlScope === 'mine'){
+    items = items.filter(i => i.inPipeline);
+  }
+
+  // Drop past-due noise (keep past-due ONLY for applied items in the pipeline → follow-up nudge)
+  const today = new Date(); today.setHours(0,0,0,0);
+  items = items.filter(i => {
+    if(i.rolling) return true;
+    if(!i.date) return false;
+    if(i.date >= today) return true;
+    return i.inPipeline && i.appStatus === 'applied';
+  });
+
+  // Bucketize (also stamps _days on each dated item)
+  const b = bucketize(items);
+
+  // Timeline (90-day strip)
+  renderDLTimeline(items);
+
+  // Empty state across the board?
+  const totalRows = b.rolling.length + b.week.length + b.month.length + b.next60.length + b.later.length;
+  const bucketsEl = document.getElementById('dl-buckets');
+  if(!bucketsEl) return;
+
+  if(totalRows === 0){
+    bucketsEl.innerHTML = `<div class="empty">${_dlScope === 'mine'
+      ? 'No deadlines tied to your pipeline yet. Add deadlines on the Applications tab, or switch to <strong>All</strong> to see every tracked deadline.'
+      : 'No upcoming deadlines tracked. Add deadline dates on the Programs tab.'}</div>`;
+    return;
+  }
+
+  bucketsEl.innerHTML = [
+    _renderBucket({key:'week',    label:'This week (≤7 days)',         items:b.week,    open:true}),
+    _renderBucket({key:'month',   label:'This month (8–30 days)',      items:b.month,   open:true}),
+    _renderBucket({key:'next60',  label:'Next 60 days (31–60 days)',   items:b.next60,  open:true}),
+    _renderBucket({key:'rolling', label:'Rolling — no fixed deadline', items:b.rolling, open:true}),
+    _renderBucket({key:'later',   label:'Later (60+ days out)',        items:b.later,   open:false})
+  ].join('');
+}
+
+function exportAllDeadlines(){
+  let items = buildDeadlineItems();
+  if(_dlScope === 'mine') items = items.filter(i => i.inPipeline);
+
+  // Bulk export covers only DATED, future items (calendar entries need a date)
+  const today = new Date(); today.setHours(0,0,0,0);
+  const dated = items.filter(i => !i.rolling && i.date && i.date >= today);
+
+  if(dated.length === 0){
+    toast('Nothing dated to export — rolling items don\u2019t have a fixed date.');
+    return;
+  }
+
+  const fmt = d => d.toISOString().replace(/[-:]/g,'').split('.')[0] + 'Z';
+  const now = fmt(new Date());
+  const todayStr = new Date().toISOString().split('T')[0];
+
+  const sanitize = s => String(s||'').replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\r?\n/g,'\\n');
+
+  const events = dated.map((it, idx) => {
+    const dl = new Date(it.deadline);
+    const dateStr = dl.toISOString().split('T')[0].replace(/-/g,'');
+    const uid = `ldpscout-bulk-${Date.now()}-${idx}@ldpscout.app`;
+    const sumName = sanitize(it.name);
+    const sumOrg  = sanitize(it.org);
+    return [
+      'BEGIN:VEVENT',
+      `UID:${uid}`,
+      `DTSTART;VALUE=DATE:${dateStr}`,
+      `DTEND;VALUE=DATE:${dateStr}`,
+      `DTSTAMP:${now}`,
+      `SUMMARY:DEADLINE: ${sumName} (${sumOrg})`,
+      `DESCRIPTION:Application deadline tracked via LDP Scout.`,
+      'BEGIN:VALARM','TRIGGER:-P30D','ACTION:DISPLAY',`DESCRIPTION:30 days until ${sumName} deadline`,'END:VALARM',
+      'BEGIN:VALARM','TRIGGER:-P7D','ACTION:DISPLAY',`DESCRIPTION:7 days until ${sumName} deadline`,'END:VALARM',
+      'BEGIN:VALARM','TRIGGER:-P1D','ACTION:DISPLAY',`DESCRIPTION:Tomorrow: ${sumName} deadline — submit today!`,'END:VALARM',
+      'END:VEVENT'
+    ].join('\r\n');
+  });
+
+  const ics = [
+    'BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//LDP Scout//EN','CALSCALE:GREGORIAN','METHOD:PUBLISH',
+    ...events,
+    'END:VCALENDAR'
+  ].join('\r\n');
+
+  const blob = new Blob([ics], {type:'text/calendar;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `ldp-deadlines-${todayStr}.ics`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  toast(`📅 Exported ${dated.length} deadline${dated.length===1?'':'s'} — open the file to import into your calendar`);
 }
 
 function downloadICS(item, mode='multi'){
@@ -2843,6 +4041,9 @@ async function saveApp(){
   }
   closeM('app');
   renderApplications();
+  // Phase 7: apps[] now reflects the new application — re-render the progress strip
+  // with fresh state (this overrides the stale render done inside saveApplicationToDB).
+  renderProgressStrip();
   toast('Application saved ✓');
 }
 
@@ -2868,6 +4069,11 @@ function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t
 
 // Close modals on outside click
 document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open');}));
+
+// Phase 4: keep the active tour step pinned to its target on viewport resize
+window.addEventListener('resize', () => {
+  if(_tourQueue.length && _tourIdx < _tourQueue.length) tourShow();
+});
 
 // ─── Init ────────────────────────────────────────────────────────
 // Populate freshness badge (topbar + landing)
