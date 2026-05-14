@@ -499,6 +499,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 .spin-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px;gap:14px}
 .spinner{width:36px;height:36px;border:3px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fadeInUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
 .spin-label{font-size:13px;color:var(--text2);font-style:italic;font-family:var(--serif)}
 
 /* MODAL */
@@ -770,8 +771,12 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 .lp-howto-title{font-family:var(--serif);font-size:32px;font-weight:300;text-align:center;margin-bottom:8px;letter-spacing:-.5px}
 .lp-howto-sub{text-align:center;color:var(--text3);font-size:14px;margin-bottom:40px}
 .lp-howto-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
-.lp-howto-step{background:var(--bg);border:1px solid var(--border);border-radius:14px;padding:28px 26px;display:flex;flex-direction:column;gap:8px;min-width:0}
-.lp-howto-num{font-family:var(--serif);font-size:38px;font-weight:300;color:var(--accent);line-height:1;margin-bottom:6px}
+.lp-howto-step{background:var(--bg);border:1px solid var(--border);border-radius:14px;padding:28px 26px;display:flex;flex-direction:column;gap:8px;min-width:0;transition:all .3s;position:relative;overflow:hidden}
+.lp-howto-step:hover{transform:translateY(-4px);box-shadow:0 8px 24px rgba(0,0,0,.1);border-color:var(--accent)}
+.lp-howto-step::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--accent);transform:scaleX(0);transition:transform .3s;transform-origin:left}
+.lp-howto-step:hover::before{transform:scaleX(1)}
+.lp-howto-num{font-family:var(--serif);font-size:38px;font-weight:300;color:var(--accent);line-height:1;margin-bottom:6px;transition:all .3s}
+.lp-howto-step:hover .lp-howto-num{transform:scale(1.1);color:var(--accent2)}
 .lp-howto-step h4{font-size:15px;font-weight:600;margin:0;color:var(--text);line-height:1.35}
 .lp-howto-step p{font-size:13px;color:var(--text2);line-height:1.6;margin:0}
 
@@ -959,8 +964,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
   <div class="lp-hero">
     <div class="lp-hero-left">
       <div class="lp-eyebrow">MBA Leadership Development Programs</div>
-      <div class="lp-title">Your personal<br><em>LDP recruiting</em><br>command centre</div>
-      <div class="lp-sub">Verified MBA-specific Leadership Development Programs across Europe, UAE, and beyond. AI-matched to your CV. Alumni discovery. Deadline tracking — all in one place.</div>
+      <div class="lp-title">Your personal <em>LDP recruiting</em> command centre</div>
+      <div class="lp-sub">Verified MBA-specific Leadership Development Programs across Europe, UAE, and beyond. AI-matched to your résumé. Alumni discovery. Deadline tracking — all in one place.</div>
 
       <div class="lp-edu-hint"><span class="dot"></span> Free for MBA students. Sign in with your school email to access.</div>
 
@@ -1014,10 +1019,13 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
             <div class="lp-founder-sig">Shrey Singhal <span>· ESADE MBA Class of 2026</span></div>
           </div>
         </div>
-        <!-- ESADE logo placeholder — replace innerHTML with <img> after written permission from ESADE careers office -->
-        <div class="lp-school-credit" id="lp-school-credit">
-          <span class="dot"></span>
-          <span>Built by an ESADE MBA student</span>
+        <!-- ESADE branding -->
+        <div class="lp-school-credit" id="lp-school-credit" style="margin-top:24px;">
+          <div style="display:inline-flex;align-items:center;gap:12px;background:var(--bg2);padding:10px 18px;border-radius:12px;border:1px solid var(--border);box-shadow:var(--shadow);">
+            <div style="font-weight:700;font-size:18px;color:var(--accent);font-family:var(--serif);letter-spacing:-0.5px;">ESADE</div>
+            <div style="height:20px;width:1px;background:var(--border2);"></div>
+            <span style="font-size:12px;color:var(--text2);font-weight:500;">MBA Class of 2026</span>
+          </div>
         </div>
       </div>
     </div>
@@ -1099,17 +1107,17 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
       <div class="lp-howto-title">How it works in 3 steps</div>
       <div class="lp-howto-sub">From inbox to interview prep in one afternoon.</div>
       <div class="lp-howto-grid">
-        <div class="lp-howto-step">
+        <div class="lp-howto-step" style="animation:fadeInUp 0.6s ease-out 0.1s both">
           <div class="lp-howto-num">①</div>
           <h4>Sign in with school email</h4>
           <p>One-time 8-digit code — no password, no spam. We verify you&rsquo;re at an active MBA program.</p>
         </div>
-        <div class="lp-howto-step">
+        <div class="lp-howto-step" style="animation:fadeInUp 0.6s ease-out 0.2s both">
           <div class="lp-howto-num">②</div>
           <h4>Upload your CV</h4>
           <p>PDF, DOCX, or plain text. Analysed via a secure proxy — never stored, never shared.</p>
         </div>
-        <div class="lp-howto-step">
+        <div class="lp-howto-step" style="animation:fadeInUp 0.6s ease-out 0.3s both">
           <div class="lp-howto-num">③</div>
           <h4>Get tier-ranked programs + alumni searches</h4>
           <p>48 LDPs sorted Best Fit &rarr; Long Shot, plus pre-built LinkedIn searches and copy-paste connection messages.</p>
