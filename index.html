@@ -9,7 +9,7 @@
 <meta http-equiv="Expires" content="0">
 <title>LDP Scout — MBA Leadership Program Tracker</title>
 <!-- Build version: bumped automatically on each deploy to bust caches -->
-<meta name="build-version" content="2026-05-13-p11">
+<meta name="build-version" content="2026-05-14-p12-supabase-progs">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,300;1,9..144,400&family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -1796,12 +1796,89 @@ function hideLanding(){
   document.getElementById('landing-overlay').classList.remove('open');
 }
 
+// ═══════════════════════════════════════════════════════════════════
+// PHASE 12: SUPABASE PROGRAMS FETCH
+// ═══════════════════════════════════════════════════════════════════
+// Fetches the 48 programs from the Supabase `programs` table on each
+// sign-in, replacing the localStorage-cached or hardcoded DP[] array.
+//
+// Mapping (DB column → DP[] field):
+//   company       → org
+//   program_name  → name
+//   industry      → sector
+//   function      → fn
+//   location      → loc
+//   geo, status, deadline, dlnote, visa, url, tags, notes → same name
+//
+// Fallback order:
+//   1. Supabase fresh (if user is online and DB is reachable)
+//   2. localStorage cache (set by persist() on previous successful fetch)
+//   3. Hardcoded DP[] array (last resort, always present in HTML)
+//
+// Reserved word note: `function` is a JS keyword, so DB field access
+// uses bracket notation: row['function'].
+// ═══════════════════════════════════════════════════════════════════
+async function fetchProgramsFromSupabase() {
+  try {
+    if (!sb) {
+      console.warn('[LDP Scout] Supabase client (sb) not available');
+      return false;
+    }
+
+    const { data, error } = await sb
+      .from('programs')
+      .select('id, company, program_name, industry, function, location, geo, status, deadline, dlnote, visa, url, tags, notes')
+      .order('id', { ascending: true });
+
+    if (error) {
+      console.error('[LDP Scout] Supabase programs fetch error:', error.message);
+      return false;
+    }
+
+    if (!data || data.length === 0) {
+      console.warn('[LDP Scout] No programs returned from Supabase');
+      return false;
+    }
+
+    // Map DB columns → DP[] field names
+    progs = data.map(row => ({
+      id:       row.id,
+      name:     row.program_name || '',
+      org:      row.company || '',
+      geo:      row.geo || '',
+      loc:      row.location || '',
+      fn:       row['function'] || '',  // bracket: 'function' is a JS reserved word
+      sector:   row.industry || '',
+      status:   row.status || '',
+      deadline: row.deadline || '',     // null from DB → '' for code that does `if(p.deadline)`
+      dlnote:   row.dlnote || '',
+      visa:     row.visa === true,
+      tags:     Array.isArray(row.tags) ? row.tags : [],
+      notes:    row.notes || '',
+      url:      row.url || '',
+    }));
+
+    // Refresh the localStorage cache so future page-loads have a fresh fallback
+    try { localStorage.setItem('ldps_progs', JSON.stringify(progs)); } catch(e) {}
+
+    progsLoadedFromDb = true;
+    console.log(`[LDP Scout] ✓ Loaded ${progs.length} programs from Supabase`);
+    return true;
+
+  } catch (e) {
+    console.error('[LDP Scout] Exception in fetchProgramsFromSupabase:', e);
+    return false;
+  }
+}
+
 async function onSignIn(){
   hideLanding();
   // Load profile, applications, resume — all from Supabase
   await loadUserProfile();
   await loadUserApplications();
   await loadUserResume();
+  // Phase 12: refresh programs from Supabase (falls back to localStorage/DP[] if it fails)
+  await fetchProgramsFromSupabase();
   renderPrograms();
   renderApplications();
   // Phase 2: trigger first-run onboarding if neither timestamp is set
@@ -2794,6 +2871,7 @@ document.addEventListener('click', e => {
 // ────────────────────────────────────────────────────────────────
 
 let progs = JSON.parse(localStorage.getItem('ldps_progs')||'null')||JSON.parse(JSON.stringify(DP));
+let progsLoadedFromDb = false;  // Phase 12: tracks if progs was refreshed from Supabase this session
 let alum  = JSON.parse(localStorage.getItem('ldps_alum') ||'null')||JSON.parse(JSON.stringify(DA));
 let apps  = [];                       // loaded from Supabase on sign-in
 // userProfile is declared in the auth section above and populated by loadUserProfile()
