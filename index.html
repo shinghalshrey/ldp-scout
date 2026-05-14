@@ -610,12 +610,6 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 .dl-nudge-warn{background:var(--coral-bg);color:var(--coral);border:1px solid rgba(179,58,26,.18)}
 .dl-nudge-info{background:var(--blue-bg);color:var(--blue);border:1px solid rgba(26,79,168,.18)}
 
-<!-- Add after line 611 in .lp-sub -->
-<div style="display:inline-flex;align-items:center;gap:8px;margin-top:16px;font-size:11px;color:var(--text3)">
-  <span>Built by</span>
-  <strong style="color:var(--accent)">ESADE MBA '26</strong>
-</div>
-
 /* ICS CHOICE MODAL */
 .ics-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:400;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
 .ics-modal-overlay.open{display:flex}
@@ -994,6 +988,23 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
           <input id="lp-email" type="email" placeholder="you@esade.edu" autocomplete="email" onkeydown="if(event.key==='Enter') lpSendOTP()">
           <button onclick="lpSendOTP()" id="lp-signup-btn">Send Code →</button>
         </div>
+        <div style="display:flex;gap:16px;margin-top:8px;align-items:center;">
+          <button onclick="lpShowPasswordStep()" id="lp-use-pw-btn" style="background:none;border:none;color:var(--blue);font-size:12px;cursor:pointer;font-family:var(--sans);text-decoration:underline;text-underline-offset:3px;padding:0;font-weight:500;">Use a password instead →</button>
+        </div>
+      </div>
+
+      <!-- Step 1b: Password input (returning users with a password) -->
+      <div id="lp-step-password" style="display:none;">
+        <div style="font-size:13px;color:var(--text2);margin-bottom:10px;">Sign in with the password for <strong id="lp-pw-email-display"></strong></div>
+        <div class="lp-signup-bar-v2">
+          <input id="lp-pw-input" type="password" placeholder="Your password" autocomplete="current-password" onkeydown="if(event.key==='Enter') lpSignInWithPassword()">
+          <button onclick="lpSignInWithPassword()" id="lp-pw-signin-btn">Sign In →</button>
+        </div>
+        <div style="display:flex;gap:16px;margin-top:8px;align-items:center;flex-wrap:wrap;">
+          <button onclick="lpForgotPassword()" id="lp-forgot-btn" style="background:none;border:none;color:var(--text3);font-size:12px;cursor:pointer;font-family:var(--sans);text-decoration:underline;text-underline-offset:3px;padding:0;">Forgot password?</button>
+          <button onclick="lpBackToEmail()" style="background:none;border:none;color:var(--text3);font-size:12px;cursor:pointer;font-family:var(--sans);text-decoration:underline;text-underline-offset:3px;padding:0;">Use a code instead</button>
+          <button onclick="lpBackToEmail()" style="background:none;border:none;color:var(--text3);font-size:12px;cursor:pointer;font-family:var(--sans);text-decoration:underline;text-underline-offset:3px;padding:0;">Use a different email</button>
+        </div>
       </div>
 
       <!-- Step 2: OTP input (hidden until code is sent) -->
@@ -1006,6 +1017,18 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
         <div style="display:flex;gap:16px;margin-top:8px;align-items:center;">
           <button onclick="lpResendOTP()" id="lp-resend-btn" style="background:none;border:none;color:var(--text3);font-size:12px;cursor:pointer;font-family:var(--sans);text-decoration:underline;text-underline-offset:3px;padding:0;">Resend code</button>
           <button onclick="lpBackToEmail()" style="background:none;border:none;color:var(--text3);font-size:12px;cursor:pointer;font-family:var(--sans);text-decoration:underline;text-underline-offset:3px;padding:0;">Use a different email</button>
+        </div>
+      </div>
+
+      <!-- Step 3: Set/reset password (post-OTP for new users, OR via reset email link) -->
+      <div id="lp-step-set-password" style="display:none;">
+        <div style="font-size:13px;color:var(--text2);margin-bottom:10px;" id="lp-set-pw-headline">Set a password so you can sign in faster next time</div>
+        <div class="lp-signup-bar-v2">
+          <input id="lp-new-pw-input" type="password" placeholder="At least 8 characters" autocomplete="new-password" minlength="8" onkeydown="if(event.key==='Enter') lpSetPassword()">
+          <button onclick="lpSetPassword()" id="lp-set-pw-btn">Save Password →</button>
+        </div>
+        <div style="display:flex;gap:16px;margin-top:8px;align-items:center;">
+          <button onclick="lpSkipPassword()" id="lp-skip-pw-btn" style="background:none;border:none;color:var(--text3);font-size:12px;cursor:pointer;font-family:var(--sans);text-decoration:underline;text-underline-offset:3px;padding:0;">Skip — I'll keep using codes</button>
         </div>
       </div>
 
@@ -1934,6 +1957,14 @@ async function initAuth() {
     const wasSignedIn = !!currentUser;
     currentUser = session?.user ?? null;
     updateAuthUI();
+    // Phase 14: user arrived via password-reset email link — show set-new-password form
+    // instead of dropping them straight into the app (Supabase signs them in temporarily
+    // so updateUser({password}) works in this same context).
+    if(event === 'PASSWORD_RECOVERY'){
+      showLanding();
+      lpShowSetPasswordStep('reset');
+      return;
+    }
     if(currentUser && !wasSignedIn){
       // Just signed in — hide landing, load data, show app
       // Clean URL hash if it still has tokens
@@ -2063,13 +2094,59 @@ function onSignOut(){
   resumeText = '';
   resumeLastScanAt = null;   // Phase 7
   showLanding();
-  // Clear UI
-  document.getElementById('app-kanban').innerHTML='';
-  document.getElementById('ai-results').innerHTML='';
+  // Clear UI (null-guard — these elements may not exist before sign-in)
+  const kb = document.getElementById('app-kanban');
+  if(kb) kb.innerHTML='';
+  const aiResults = document.getElementById('aifit-results-container');
+  if(aiResults) aiResults.innerHTML='';
+  // Phase 13: also reset the AI Fit Scan view back to pre-scan state
+  const preView = document.getElementById('aifit-view-pre');
+  const postView = document.getElementById('aifit-view-post');
+  if(preView) preView.style.display = 'block';
+  if(postView) postView.style.display = 'none';
+  // Reset the upload box too so a returning visitor starts fresh
+  const fileDisplay = document.getElementById('aifit-file-display');
+  const emptyDisplay = document.getElementById('aifit-empty-display');
+  const uploadBox = document.getElementById('aifit-upload-box');
+  const fileInput = document.getElementById('resume-file-input');
+  const analyzeBtn = document.getElementById('analyze-btn');
+  if(fileDisplay) fileDisplay.style.display = 'none';
+  if(emptyDisplay) emptyDisplay.style.display = 'block';
+  if(uploadBox) uploadBox.classList.remove('has-file');
+  if(fileInput) fileInput.value = '';
+  if(analyzeBtn){ analyzeBtn.disabled = true; analyzeBtn.textContent = '✦ Analyse My Fit'; }
   // Phase 7: hide progress strip + clear AI Fit attention dot on sign-out
   const ps = document.getElementById('progress-strip');
   if(ps) ps.style.display = 'none';
   document.querySelectorAll('.nav-tab.needs-attention').forEach(t => t.classList.remove('needs-attention'));
+  // Clear landing-page auth state so the previous user's OTP isn't sitting there
+  const otpInput = document.getElementById('lp-otp-input');
+  const emailInput = document.getElementById('lp-email');
+  const otpStep = document.getElementById('lp-step-otp');
+  const emailStep = document.getElementById('lp-step-email');
+  const signupMsg = document.getElementById('lp-signup-msg');
+  const verifyBtn = document.getElementById('lp-verify-btn');
+  const signupBtn = document.getElementById('lp-signup-btn');
+  if(otpInput) otpInput.value = '';
+  if(emailInput) emailInput.value = '';
+  if(otpStep) otpStep.style.display = 'none';
+  if(emailStep) emailStep.style.display = 'block';
+  if(signupMsg){ signupMsg.style.display = 'none'; signupMsg.textContent = ''; }
+  if(verifyBtn){ verifyBtn.disabled = false; verifyBtn.textContent = 'Verify →'; }
+  if(signupBtn){ signupBtn.disabled = false; signupBtn.textContent = 'Send Code →'; }
+  // Phase 14: also reset the password + set-password steps
+  const pwStep = document.getElementById('lp-step-password');
+  const setPwStep = document.getElementById('lp-step-set-password');
+  const pwInput = document.getElementById('lp-pw-input');
+  const newPwInput = document.getElementById('lp-new-pw-input');
+  const pwSigninBtn = document.getElementById('lp-pw-signin-btn');
+  const setPwBtn = document.getElementById('lp-set-pw-btn');
+  if(pwStep) pwStep.style.display = 'none';
+  if(setPwStep) setPwStep.style.display = 'none';
+  if(pwInput) pwInput.value = '';
+  if(newPwInput) newPwInput.value = '';
+  if(pwSigninBtn){ pwSigninBtn.disabled = false; pwSigninBtn.textContent = 'Sign In →'; }
+  if(setPwBtn){ setPwBtn.disabled = false; setPwBtn.textContent = 'Save Password →'; }
 }
 
 function updateAuthUI() {
@@ -2254,12 +2331,215 @@ async function lpResendOTP(){
   resendBtn.disabled = false;
 }
 
+// ─── PASSWORD AUTH (Phase 14) ────────────────────────────────────
+// Reuses Supabase Auth's native email+password — no schema changes,
+// same auth.users table as the OTP flow.
+
+function lpShowPasswordStep(){
+  const emailInput = document.getElementById('lp-email');
+  const email = (emailInput.value || '').trim().toLowerCase();
+  const msg = document.getElementById('lp-signup-msg');
+  msg.style.display = 'none';
+  msg.classList.remove('ok','err');
+
+  // Require a valid-looking email first — same validator the OTP path uses
+  if(!email || !isValidEduEmail(email)){
+    msg.innerHTML = '⚠️ Please enter your university email first (e.g. you@esade.edu).';
+    msg.classList.add('err');
+    msg.style.display = 'block';
+    emailInput.focus();
+    return;
+  }
+
+  document.getElementById('lp-pw-email-display').textContent = email;
+  document.getElementById('lp-step-email').style.display = 'none';
+  document.getElementById('lp-step-otp').style.display = 'none';
+  document.getElementById('lp-step-set-password').style.display = 'none';
+  document.getElementById('lp-step-password').style.display = 'block';
+  setTimeout(()=>{ const el=document.getElementById('lp-pw-input'); if(el) el.focus(); }, 100);
+}
+
+async function lpSignInWithPassword(){
+  const email = (document.getElementById('lp-email').value || '').trim().toLowerCase();
+  const password = document.getElementById('lp-pw-input').value || '';
+  const btn = document.getElementById('lp-pw-signin-btn');
+  const msg = document.getElementById('lp-signup-msg');
+  msg.style.display = 'none';
+  msg.classList.remove('ok','err');
+
+  if(!password){
+    msg.textContent = 'Please enter your password.';
+    msg.classList.add('err');
+    msg.style.display = 'block';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Signing in...';
+
+  try {
+    const { error } = await sb.auth.signInWithPassword({ email, password });
+    if(error){
+      // Supabase returns generic "Invalid login credentials" for both wrong-pw and no-account.
+      // Surface a useful message + offer the OTP fallback.
+      msg.innerHTML = '⚠️ ' + (error.message || 'Could not sign in.') +
+        ' If you signed up with a code, you may not have set a password yet — try the code option or use <strong>Forgot password</strong>.';
+      msg.classList.add('err');
+      msg.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Sign In →';
+      return;
+    }
+    // Success — Supabase auth state listener will handle the rest (signedIn handler)
+    msg.innerHTML = '✓ <strong>Signed in!</strong> Loading your dashboard...';
+    msg.classList.add('ok');
+    msg.style.display = 'block';
+  } catch(err){
+    msg.textContent = err.message || 'Unexpected error. Please try again.';
+    msg.classList.add('err');
+    msg.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = 'Sign In →';
+  }
+}
+
+async function lpForgotPassword(){
+  const email = (document.getElementById('lp-email').value || '').trim().toLowerCase();
+  const btn = document.getElementById('lp-forgot-btn');
+  const msg = document.getElementById('lp-signup-msg');
+  msg.style.display = 'none';
+  msg.classList.remove('ok','err');
+
+  if(!email || !isValidEduEmail(email)){
+    msg.innerHTML = '⚠️ Enter your university email above first.';
+    msg.classList.add('err');
+    msg.style.display = 'block';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Sending...';
+
+  try {
+    // redirectTo points back to this app — Supabase appends an access_token in the URL hash
+    const redirectTo = window.location.origin + window.location.pathname + '?reset=1';
+    const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo });
+    if(error){
+      msg.textContent = error.message || 'Could not send reset email. Please try again.';
+      msg.classList.add('err');
+      msg.style.display = 'block';
+    } else {
+      msg.innerHTML = '✓ <strong>Reset link sent</strong> to ' + email + '. Open it on this device and you\'ll land back here to set a new password.';
+      msg.classList.add('ok');
+      msg.style.display = 'block';
+    }
+  } catch(err){
+    msg.textContent = err.message || 'Unexpected error.';
+    msg.classList.add('err');
+    msg.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Forgot password?';
+  }
+}
+
+// Called after a successful OTP verify for new users (no password yet)
+// and after the user clicks a reset-password email link.
+function lpShowSetPasswordStep(mode){
+  // mode: 'after_otp' (optional) or 'reset' (required, from email link)
+  const headline = document.getElementById('lp-set-pw-headline');
+  const skipBtn = document.getElementById('lp-skip-pw-btn');
+  if(mode === 'reset'){
+    headline.textContent = 'Set a new password';
+    skipBtn.style.display = 'none';
+  } else {
+    headline.textContent = 'Set a password so you can sign in faster next time (optional)';
+    skipBtn.style.display = '';
+  }
+  document.getElementById('lp-step-email').style.display = 'none';
+  document.getElementById('lp-step-otp').style.display = 'none';
+  document.getElementById('lp-step-password').style.display = 'none';
+  document.getElementById('lp-step-set-password').style.display = 'block';
+  setTimeout(()=>{ const el=document.getElementById('lp-new-pw-input'); if(el) el.focus(); }, 100);
+}
+
+async function lpSetPassword(){
+  const newPw = document.getElementById('lp-new-pw-input').value || '';
+  const btn = document.getElementById('lp-set-pw-btn');
+  const msg = document.getElementById('lp-signup-msg');
+  msg.style.display = 'none';
+  msg.classList.remove('ok','err');
+
+  if(newPw.length < 8){
+    msg.textContent = 'Password must be at least 8 characters.';
+    msg.classList.add('err');
+    msg.style.display = 'block';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+
+  try {
+    // Works for both "logged in via OTP wanting to add a password" and
+    // "arrived from reset email" — Supabase consumes the recovery token automatically.
+    const { error } = await sb.auth.updateUser({ password: newPw });
+    if(error){
+      msg.textContent = error.message || 'Could not save password.';
+      msg.classList.add('err');
+      msg.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Save Password →';
+      return;
+    }
+    msg.innerHTML = '✓ <strong>Password saved.</strong> You can sign in with email + password next time.';
+    msg.classList.add('ok');
+    msg.style.display = 'block';
+    // Clean up the field
+    document.getElementById('lp-new-pw-input').value = '';
+    // If we got here via a reset link, send the user into the app now
+    setTimeout(()=>{
+      document.getElementById('lp-step-set-password').style.display = 'none';
+      document.getElementById('lp-step-email').style.display = 'block';
+      // If a session exists (post-OTP or post-reset), the auth listener already routed them in.
+    }, 1500);
+  } catch(err){
+    msg.textContent = err.message || 'Unexpected error.';
+    msg.classList.add('err');
+    msg.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = 'Save Password →';
+  }
+}
+
+function lpSkipPassword(){
+  document.getElementById('lp-step-set-password').style.display = 'none';
+  document.getElementById('lp-step-email').style.display = 'block';
+  // If already authenticated (post-OTP path), the existing onSignIn handler
+  // will have moved them into the dashboard already; this is a no-op for UI.
+}
+
+// On page load, check if Supabase dropped us here via a password-reset link.
+// The URL will contain ?reset=1 (set as our redirectTo) and the access token
+// arrives in the URL hash as ?type=recovery — Supabase's client picks it up
+// automatically and emits a 'PASSWORD_RECOVERY' auth event.
+function lpHandleResetRedirect(){
+  if(!window.location.search.includes('reset=1') &&
+     !window.location.hash.includes('type=recovery')) return;
+  // The auth state listener will trigger lpShowSetPasswordStep('reset') below;
+  // here we just make sure the landing page is showing so the form is visible.
+  showLanding();
+}
+
 function lpBackToEmail(){
   _otpEmail = '';
   document.getElementById('lp-step-email').style.display = 'block';
   document.getElementById('lp-step-otp').style.display = 'none';
+  document.getElementById('lp-step-password').style.display = 'none';
+  document.getElementById('lp-step-set-password').style.display = 'none';
   document.getElementById('lp-signup-msg').style.display = 'none';
   document.getElementById('lp-otp-input').value = '';
+  const pw = document.getElementById('lp-pw-input'); if(pw) pw.value = '';
   document.getElementById('lp-email').focus();
 }
 
@@ -2560,9 +2840,9 @@ const TOURS = {
     {target:'.prow:first-child',   title:'Open program details',  body:'Click any row to open full details — deadline, location, fit reasoning. The program name links straight to the official careers page.'}
   ],
   aifit: [
-    {target:'#upload-zone',  title:'Upload your résumé', body:'Drop in a PDF, DOCX, or plain-text file (max 5MB). Processed via a secure proxy — never stored, never shared.'},
+    {target:'#aifit-upload-box',  title:'Upload your résumé', body:'Drop in a PDF, DOCX, or plain-text file (max 5MB). Processed via a secure proxy — never stored, never shared.'},
     {target:'#analyze-btn',  title:'Run the analysis',   body:'Two-step scan: tier classification first, then a gap analysis across 6 dimensions per program.'},
-    {target:'#ai-results',   title:'Tier-ranked results',body:'Results land here and sync back into the Fit column on the Programs tab. Re-run anytime with an updated résumé.'}
+    {target:'#aifit-results-container',   title:'Tier-ranked results',body:'Results land here and sync back into the Fit column on the Programs tab. Re-run anytime with an updated résumé.'}
   ],
   alumni: [
     {target:'#alumni-school-wrap',                 title:'Pick your school', body:'We use this to scope LinkedIn searches to your own alumni network — that\u2019s the warm-intro lever.'},
@@ -2762,14 +3042,18 @@ async function loadUserResume(){
     if(data){
       resumeText = data.raw_text || '';
       resumeLastScanAt = data.last_scan_at || null;   // Phase 7
-      // Surface filename in UI if present
+      // Surface saved resume in the Phase 13 AI Fit Scan UI
       if(data.file_name){
-        const nd = document.getElementById('file-name-display');
-        if(nd){ nd.textContent = '✓ Saved: ' + data.file_name; nd.style.display = 'block'; }
-        const uz = document.getElementById('upload-zone');
-        if(uz) uz.classList.add('has-file');
-        const btn = document.getElementById('analyze-btn');
-        if(btn) btn.disabled = false;
+        const fileDisplay  = document.getElementById('aifit-file-display');
+        const emptyDisplay = document.getElementById('aifit-empty-display');
+        const fileInfo     = document.getElementById('aifit-file-info');
+        const uploadBox    = document.getElementById('aifit-upload-box');
+        const btn          = document.getElementById('analyze-btn');
+        if(fileInfo) fileInfo.textContent = `${data.file_name} · Saved`;
+        if(fileDisplay)  fileDisplay.style.display = 'block';
+        if(emptyDisplay) emptyDisplay.style.display = 'none';
+        if(uploadBox)    uploadBox.classList.add('has-file');
+        if(btn)          btn.disabled = false;
       }
     } else {
       resumeText = '';
@@ -4545,7 +4829,10 @@ async function runAIAnalysis(){
 
   const btn=document.getElementById('analyze-btn');
   btn.disabled=true;btn.textContent='Analysing...';
-  document.getElementById('ai-results').innerHTML=`<div class="spin-wrap"><div class="spinner"></div><div class="spin-label">Step 1 of 2: Matching your profile against ${progs.length} programs...</div></div>`;
+  // Phase 13: switch to post-scan view so the spinner has a visible container
+  document.getElementById('aifit-view-pre').style.display = 'none';
+  document.getElementById('aifit-view-post').style.display = 'block';
+  document.getElementById('aifit-results-container').innerHTML=`<div class="spin-wrap"><div class="spinner"></div><div class="spin-label">Step 1 of 2: Matching your profile against ${progs.length} programs...</div></div>`;
 
   // Cap resume at 4000 chars to stay within token budget
   const resumeSnippet = resumeText.substring(0, 4000);
@@ -4594,7 +4881,7 @@ Schema:
     const tierParsed = extractJSON(tierRaw, 'tier classification');
 
     // ─── CALL 2: Gap analysis + suggestions ───────────────────────
-    document.getElementById('ai-results').innerHTML=`<div class="spin-wrap"><div class="spinner"></div><div class="spin-label">Step 2 of 2: Generating your gap analysis + coaching suggestions...</div></div>`;
+    document.getElementById('aifit-results-container').innerHTML=`<div class="spin-wrap"><div class="spinner"></div><div class="spin-label">Step 2 of 2: Generating your gap analysis + coaching suggestions...</div></div>`;
 
     // Build a compact summary of which programs landed where, for context
     const tierContext = Object.entries(tierParsed.tiers||{})
@@ -4652,14 +4939,16 @@ Schema:
     if(currentUser) saveScanToHistory(merged);
 
   } catch(err){
-    document.getElementById('ai-results').innerHTML=`<div class="empty">
+    document.getElementById('aifit-results-container').innerHTML=`<div class="empty">
       <div style="font-size:24px;margin-bottom:12px">⚠️</div>
       <div style="font-weight:500;margin-bottom:6px">${err.message}</div>
       <div style="font-size:11px;color:var(--text3);margin-top:8px">If this keeps happening, try refreshing the page.</div>
       <button onclick="runAIAnalysis()" style="margin-top:12px;padding:8px 16px;background:var(--accent);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:12px">Try Again</button>
     </div>`;
+  } finally {
+    // Defensive: always reset button state, even if rendering above throws
+    btn.disabled=false;btn.textContent='✦ Re-analyse';
   }
-  btn.disabled=false;btn.textContent='✦ Re-analyse';
 }
 
 // Helper: robust JSON extraction (strips markdown fences + finds {…} envelope)
@@ -4683,7 +4972,9 @@ function extractJSON(raw, label){
 }
 
 function showApiKeyPrompt(){
-  document.getElementById('ai-results').innerHTML=`
+  document.getElementById('aifit-view-pre').style.display = 'none';
+  document.getElementById('aifit-view-post').style.display = 'block';
+  document.getElementById('aifit-results-container').innerHTML=`
     <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);padding:28px;max-width:520px;margin:0 auto;text-align:center;box-shadow:var(--shadow-md)">
       <div style="font-size:28px;margin-bottom:12px">🔑</div>
       <div style="font-family:var(--serif);font-size:18px;margin-bottom:8px">API Key Required</div>
@@ -4929,11 +5220,14 @@ function toggleAIFitTier(tierKey){
   }
 }
 
-// Re-scan button
+// Re-scan button — swap back to pre-scan view, reflect actual upload state
 function rescanAIFit(){
   document.getElementById('aifit-view-post').style.display = 'none';
   document.getElementById('aifit-view-pre').style.display = 'block';
-  document.getElementById('analyze-btn').textContent = '✦ Analyse My Fit';
+  const btn = document.getElementById('analyze-btn');
+  btn.textContent = '✦ Analyse My Fit';
+  // Only enable if there's a resume actually in memory; otherwise force-disable
+  btn.disabled = !(resumeText && resumeText.trim().length >= 200);
 }
 
 // ═══════════════ MODALS ═══════════════
