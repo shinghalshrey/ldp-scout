@@ -9,7 +9,7 @@
 <meta http-equiv="Expires" content="0">
 <title>LDP Scout — MBA Leadership Program Tracker</title>
 <!-- Build version: bumped automatically on each deploy to bust caches -->
-<meta name="build-version" content="2026-05-14-p12-supabase-progs">
+<meta name="build-version" content="2026-05-14-p13-ai-scan-redesign">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,300;1,9..144,400&family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -373,6 +373,111 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 .profile-box-label{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px}
 .profile-box-text{font-size:14px;line-height:1.65;color:var(--text);font-family:var(--serif);font-style:italic}
 
+/* ═══════════════════════════════════════════════════════════════
+   AI FIT SCAN REDESIGN (Phase 13) — Lovable Translation
+   ════════════════════════════════════════════════════════════════ */
+.aifit-pre-scan{padding:48px 24px 80px;max-width:768px;margin:0 auto}
+.aifit-header{text-align:center;margin-bottom:40px}
+.aifit-eyebrow{font-size:10px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--text3);margin-bottom:16px;display:block}
+.aifit-title{font-family:var(--serif);font-style:italic;font-size:36px;line-height:1.2;margin-bottom:20px;max-width:22ch;margin-left:auto;margin-right:auto}
+.aifit-subtitle{color:var(--text2);font-size:14px;line-height:1.7;max-width:52ch;margin:0 auto}
+.aifit-upload-container{background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:8px;margin-bottom:24px}
+.aifit-upload-box{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:56px 40px;text-align:center;cursor:pointer;border-style:dashed;border-width:2px;border-color:var(--border2);transition:all .15s;position:relative}
+.aifit-upload-box:hover{border-color:var(--accent);border-style:dashed}
+.aifit-upload-box.has-file{border-style:solid;border-color:var(--accent)}
+.aifit-upload-box input[type="file"]{position:absolute;inset:0;opacity:0;cursor:pointer}
+.aifit-file-badge{display:inline-flex;align-items:center;gap:12px;background:var(--bg3);padding:8px 16px;border-radius:20px;border:1px solid var(--border);margin-bottom:16px}
+.aifit-file-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);flex-shrink:0}
+.aifit-file-info{font-size:13px;font-weight:500;color:var(--text)}
+.aifit-file-remove{font-size:12px;color:var(--text3);cursor:pointer;margin-left:8px;transition:color .15s}
+.aifit-file-remove:hover{color:var(--text)}
+.aifit-upload-prompt{font-size:14px;font-weight:500;color:var(--text);margin-bottom:4px}
+.aifit-upload-hint{font-size:12px;color:var(--text3)}
+.aifit-upload-icon{width:40px;height:40px;border-radius:50%;background:var(--bg3);border:1px solid var(--border);margin:0 auto 16px}
+.aifit-cta-wrap{display:flex;justify-content:center;margin-bottom:48px}
+.aifit-analyze-btn{display:inline-flex;align-items:center;gap:8px;background:var(--accent);color:#fff;padding:12px 28px;border-radius:24px;font-size:13px;font-weight:600;border:none;cursor:pointer;font-family:var(--sans);transition:all .15s;box-shadow:0 2px 8px rgba(29,106,69,.2)}
+.aifit-analyze-btn:hover:not(:disabled){transform:scale(1.02);box-shadow:0 4px 12px rgba(29,106,69,.3)}
+.aifit-analyze-btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.aifit-how-it-works{display:grid;grid-template-columns:repeat(3,1fr);gap:32px;padding:32px 0;border-top:1px solid var(--border)}
+.aifit-step{display:flex;flex-direction:column;gap:8px}
+.aifit-step-num{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.08em}
+.aifit-step-text{font-size:13px;color:var(--text2);line-height:1.6}
+.aifit-privacy{text-align:center;margin-top:24px}
+.aifit-privacy-text{font-size:11px;color:var(--text3);max-width:60ch;margin:0 auto;line-height:1.6}
+.aifit-post-scan{padding:48px 0;background:var(--bg3);min-height:100vh}
+.aifit-post-container{max-width:1200px;margin:0 auto;padding:0 24px}
+.aifit-summary-strip{position:sticky;top:16px;z-index:40;background:linear-gradient(135deg,#1d6a45 0%,#0f4530 60%,#0a2e1f 100%);color:#fff;border-radius:12px;padding:16px 20px;box-shadow:0 8px 24px rgba(0,0,0,.15);display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:40px}
+.aifit-summary-left{display:flex;align-items:center;gap:20px;overflow-x:auto}
+.aifit-summary-total{font-size:11px;font-weight:500;color:rgba(255,255,255,.6);white-space:nowrap}
+.aifit-summary-tiers{display:flex;gap:16px;font-size:11px;font-weight:500;white-space:nowrap}
+.aifit-summary-tier-best{color:#6ee7b7}.aifit-summary-tier-strong{color:#7dd3fc}.aifit-summary-tier-achievable{color:rgba(255,255,255,.7)}.aifit-summary-tier-long{color:rgba(255,255,255,.5)}.aifit-summary-tier-not{color:rgba(255,255,255,.4)}
+.aifit-summary-right{display:flex;align-items:center;gap:12px}
+.aifit-summary-date{font-size:10px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.5)}
+.aifit-rescan-btn{font-size:11px;font-weight:600;background:rgba(255,255,255,.1);color:#fff;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;transition:background .15s}
+.aifit-rescan-btn:hover{background:rgba(255,255,255,.2)}
+.aifit-tier-section{margin-bottom:40px}
+.aifit-tier-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border2);cursor:pointer;user-select:none}
+.aifit-tier-header-left{display:flex;align-items:baseline;gap:12px}
+.aifit-tier-title{font-family:var(--serif);font-style:italic;font-size:20px;font-weight:400}
+.aifit-tier-count{font-size:12px;color:var(--text3)}
+.aifit-tier-header-right{display:flex;align-items:center;gap:12px}
+.aifit-tier-badge{font-size:10px;font-weight:700;padding:4px 8px;border-radius:4px;text-transform:uppercase;letter-spacing:.05em}
+.aifit-tier-badge-best{background:var(--accent-bg);color:var(--accent)}.aifit-tier-badge-strong{background:var(--blue-bg);color:var(--blue)}.aifit-tier-badge-achievable{background:var(--bg4);color:var(--text2)}.aifit-tier-badge-long{background:var(--bg3);color:var(--text3)}.aifit-tier-badge-not{background:var(--bg3);color:var(--text3)}
+.aifit-tier-arrow{font-size:13px;color:var(--text3);transition:transform .2s}
+.aifit-tier-arrow.open{transform:rotate(180deg)}
+.aifit-tier-cards{display:flex;flex-direction:column;gap:1px;border-radius:12px;overflow:hidden;border:1px solid var(--border)}
+.aifit-program-card{background:var(--bg2);padding:16px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;transition:background .15s}
+.aifit-program-card:hover{background:var(--bg3)}
+.aifit-program-card-left{display:flex;align-items:center;gap:16px;min-width:0;flex:1}
+.aifit-program-initial{width:40px;height:40px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;border:1px solid var(--border);flex-shrink:0;background:var(--bg3);color:var(--text)}
+.aifit-program-initial.special{background:var(--accent);color:#fff;font-family:var(--serif)}
+.aifit-program-info{min-width:0}
+.aifit-program-name{font-size:13px;font-weight:600;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.aifit-program-reason{font-size:12px;color:var(--text2);line-height:1.5}
+.aifit-program-card-right{display:flex;align-items:center;gap:12px;margin-left:auto}
+.aifit-program-tags{display:flex;gap:4px;flex-wrap:wrap}
+.aifit-program-tag{font-size:10px;font-weight:500;padding:4px 8px;border-radius:4px;background:var(--bg3);color:var(--text2)}
+.aifit-program-save-btn{font-size:12px;font-weight:500;background:var(--text);color:var(--bg2);padding:6px 12px;border-radius:6px;border:none;cursor:pointer;transition:all .15s;opacity:0;white-space:nowrap}
+.aifit-program-card:hover .aifit-program-save-btn{opacity:1}
+.aifit-program-save-btn:hover{transform:scale(1.05)}
+.aifit-gap-panel{background:linear-gradient(135deg,#1d6a45 0%,#0f4530 60%,#0a2e1f 100%);border-radius:16px;padding:32px;color:#fff;margin-bottom:40px}
+.aifit-gap-header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:24px}
+.aifit-gap-title{font-family:var(--serif);font-style:italic;font-size:24px;font-weight:400}
+.aifit-gap-count{font-size:10px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.5)}
+.aifit-gap-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
+.aifit-gap-card{padding:16px;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1)}
+.aifit-gap-card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.aifit-gap-label{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.5)}
+.aifit-gap-rating{font-size:12px;font-weight:600}
+.aifit-gap-rating-strong{color:#6ee7b7}.aifit-gap-rating-medium{color:#fbbf24}.aifit-gap-rating-weak{color:#fca5a5}
+.aifit-gap-tip{font-size:12px;color:rgba(255,255,255,.7);line-height:1.6}
+.aifit-coaching-section{padding-bottom:48px}
+.aifit-coaching-header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:20px}
+.aifit-coaching-title{font-family:var(--serif);font-style:italic;font-size:24px;font-weight:400}
+.aifit-coaching-count{font-size:10px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.08em;color:var(--text3)}
+.aifit-coaching-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
+.aifit-coaching-card{background:var(--bg2);padding:20px;border-radius:12px;border:1px solid var(--border);box-shadow:var(--shadow);display:flex;flex-direction:column;justify-content:space-between}
+.aifit-coaching-priority{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.aifit-priority-dot{width:6px;height:6px;border-radius:50%}
+.aifit-priority-dot-high{background:var(--coral)}.aifit-priority-dot-medium{background:var(--amber)}.aifit-priority-dot-low{background:var(--text3)}
+.aifit-priority-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3)}
+.aifit-coaching-card-title{font-size:14px;font-weight:600;margin-bottom:8px;line-height:1.4}
+.aifit-coaching-card-body{font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:16px}
+.aifit-coaching-helps{display:flex;gap:8px;flex-wrap:wrap}
+.aifit-coaching-helps-tag{font-size:9px;font-weight:500;padding:4px 8px;border-radius:4px;border:1px solid}
+.aifit-coaching-helps-tag-best{background:var(--accent-bg);color:var(--accent);border-color:rgba(29,106,69,.2)}
+.aifit-coaching-helps-tag-strong{background:var(--blue-bg);color:var(--blue);border-color:rgba(26,79,168,.2)}
+.aifit-coaching-helps-tag-achievable{background:var(--bg3);color:var(--text2);border-color:var(--border2)}
+@media (max-width:768px){
+.aifit-how-it-works{grid-template-columns:1fr;gap:24px}
+.aifit-gap-grid{grid-template-columns:1fr}
+.aifit-coaching-grid{grid-template-columns:1fr}
+.aifit-program-card{flex-direction:column;align-items:flex-start}
+.aifit-program-tags{display:none}
+.aifit-program-save-btn{opacity:1}
+.aifit-summary-strip{flex-direction:column;align-items:flex-start}
+}
+
 /* PAYWALL */
 
 
@@ -503,6 +608,12 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 .dl-nudge{display:inline-block;font-size:10px;padding:3px 8px;border-radius:4px;margin-top:5px;font-weight:500;line-height:1.4}
 .dl-nudge-warn{background:var(--coral-bg);color:var(--coral);border:1px solid rgba(179,58,26,.18)}
 .dl-nudge-info{background:var(--blue-bg);color:var(--blue);border:1px solid rgba(26,79,168,.18)}
+
+<!-- Add after line 611 in .lp-sub -->
+<div style="display:inline-flex;align-items:center;gap:8px;margin-top:16px;font-size:11px;color:var(--text3)">
+  <span>Built by</span>
+  <strong style="color:var(--accent)">ESADE MBA '26</strong>
+</div>
 
 /* ICS CHOICE MODAL */
 .ics-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:400;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
@@ -1298,37 +1409,66 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 
 <!-- AI FIT PAGE -->
 <div class="page" id="page-aifit">
-  <div class="info-card" data-hint-key="aifit_v1">
-    <button class="info-card-close" onclick="dismissInfoCard('aifit_v1')" aria-label="Dismiss tip">×</button>
-    <strong>Get tier-ranked program fit</strong><br>
-    Two-step scan: tier classification, then gap analysis across 6 dimensions.<br>
-    <strong style="color:var(--text)">① Upload your CV</strong> · <strong style="color:var(--text)">② Hit Analyse</strong> · <strong style="color:var(--text)">③ Results sync back to Programs Fit column</strong>
-    <a class="info-card-tour" onclick="tourStart('aifit')">Tour this page →</a>
+  <!-- AI Fit Scan Page — Phase 13 Redesign -->
+  <div id="aifit-view-pre" class="aifit-pre-scan">
+    <header class="aifit-header">
+      <span class="aifit-eyebrow">LDP SCOUT · AI FIT SCAN</span>
+      <h1 class="aifit-title">Match your resume to 48 MBA Leadership Development Programs</h1>
+      <p class="aifit-subtitle">Get a tier-ranked fit analysis and gap assessment based on your professional background in seconds.</p>
+    </header>
+
+    <div class="aifit-upload-container">
+      <div class="aifit-upload-box" id="aifit-upload-box">
+        <input type="file" accept=".pdf,.txt,.doc,.docx" onchange="handleFileUpload(event)" id="resume-file-input">
+        <div id="aifit-file-display" style="display:none">
+          <div class="aifit-file-badge">
+            <span class="aifit-file-dot"></span>
+            <span class="aifit-file-info" id="aifit-file-info"></span>
+            <span class="aifit-file-remove" onclick="clearAIFitFile(event)">Remove</span>
+          </div>
+          <p class="aifit-upload-hint">Resume detected and ready for processing.</p>
+        </div>
+        <div id="aifit-empty-display">
+          <div class="aifit-upload-icon"></div>
+          <p class="aifit-upload-prompt">Drop your resume here or click to browse</p>
+          <p class="aifit-upload-hint">PDF, DOCX, or plain text · Max 5 MB</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="aifit-cta-wrap">
+      <button class="aifit-analyze-btn" id="analyze-btn" onclick="runAIAnalysis()" disabled>
+        <span>✦</span> Analyse My Fit
+      </button>
+    </div>
+
+    <div class="aifit-how-it-works">
+      <div class="aifit-step">
+        <span class="aifit-step-num">01. UPLOAD</span>
+        <p class="aifit-step-text">Your resume is parsed via secure private proxy.</p>
+      </div>
+      <div class="aifit-step">
+        <span class="aifit-step-num">02. MAP</span>
+        <p class="aifit-step-text">AI evaluates your profile against 48 active LDPs.</p>
+      </div>
+      <div class="aifit-step">
+        <span class="aifit-step-num">03. STRATEGIZE</span>
+        <p class="aifit-step-text">Review gap analysis and personalized coaching.</p>
+      </div>
+    </div>
+
+    <footer class="aifit-privacy">
+      <p class="aifit-privacy-text">Your resume is processed via secure proxy, never stored, and never shared.</p>
+    </footer>
   </div>
 
-  <div class="ai-hero">
-    <h2>AI Resume Fit Scanner<span class="info-card-reopen" data-hint-key="aifit_v1" onclick="reopenInfoCard('aifit_v1')" title="Show page tips">?</span></h2>
-    <p>Upload your résumé and get an instant tier-ranked fit analysis across all tracked programs — with specific reasoning per program and structured resume coaching.</p>
-    <div class="ai-steps">
-      <div class="ai-step"><div class="ai-step-num">1</div>Upload resume (PDF, DOCX, or text)</div>
-      <div class="ai-step"><div class="ai-step-num">2</div>Matched against all <span id="prog-count"></span> programs in the tracker</div>
-      <div class="ai-step"><div class="ai-step-num">3</div>Get ranked results, gap analysis &amp; coaching</div>
+  <!-- POST-SCAN RESULTS VIEW -->
+  <div id="aifit-view-post" class="aifit-post-scan" style="display:none">
+    <div class="aifit-post-container">
+      <!-- Summary strip will be injected here by renderAIFitResults() -->
+      <div id="aifit-results-container"></div>
     </div>
   </div>
-  <div class="upload-zone" id="upload-zone">
-    <input type="file" accept=".pdf,.txt,.doc,.docx" onchange="handleFileUpload(event)" id="resume-file-input">
-    <span class="uz-icon">📄</span>
-    <div class="uz-title">Drop your resume here or click to browse</div>
-    <div class="uz-sub">PDF, DOCX, or plain text · Max 5MB</div>
-    <div class="uz-file-name" id="file-name-display" style="display:none"></div>
-  </div>
-  <div class="ai-controls">
-    <button class="analyze-btn" id="analyze-btn" onclick="runAIAnalysis()" disabled>
-      ✦ Analyse My Fit
-    </button>
-    <div class="ai-note" id="ai-status-note">Upload your resume above to unlock analysis. Your résumé is processed via a secure proxy — never stored, never shared.</div>
-  </div>
-  <div id="ai-results"></div>
 </div>
 
 </div><!-- /main -->
@@ -4298,15 +4438,18 @@ async function handleFileUpload(event){
   if(!file) return;
   if(file.size > 5*1024*1024){alert('File too large — please use a file under 5MB.');return;}
 
-  const nd = document.getElementById('file-name-display');
-  const uz = document.getElementById('upload-zone');
-  const statusNote = document.getElementById('ai-status-note');
+  const fileDisplay = document.getElementById('aifit-file-display');
+  const emptyDisplay = document.getElementById('aifit-empty-display');
+  const fileInfo = document.getElementById('aifit-file-info');
+  const uploadBox = document.getElementById('aifit-upload-box');
+  const analyzeBtn = document.getElementById('analyze-btn');
 
-  nd.textContent = '⏳ Parsing ' + file.name + '...';
-  nd.style.display = 'block';
-  uz.classList.add('has-file');
-  document.getElementById('analyze-btn').disabled = true;
-  statusNote.textContent = 'Reading your resume...';
+  // Show loading state
+  fileDisplay.style.display = 'block';
+  emptyDisplay.style.display = 'none';
+  fileInfo.textContent = `⏳ Parsing ${file.name}...`;
+  uploadBox.classList.add('has-file');
+  analyzeBtn.disabled = true;
 
   try {
     const text = await extractTextFromFile(file);
@@ -4316,24 +4459,35 @@ async function handleFileUpload(event){
     }
 
     resumeText = text.trim();
-    nd.textContent = '✓ ' + file.name + ` (${Math.round(text.length/1000)}k chars extracted)`;
-    document.getElementById('analyze-btn').disabled = false;
-    statusNote.textContent = `✓ ${file.name} ready — ${pdf_format_label(file)} · Click "Analyse My Fit" to start`;
+    const sizeKB = Math.round(file.size / 1024);
+    fileInfo.textContent = `${file.name} · ${sizeKB} KB`;
+    analyzeBtn.disabled = false;
 
     // Persist resume to Supabase (overwrites previous resume for this user)
     if(currentUser){
       saveResumeToDB(resumeText, file.name).then(()=>{
-        statusNote.textContent = `✓ ${file.name} saved to your account · Click "Analyse My Fit" to start`;
+        // Keep the same display — file is ready
       });
     }
 
   } catch(err){
-    nd.textContent = '⚠ ' + err.message;
-    nd.style.color = 'var(--coral)';
-    statusNote.textContent = err.message;
-    document.getElementById('analyze-btn').disabled = true;
-    uz.classList.remove('has-file');
+    alert(err.message);
+    // Reset to empty state
+    fileDisplay.style.display = 'none';
+    emptyDisplay.style.display = 'block';
+    uploadBox.classList.remove('has-file');
+    analyzeBtn.disabled = true;
   }
+}
+
+function clearAIFitFile(event){
+  event.stopPropagation();
+  document.getElementById('resume-file-input').value = '';
+  document.getElementById('aifit-file-display').style.display = 'none';
+  document.getElementById('aifit-empty-display').style.display = 'block';
+  document.getElementById('aifit-upload-box').classList.remove('has-file');
+  document.getElementById('analyze-btn').disabled = true;
+  resumeText = '';
 }
 
 function pdf_format_label(file){
@@ -4344,14 +4498,16 @@ function pdf_format_label(file){
 }
 
 // drag and drop
-const uzEl=document.getElementById('upload-zone');
-uzEl.addEventListener('dragover',e=>{e.preventDefault();uzEl.classList.add('drag');});
-uzEl.addEventListener('dragleave',()=>uzEl.classList.remove('drag'));
-uzEl.addEventListener('drop',e=>{
-  e.preventDefault();uzEl.classList.remove('drag');
-  const f=e.dataTransfer.files[0];
-  if(f) handleFileUpload({target:{files:e.dataTransfer.files}});
-});
+const uzEl=document.getElementById('aifit-upload-box');
+if(uzEl){
+  uzEl.addEventListener('dragover',e=>{e.preventDefault();uzEl.classList.add('drag');});
+  uzEl.addEventListener('dragleave',()=>uzEl.classList.remove('drag'));
+  uzEl.addEventListener('drop',e=>{
+    e.preventDefault();uzEl.classList.remove('drag');
+    const f=e.dataTransfer.files[0];
+    if(f) handleFileUpload({target:{files:e.dataTransfer.files}});
+  });
+}
 
 async function runAIAnalysis(){
 
@@ -4546,108 +4702,211 @@ function syncAIResultsToPrograms(result){
 }
 
 function renderAIResults(result){
+  // Sync results to programs table (for Fit column)
   syncAIResultsToPrograms(result);
-  const pm={};progs.forEach(p=>{pm[p.id]=p;});
-  const sm={open:'b-open',rolling:'b-rolling',watch:'b-watch',closed:'b-closed'};
-  const tiers=[
-    {key:'BEST_FIT',    label:'🟢 Best Fit',    cls:'t-best',       dot:'td-best',      desc:'Direct match — apply now'},
-    {key:'STRONG_FIT',  label:'🔵 Strong Fit',  cls:'t-strong',     dot:'td-strong',    desc:'Solid match — tailor and apply confidently'},
-    {key:'ACHIEVABLE',  label:'🟡 Achievable',  cls:'t-achievable', dot:'td-achievable',desc:'Relevant experience, needs strategic positioning'},
-    {key:'LONG_SHOT',   label:'🟠 Long Shot',   cls:'t-longshot',   dot:'td-longshot',  desc:'Gaps exist — worth trying with strong network'},
-    {key:'NOT_FIT',     label:'⚪ Not a Fit',   cls:'t-notfit',     dot:'td-notfit',    desc:'Structural mismatch — focus energy elsewhere'},
+  
+  // Switch to post-scan view
+  document.getElementById('aifit-view-pre').style.display = 'none';
+  document.getElementById('aifit-view-post').style.display = 'block';
+  
+  const pm = {};
+  progs.forEach(p => { pm[p.id] = p; });
+  
+  // Count programs per tier
+  const tierCounts = {
+    BEST_FIT: (result.tiers?.BEST_FIT || []).length,
+    STRONG_FIT: (result.tiers?.STRONG_FIT || []).length,
+    ACHIEVABLE: (result.tiers?.ACHIEVABLE || []).length,
+    LONG_SHOT: (result.tiers?.LONG_SHOT || []).length,
+    NOT_FIT: (result.tiers?.NOT_FIT || []).length
+  };
+  
+  const totalScanned = tierCounts.BEST_FIT + tierCounts.STRONG_FIT + tierCounts.ACHIEVABLE + tierCounts.LONG_SHOT + tierCounts.NOT_FIT;
+  const scanDate = new Date().toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
+  
+  // Build HTML
+  let html = '';
+  
+  // Summary strip
+  html += `<div class="aifit-summary-strip">
+    <div class="aifit-summary-left">
+      <span class="aifit-summary-total">${totalScanned} programs scanned</span>
+      <div class="aifit-summary-tiers">
+        <span class="aifit-summary-tier-best">${tierCounts.BEST_FIT} Best</span>
+        <span class="aifit-summary-tier-strong">${tierCounts.STRONG_FIT} Strong</span>
+        <span class="aifit-summary-tier-achievable">${tierCounts.ACHIEVABLE} Achievable</span>
+        <span class="aifit-summary-tier-long">${tierCounts.LONG_SHOT} Long Shot</span>
+        <span class="aifit-summary-tier-not">${tierCounts.NOT_FIT} Not Fit</span>
+      </div>
+    </div>
+    <div class="aifit-summary-right">
+      <span class="aifit-summary-date">Scan · ${scanDate}</span>
+      <button class="aifit-rescan-btn" onclick="rescanAIFit()">Re-scan</button>
+    </div>
+  </div>`;
+  
+  // Tier sections
+  const tierConfigs = [
+    {key:'BEST_FIT', label:'Best Fit', badge:'Tier 1', badgeClass:'aifit-tier-badge-best', defaultOpen:true},
+    {key:'STRONG_FIT', label:'Strong Fit', badge:'Tier 2', badgeClass:'aifit-tier-badge-strong', defaultOpen:true},
+    {key:'ACHIEVABLE', label:'Achievable', badge:'Tier 3', badgeClass:'aifit-tier-badge-achievable', defaultOpen:false},
+    {key:'LONG_SHOT', label:'Long Shot', badge:'Tier 4', badgeClass:'aifit-tier-badge-long', defaultOpen:false},
+    {key:'NOT_FIT', label:'Not Fit', badge:'Tier 5', badgeClass:'aifit-tier-badge-not', defaultOpen:false}
   ];
-  let html='';
-
-  // Profile summary
-  if(result.profile_summary){
-    html+=`<div class="profile-box"><div class="profile-box-label">Your Profile Summary</div><div class="profile-box-text">${result.profile_summary}</div></div>`;
-  }
-
-  // Gap analysis grid
-  if(result.gap_analysis){
-    const gapLabels={
-      leadership_evidence:{label:'Leadership Evidence',icon:'👥'},
-      international_exposure:{label:'International Exposure',icon:'🌍'},
-      operations_depth:{label:'Operations Depth',icon:'⚙️'},
-      quantitative_rigor:{label:'Quantitative Rigor',icon:'📊'},
-      cross_functional:{label:'Cross-functional Mgmt',icon:'🔀'},
-      entrepreneurial_impact:{label:'Entrepreneurial Impact',icon:'🚀'}
-    };
-    const ratingPct={Strong:90,Medium:55,Weak:20};
-
-    html+=`<div class="review-panel" style="margin-bottom:20px">
-      <div class="rp-header"><div style="font-size:20px">📋</div><h3>Resume Gap Analysis — Recruiting Dimensions</h3></div>
-      <div class="gap-grid">
-        ${Object.entries(gapLabels).map(([key,meta])=>{
-          const g=result.gap_analysis[key];
-          if(!g) return '';
-          const pct=ratingPct[g.rating]||50;
-          const barCls=g.rating==='Strong'?'strong':g.rating==='Medium'?'medium':'weak';
-          const strCls=g.rating==='Strong'?'gs-strong':g.rating==='Medium'?'gs-medium':'gs-weak';
-          return `<div class="gap-card">
-            <div class="gap-card-label">${meta.icon} ${meta.label}</div>
-            <div style="display:flex;align-items:center;justify-content:space-between">
-              <div class="gap-bar-wrap" style="flex:1;margin-right:10px"><div class="gap-bar ${barCls}" style="width:${pct}%"></div></div>
-              <span class="gap-strength ${strCls}">${g.rating}</span>
-            </div>
-            ${g.evidence?`<div class="gap-note">✓ ${g.evidence}</div>`:''}
-            ${g.tip?`<div class="gap-note" style="color:var(--accent);margin-top:3px">→ ${g.tip}</div>`:''}
-          </div>`;
-        }).join('')}
-      </div>
-    </div>`;
-  }
-
-  // Tier results
-  tiers.forEach(tc=>{
-    const items=(result.tiers||{})[tc.key]||[];
+  
+  tierConfigs.forEach(tc => {
+    const items = (result.tiers || {})[tc.key] || [];
     if(!items.length) return;
-    html+=`<div class="tier-section">
-      <div class="tier-header ${tc.cls}">
-        <div class="tier-dot ${tc.dot}"></div>
-        <div class="tier-label">${tc.label}</div>
-        <div style="font-size:11px;color:var(--text2);flex:1;margin-left:8px">${tc.desc}</div>
-        <div class="tier-count">${items.length} program${items.length!==1?'s':''}</div>
+    
+    const isOpen = tc.defaultOpen;
+    const tierId = `tier-${tc.key}`;
+    
+    html += `<div class="aifit-tier-section">
+      <div class="aifit-tier-header" onclick="toggleAIFitTier('${tc.key}')">
+        <div class="aifit-tier-header-left">
+          <h2 class="aifit-tier-title">${tc.label}</h2>
+          <span class="aifit-tier-count">${items.length} program${items.length !== 1 ? 's' : ''}</span>
+        </div>
+        <div class="aifit-tier-header-right">
+          <span class="aifit-tier-badge ${tc.badgeClass}">${tc.badge}</span>
+          <span class="aifit-tier-arrow ${isOpen ? 'open' : ''}" id="arrow-${tc.key}">▾</span>
+        </div>
       </div>
-      <div class="tier-grid">
-        ${items.map(item=>{
-          const p=pm[item.id];if(!p) return '';
-          return `<div class="tier-card">
-            <div class="tc-name">${p.name}</div>
-            <div class="tc-org">${p.org} · ${p.loc||p.geo}</div>
-            <div class="tc-reason">${item.reason}</div>
-            <div class="tc-tags">
-              <span class="badge ${sm[p.status]||'b-closed'}" style="font-size:10px">${cap(p.status)}</span>
-              ${(p.tags||[]).slice(0,2).map(t=>`<span class="tag">${t}</span>`).join('')}
-              ${p.url?`<a href="${p.url}" target="_blank" rel="noopener noreferrer" class="plink" style="margin-top:0">Apply ↗</a>`:''}
+      <div class="aifit-tier-cards" id="${tierId}" style="display:${isOpen ? 'flex' : 'none'}">
+        ${items.map(item => {
+          const p = pm[item.id];
+          if(!p) return '';
+          
+          const initial = (p.org || '?').charAt(0).toUpperCase();
+          
+          // Tags: show sector, geo, visa
+          const tags = [];
+          if(p.sector) tags.push(cap(p.sector));
+          if(p.geo) tags.push(cap(p.geo));
+          if(p.visa) tags.push('Visa');
+          
+          return `<div class="aifit-program-card">
+            <div class="aifit-program-card-left">
+              <div class="aifit-program-initial">${initial}</div>
+              <div class="aifit-program-info">
+                <div class="aifit-program-name">${p.name}</div>
+                <div class="aifit-program-reason">${item.reason}</div>
+              </div>
+            </div>
+            <div class="aifit-program-card-right">
+              <div class="aifit-program-tags">
+                ${tags.map(t => `<span class="aifit-program-tag">${t}</span>`).join('')}
+              </div>
+              <button class="aifit-program-save-btn" onclick="addProgramToApplications(${p.id})">Save</button>
             </div>
           </div>`;
         }).join('')}
       </div>
     </div>`;
   });
-
-  // Suggestions with program-specific highlights
-  if(result.suggestions?.length){
-    const pc={high:'sip-high',medium:'sip-med',low:'sip-low'};
-    const pl={high:'High priority',medium:'Medium priority',low:'Nice to have'};
-    html+=`<div class="review-panel">
-      <div class="rp-header"><div style="font-size:20px">✏️</div><h3>Resume Coaching — Program-Specific Suggestions</h3></div>
-      ${result.suggestions.map((s,i)=>`<div class="suggestion-item">
-        <div class="si-num">${i+1}</div>
-        <div style="flex:1">
-          <div class="si-title">${s.title}</div>
-          <div class="si-text">${s.body}</div>
-          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;align-items:center">
-            <span class="si-priority ${pc[s.priority]||'sip-med'}">${pl[s.priority]||'Medium priority'}</span>
-            ${s.helps_programs?`<span style="font-size:10px;color:var(--text3);font-style:italic">Helps most for: <strong style="color:var(--blue);font-style:normal">${s.helps_programs}</strong></span>`:''}
-          </div>
-        </div>
-      </div>`).join('')}
+  
+  // Gap Analysis Panel
+  if(result.gap_analysis){
+    const gapLabels = {
+      cross_functional: {label:'Cross-Functional'},
+      quantitative_rigor: {label:'Quantitative Rigor'},
+      leadership_evidence: {label:'Leadership Evidence'},
+      operations_depth: {label:'Operations Depth'},
+      entrepreneurial_impact: {label:'Entrep. Impact'},
+      international_exposure: {label:'International'}
+    };
+    
+    html += `<div class="aifit-gap-panel">
+      <div class="aifit-gap-header">
+        <h2 class="aifit-gap-title">Gap Analysis Profile</h2>
+        <span class="aifit-gap-count">6 dimensions</span>
+      </div>
+      <div class="aifit-gap-grid">
+        ${Object.entries(gapLabels).map(([key, meta]) => {
+          const g = result.gap_analysis[key];
+          if(!g) return '';
+          const ratingClass = g.rating === 'Strong' ? 'aifit-gap-rating-strong' : 
+                             g.rating === 'Medium' ? 'aifit-gap-rating-medium' : 
+                             'aifit-gap-rating-weak';
+          return `<div class="aifit-gap-card">
+            <div class="aifit-gap-card-header">
+              <span class="aifit-gap-label">${meta.label}</span>
+              <span class="aifit-gap-rating ${ratingClass}">${g.rating}</span>
+            </div>
+            <p class="aifit-gap-tip">${g.tip}</p>
+          </div>`;
+        }).join('')}
+      </div>
     </div>`;
   }
+  
+  // Strategic Coaching Section
+  if(result.suggestions?.length){
+    const priorityDotClass = {high:'aifit-priority-dot-high', medium:'aifit-priority-dot-medium', low:'aifit-priority-dot-low'};
+    const priorityLabel = {high:'High', medium:'Medium', low:'Low'};
+    
+    html += `<div class="aifit-coaching-section">
+      <div class="aifit-coaching-header">
+        <h2 class="aifit-coaching-title">Strategic Coaching</h2>
+        <span class="aifit-coaching-count">${result.suggestions.length} suggestion${result.suggestions.length !== 1 ? 's' : ''}</span>
+      </div>
+      <div class="aifit-coaching-grid">
+        ${result.suggestions.map(s => {
+          const dotClass = priorityDotClass[s.priority] || priorityDotClass.medium;
+          const priLabel = priorityLabel[s.priority] || 'Medium';
+          
+          // Parse helps_programs string into array of tier tags
+          const helpsTags = [];
+          if(s.helps_programs){
+            if(s.helps_programs.includes('BEST_FIT')) helpsTags.push({label:'BEST_FIT', class:'aifit-coaching-helps-tag-best'});
+            if(s.helps_programs.includes('STRONG_FIT')) helpsTags.push({label:'STRONG_FIT', class:'aifit-coaching-helps-tag-strong'});
+            if(s.helps_programs.includes('ACHIEVABLE')) helpsTags.push({label:'ACHIEVABLE', class:'aifit-coaching-helps-tag-achievable'});
+          }
+          
+          return `<div class="aifit-coaching-card">
+            <div>
+              <div class="aifit-coaching-priority">
+                <span class="${dotClass}"></span>
+                <span class="aifit-priority-label">Priority: ${priLabel}</span>
+              </div>
+              <h3 class="aifit-coaching-card-title">${s.title}</h3>
+              <p class="aifit-coaching-card-body">${s.body}</p>
+            </div>
+            <div class="aifit-coaching-helps">
+              ${helpsTags.map(t => `<span class="aifit-coaching-helps-tag ${t.class}">${t.label}</span>`).join('')}
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }
+  
+  document.getElementById('aifit-results-container').innerHTML = html;
+}
 
-  document.getElementById('ai-results').innerHTML=html;
+// Toggle tier open/closed
+const aifitTierState = {BEST_FIT:true, STRONG_FIT:true, ACHIEVABLE:false, LONG_SHOT:false, NOT_FIT:false};
+function toggleAIFitTier(tierKey){
+  aifitTierState[tierKey] = !aifitTierState[tierKey];
+  const tierEl = document.getElementById(`tier-${tierKey}`);
+  const arrowEl = document.getElementById(`arrow-${tierKey}`);
+  if(tierEl){
+    tierEl.style.display = aifitTierState[tierKey] ? 'flex' : 'none';
+  }
+  if(arrowEl){
+    if(aifitTierState[tierKey]){
+      arrowEl.classList.add('open');
+    } else {
+      arrowEl.classList.remove('open');
+    }
+  }
+}
+
+// Re-scan button
+function rescanAIFit(){
+  document.getElementById('aifit-view-post').style.display = 'none';
+  document.getElementById('aifit-view-pre').style.display = 'block';
+  document.getElementById('analyze-btn').textContent = '✦ Analyse My Fit';
 }
 
 // ═══════════════ MODALS ═══════════════
