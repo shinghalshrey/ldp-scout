@@ -732,6 +732,13 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 .lp2-video-wrap video{display:block;width:100%;aspect-ratio:16/9;object-fit:cover;background:#1a1a14}
 .lp2-mock-wrap{overflow:hidden;border-radius:12px;background:var(--bg2);border:1px solid var(--border);box-shadow:0 1px 2px rgba(24,24,15,.04),0 12px 32px -16px rgba(24,24,15,.18);padding:16px}
 
+/* Vertical USP stack — used inside hero right column */
+.lp2-usp-stack{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:28px}
+.lp2-usp-stack > li{display:grid;grid-template-columns:56px 1fr;gap:18px;align-items:start}
+.lp2-usp-stack .lp2-usp-num{font-family:var(--serif);font-style:italic;font-size:36px;font-weight:400;line-height:1;color:var(--accent);margin:0}
+.lp2-usp-stack .lp2-usp-title{font-family:var(--serif);font-style:italic;font-size:18px;font-weight:400;color:var(--text);margin:0 0 6px;line-height:1.3}
+.lp2-usp-stack .lp2-usp-body{font-size:13px;line-height:1.6;color:var(--text2);margin:0;max-width:none}
+
 /* "What it does" + "How it works" shared scaffolding */
 .lp2-section{border-top:1px solid var(--border)}
 .lp2-section-inner{max-width:1180px;margin:0 auto;padding:40px 24px 64px}
@@ -1029,7 +1036,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
     <div>
       <p class="lp2-eyebrow">MBA Leadership Development Programs</p>
       <h1 class="lp2-title">Your personal <em>LDP recruiting</em> command centre.</h1>
-      <p class="lp2-sub">Verified MBA-specific Leadership Development Programs across Europe, the UAE, and beyond. AI-matched to your résumé. Alumni discovery. Deadline tracking — all in one place.</p>
+      <p class="lp2-sub">Verified MBA-specific Leadership Development Programs across Europe and beyond. AI-matched to your résumé. Alumni discovery. Deadline tracking — all in one place. <strong style="color:var(--text);">Sign in and discover now!</strong></p>
 
       <!-- Auth form — preserves every ID the JS depends on -->
       <div class="lp2-form">
@@ -1105,84 +1112,35 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
       </figure>
 
       <figure style="margin:0">
-        <figcaption class="lp2-figcap">What you get back in 60 seconds.</figcaption>
-        <div class="lp2-mock-wrap">
-          <div style="display:flex;gap:6px;align-items:center;padding:2px 4px 12px;border-bottom:1px solid var(--border);margin-bottom:14px;">
-            <span style="width:10px;height:10px;border-radius:50%;background:#ff5f57"></span>
-            <span style="width:10px;height:10px;border-radius:50%;background:#ffbd2e"></span>
-            <span style="width:10px;height:10px;border-radius:50%;background:#28ca41"></span>
-            <span style="font-family:var(--serif);font-size:14px;color:var(--text);margin-left:8px;">LDP Scout — AI Fit Scan results</span>
-          </div>
-          <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;">
-            <span style="font-size:11px;background:var(--accent);color:#fff;padding:4px 10px;border-radius:20px;">All tiers</span>
-            <span style="font-size:11px;background:var(--bg3);color:var(--text2);padding:4px 10px;border-radius:20px;">Best Fit</span>
-            <span style="font-size:11px;background:var(--bg3);color:var(--text2);padding:4px 10px;border-radius:20px;">Strong Fit</span>
-            <span style="font-size:11px;background:var(--bg3);color:var(--text2);padding:4px 10px;border-radius:20px;">UAE</span>
-          </div>
-          <div class="lp-mock-row">
+        <figcaption class="lp2-figcap">What it does.</figcaption>
+        <ul class="lp2-usp-stack">
+          <li>
+            <div class="lp2-usp-num">01</div>
             <div>
-              <div class="lp-mock-co">Amazon Pathways LDP</div>
-              <div class="lp-mock-loc">Operations · EU · UAE · India</div>
+              <h3 class="lp2-usp-title">AI-matched to your résumé</h3>
+              <p class="lp2-usp-body">Upload once. Every program is tiered against your background — Best Fit, Strong Fit, Achievable, Long Shot, or Not Fit — with a gap analysis flagging what to fix before you apply.</p>
             </div>
-            <span class="lp-mock-chip">★★★★★ Best Fit</span>
-            <span class="lp-mock-badge" style="background:var(--accent-bg);color:var(--accent)">Rolling</span>
-          </div>
-          <div class="lp-mock-row">
+          </li>
+          <li>
+            <div class="lp2-usp-num">02</div>
             <div>
-              <div class="lp-mock-co">DHL Consulting LDP</div>
-              <div class="lp-mock-loc">Strategy · Bonn, Germany</div>
+              <h3 class="lp2-usp-title">Network with alumni who got in</h3>
+              <p class="lp2-usp-body">Pre-built LinkedIn searches surface alumni at every program. Use warm intros from your own school or any school in the LDP Scout network.</p>
             </div>
-            <span class="lp-mock-chip">★★★★★ Best Fit</span>
-            <span class="lp-mock-badge" style="background:var(--accent-bg);color:var(--accent)">Rolling</span>
-          </div>
-          <div class="lp-mock-row">
+          </li>
+          <li>
+            <div class="lp2-usp-num">03</div>
             <div>
-              <div class="lp-mock-co">Roche Business Perspectives</div>
-              <div class="lp-mock-loc">Healthcare · Basel · Global</div>
+              <h3 class="lp2-usp-title">Never miss a deadline</h3>
+              <p class="lp2-usp-body">Export every deadline in your pipeline to your calendar in one click. Reminders at 30, 7, and 1 day out, pre-built.</p>
             </div>
-            <span class="lp-mock-chip">★★★★ Strong Fit</span>
-            <span class="lp-mock-badge" style="background:var(--blue-bg);color:var(--blue)">Sep 2026</span>
-          </div>
-          <div class="lp-mock-row" style="opacity:.55">
-            <div>
-              <div class="lp-mock-co">Mubadala Graduate Programme</div>
-              <div class="lp-mock-loc">Investments · Abu Dhabi</div>
-            </div>
-            <span class="lp-mock-chip">★★★ Achievable</span>
-            <span class="lp-mock-badge" style="background:var(--bg3);color:var(--text3)">Watch</span>
-          </div>
-          <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
-            <span style="font-size:11px;color:var(--text3);"><span id="lp-mock-count">48</span> programs tracked</span>
-            <span style="font-size:11px;color:var(--accent);font-weight:600;">✦ AI-matched to your CV</span>
-          </div>
-        </div>
+          </li>
+        </ul>
       </figure>
     </div>
   </section>
 
-  <!-- WHAT IT DOES -->
-  <section class="lp2-section">
-    <div class="lp2-section-inner">
-      <p class="lp2-eyebrow">What it does</p>
-      <ul class="lp2-usp-grid">
-        <li>
-          <div class="lp2-usp-num">01</div>
-          <h3 class="lp2-usp-title">AI-matched to your résumé</h3>
-          <p class="lp2-usp-body">Upload once. Every program is tiered against your background — Best Fit, Strong Fit, Achievable, Long Shot, or Not Fit — with a gap analysis flagging what to fix before you apply.</p>
-        </li>
-        <li>
-          <div class="lp2-usp-num">02</div>
-          <h3 class="lp2-usp-title">Network with alumni who got in</h3>
-          <p class="lp2-usp-body">Pre-built LinkedIn searches surface alumni at every program. Use warm intros from your own school or any school in the LDP Scout network.</p>
-        </li>
-        <li>
-          <div class="lp2-usp-num">03</div>
-          <h3 class="lp2-usp-title">Never miss a deadline</h3>
-          <p class="lp2-usp-body">Export every deadline in your pipeline to your calendar in one click. Reminders at 30, 7, and 1 day out, pre-built.</p>
-        </li>
-      </ul>
-    </div>
-  </section>
+  <!-- WHAT IT DOES is now in the hero right column above -->
 
   <!-- HOW IT WORKS -->
   <section class="lp2-section">
@@ -2388,8 +2346,24 @@ async function lpSignInWithPassword(){
     if(signUp.error){
       const errText = (signUp.error.message || '').toLowerCase();
       if(errText.includes('already') || errText.includes('registered') || errText.includes('exists')){
-        // Account exists — original signInWithPassword failure means wrong password
-        msg.innerHTML = '⚠️ Wrong password. Try again, or sign in with a code instead — you can set a new password once you\'re in.';
+        // Account exists. Two sub-cases (Supabase doesn't tell us which):
+        //   (a) Password is genuinely wrong
+        //   (b) User has only ever signed in via OTP — no password set yet
+        // (b) is by far the more common case for our user base. Auto-route
+        // them to OTP so they can sign in and set a password. Clear the
+        // dismissed flag so the post-OTP set-password prompt fires.
+        localStorage.removeItem('ldp_pw_prompt_dismissed_v1');
+        msg.innerHTML = 'This email is already registered, but we couldn\'t sign you in with that password. <strong>Sending you a code instead</strong> — you\'ll be able to set a new password once you\'re in.';
+        msg.classList.add('ok');
+        msg.style.display = 'block';
+        // Switch to the OTP step and fire lpSendOTP automatically
+        document.getElementById('lp-step-password').style.display = 'none';
+        document.getElementById('lp-step-email').style.display = 'block';
+        // Trigger OTP send after a short delay so the user reads the message
+        setTimeout(()=>{ lpSendOTP(); }, 700);
+        btn.disabled = false;
+        btn.textContent = 'Sign In →';
+        return;
       } else {
         msg.textContent = signUp.error.message || 'Could not create account.';
       }
