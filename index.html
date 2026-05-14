@@ -1224,6 +1224,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
       <span>Verified <span id="freshness-date"></span></span>
     </div>
     <span id="user-info" style="color:var(--text2);font-size:12px;margin-right:8px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
+    <button id="acct-set-pw-btn" onclick="openSetPasswordModal()" style="display:none;padding:6px 12px;border-radius:8px;background:transparent;color:var(--text2);border:1px solid var(--border2);cursor:pointer;font-weight:500;font-size:12px;margin-right:6px;font-family:var(--sans);" title="Set or change your password">Set password</button>
     <button id="auth-btn" onclick="handleAuth()" style="padding:6px 14px;border-radius:8px;background:var(--accent);color:white;border:none;cursor:pointer;font-weight:600;font-size:12px;">Sign In</button>
   </div>
 </div>
@@ -1605,6 +1606,23 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- SET PASSWORD MODAL (Phase 14) — in-app password set/change -->
+<div class="ics-modal-overlay" id="setpw-modal-overlay">
+  <div class="ics-modal" style="max-width:420px">
+    <h3 id="setpw-modal-title">Set a password</h3>
+    <div class="ics-modal-sub" id="setpw-modal-sub">You're signed in — set a password to skip the code next time. Or change an existing one.</div>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;">
+      <input id="setpw-input" type="password" autocomplete="new-password" minlength="8" placeholder="At least 8 characters" style="padding:11px 14px;border:1px solid var(--border2);border-radius:8px;font-size:14px;font-family:var(--sans);background:var(--bg3);outline:none;" onkeydown="if(event.key==='Enter') saveAccountPassword()">
+      <input id="setpw-input2" type="password" autocomplete="new-password" minlength="8" placeholder="Confirm password" style="padding:11px 14px;border:1px solid var(--border2);border-radius:8px;font-size:14px;font-family:var(--sans);background:var(--bg3);outline:none;" onkeydown="if(event.key==='Enter') saveAccountPassword()">
+    </div>
+    <p id="setpw-msg" style="display:none;font-size:12px;margin:0 0 14px;padding:8px 12px;border-radius:6px;line-height:1.5;"></p>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button onclick="closeSetPasswordModal()" style="background:transparent;border:1px solid var(--border2);color:var(--text2);padding:9px 16px;border-radius:8px;cursor:pointer;font-family:var(--sans);font-size:13px;">Cancel</button>
+      <button id="setpw-save-btn" onclick="saveAccountPassword()" style="background:var(--accent);color:#fff;border:none;padding:9px 18px;border-radius:8px;cursor:pointer;font-family:var(--sans);font-size:13px;font-weight:600;">Save password</button>
+    </div>
+  </div>
+</div>
 
 <!-- ICS REMINDER CHOICE MODAL -->
 <div class="ics-modal-overlay" id="ics-modal-overlay">
@@ -2096,12 +2114,15 @@ function onSignOut(){
 function updateAuthUI() {
   const btn = document.getElementById('auth-btn');
   const userInfo = document.getElementById('user-info');
+  const setPwBtn = document.getElementById('acct-set-pw-btn');
   if (currentUser) {
     if (btn) btn.textContent = 'Sign Out';
     if (userInfo) userInfo.textContent = currentUser.email;
+    if (setPwBtn) setPwBtn.style.display = 'inline-block';
   } else {
     if (btn) btn.textContent = 'Sign In';
     if (userInfo) userInfo.textContent = '';
+    if (setPwBtn) setPwBtn.style.display = 'none';
   }
 }
 
@@ -2203,6 +2224,14 @@ async function lpVerifyOTP(){
   btn.disabled = true;
   btn.textContent = 'Verifying...';
 
+  // CRITICAL: set the flag BEFORE calling verifyOtp. Supabase's
+  // onAuthStateChange listener fires synchronously when the session
+  // is established, which can happen DURING the await below. If we
+  // set this flag after the await, the listener has already run with
+  // the flag still undefined and dropped the user into the dashboard
+  // without showing the post-OTP password prompt.
+  window._ldp_lastSigninWasOtp = true;
+
   try {
     const { data, error } = await sb.auth.verifyOtp({
       email: _otpEmail,
@@ -2211,6 +2240,9 @@ async function lpVerifyOTP(){
     });
 
     if(error){
+      // Failed verify — reset the flag so any future password attempt
+      // doesn't accidentally trigger the OTP-only prompt path.
+      window._ldp_lastSigninWasOtp = false;
       let errMsg = error.message || 'Invalid code.';
       if(errMsg.toLowerCase().includes('expired')){
         errMsg = 'That code has expired. Click "Resend code" to get a new one.';
@@ -2225,18 +2257,15 @@ async function lpVerifyOTP(){
       return;
     }
 
-    // Success — user is now signed in
-    // Phase 14 (revised): mark this as an OTP-driven signin so the auth listener
-    // can decide whether to show the "Set a password for next time" prompt
-    // before dropping the user into the dashboard. Suppress the dashboard load
-    // for one tick by holding here; the listener will handle the rest.
-    window._ldp_lastSigninWasOtp = true;
-    msg.innerHTML = '✓ <strong>Signed in!</strong> Loading your dashboard...';
+    // Success — user is now signed in. The auth listener has already
+    // fired and (because the flag was set before this call) either
+    // showed the set-password prompt OR loaded the dashboard.
+    msg.innerHTML = '✓ <strong>Signed in!</strong>';
     msg.classList.add('ok');
     msg.style.display = 'block';
-    // The onAuthStateChange listener will handle the rest (hide landing, load data)
 
   } catch(err){
+    window._ldp_lastSigninWasOtp = false;
     msg.textContent = err.message || 'Verification failed. Please try again.';
     msg.classList.add('err');
     msg.style.display = 'block';
@@ -3503,6 +3532,112 @@ function confirmICS(mode){
   document.getElementById('ics-modal-overlay').classList.remove('open');
   if(_icsItem) downloadICS(_icsItem, mode);
 }
+
+// ─── In-app Set/Change Password (Phase 14) ───────────────────────
+// Lets a signed-in user attach or change their password at any time,
+// without going through the OTP+post-OTP-prompt path. Uses Supabase's
+// updateUser({password}) which works against the active session.
+
+function openSetPasswordModal(){
+  if(!currentUser){
+    toast('Please sign in first.');
+    return;
+  }
+  const overlay = document.getElementById('setpw-modal-overlay');
+  const title = document.getElementById('setpw-modal-title');
+  const sub = document.getElementById('setpw-modal-sub');
+  const msg = document.getElementById('setpw-msg');
+  const input1 = document.getElementById('setpw-input');
+  const input2 = document.getElementById('setpw-input2');
+  const btn = document.getElementById('setpw-save-btn');
+  // Reset state
+  if(msg){ msg.style.display = 'none'; msg.textContent = ''; msg.style.background = ''; msg.style.color = ''; }
+  if(input1) input1.value = '';
+  if(input2) input2.value = '';
+  if(btn){ btn.disabled = false; btn.textContent = 'Save password'; }
+  // Title copy: differentiates first-time-set vs change for the user
+  if(title) title.textContent = 'Set or change your password';
+  if(sub) sub.textContent = `Signed in as ${currentUser.email}. Set a password so you can sign in without a code next time.`;
+  overlay.classList.add('open');
+  setTimeout(()=>{ if(input1) input1.focus(); }, 100);
+}
+
+function closeSetPasswordModal(){
+  document.getElementById('setpw-modal-overlay').classList.remove('open');
+}
+
+async function saveAccountPassword(){
+  const input1 = document.getElementById('setpw-input');
+  const input2 = document.getElementById('setpw-input2');
+  const msg = document.getElementById('setpw-msg');
+  const btn = document.getElementById('setpw-save-btn');
+  const pw1 = (input1.value || '');
+  const pw2 = (input2.value || '');
+
+  msg.style.display = 'none';
+  msg.textContent = '';
+
+  if(pw1.length < 8){
+    msg.textContent = 'Password must be at least 8 characters.';
+    msg.style.display = 'block';
+    msg.style.background = 'var(--coral-bg)';
+    msg.style.color = 'var(--coral)';
+    return;
+  }
+  if(pw1 !== pw2){
+    msg.textContent = 'The two passwords don\u2019t match.';
+    msg.style.display = 'block';
+    msg.style.background = 'var(--coral-bg)';
+    msg.style.color = 'var(--coral)';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+
+  try {
+    const { error } = await sb.auth.updateUser({ password: pw1 });
+    if(error){
+      msg.textContent = error.message || 'Could not save password.';
+      msg.style.display = 'block';
+      msg.style.background = 'var(--coral-bg)';
+      msg.style.color = 'var(--coral)';
+      btn.disabled = false;
+      btn.textContent = 'Save password';
+      return;
+    }
+    // Success — also flag the post-OTP prompt as dismissed so the user
+    // doesn't get re-prompted on their next OTP signin
+    try { localStorage.setItem('ldp_pw_prompt_dismissed_v1', 'true'); } catch(e){}
+    msg.textContent = '✓ Password saved. You can sign in with this password next time.';
+    msg.style.display = 'block';
+    msg.style.background = 'var(--accent-bg)';
+    msg.style.color = 'var(--accent)';
+    btn.disabled = false;
+    btn.textContent = 'Save password';
+    setTimeout(()=>{
+      closeSetPasswordModal();
+      toast('✦ Password saved');
+    }, 1200);
+  } catch(err){
+    msg.textContent = err.message || 'Unexpected error.';
+    msg.style.display = 'block';
+    msg.style.background = 'var(--coral-bg)';
+    msg.style.color = 'var(--coral)';
+    btn.disabled = false;
+    btn.textContent = 'Save password';
+  }
+}
+
+// Click-outside-to-close for the setpw modal
+document.addEventListener('DOMContentLoaded', ()=>{
+  const o = document.getElementById('setpw-modal-overlay');
+  if(o){
+    o.addEventListener('click', e=>{
+      if(e.target === o) closeSetPasswordModal();
+    });
+  }
+});
 
 // Phase 2 cleanup: removed no-op stubs saveOnboarding / skipOnboarding / applyProfile / dismissPaywall.
 // Onboarding now lives in the onb* state machine; paywall was removed (isUnlocked = true).
