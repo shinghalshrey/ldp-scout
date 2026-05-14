@@ -1957,19 +1957,23 @@ async function initAuth() {
     const wasSignedIn = !!currentUser;
     currentUser = session?.user ?? null;
     updateAuthUI();
-    // Phase 14: user arrived via password-reset email link — show set-new-password form
-    // instead of dropping them straight into the app (Supabase signs them in temporarily
-    // so updateUser({password}) works in this same context).
-    if(event === 'PASSWORD_RECOVERY'){
-      showLanding();
-      lpShowSetPasswordStep('reset');
-      return;
-    }
     if(currentUser && !wasSignedIn){
       // Just signed in — hide landing, load data, show app
       // Clean URL hash if it still has tokens
       if(window.location.hash.includes('access_token')){
         history.replaceState(null, '', window.location.pathname);
+      }
+      // Phase 14 (revised): if this was an OTP signin and the user hasn't
+      // dismissed the password prompt before, hold them on the landing page
+      // to offer setting a password. The user is already authenticated;
+      // updateUser({password}) works without an email round-trip.
+      if(window._ldp_lastSigninWasOtp){
+        window._ldp_lastSigninWasOtp = false;
+        const dismissed = localStorage.getItem('ldp_pw_prompt_dismissed_v1') === 'true';
+        if(!dismissed){
+          lpShowSetPasswordStep('after_otp');
+          return;
+        }
       }
       await onSignIn();
     } else if(!currentUser && wasSignedIn){
@@ -2282,6 +2286,11 @@ async function lpVerifyOTP(){
     }
 
     // Success — user is now signed in
+    // Phase 14 (revised): mark this as an OTP-driven signin so the auth listener
+    // can decide whether to show the "Set a password for next time" prompt
+    // before dropping the user into the dashboard. Suppress the dashboard load
+    // for one tick by holding here; the listener will handle the rest.
+    window._ldp_lastSigninWasOtp = true;
     msg.innerHTML = '✓ <strong>Signed in!</strong> Loading your dashboard...';
     msg.classList.add('ok');
     msg.style.display = 'block';
@@ -2403,59 +2412,41 @@ async function lpSignInWithPassword(){
   }
 }
 
-async function lpForgotPassword(){
-  const email = (document.getElementById('lp-email').value || '').trim().toLowerCase();
-  const btn = document.getElementById('lp-forgot-btn');
+// Phase 14 (revised): forgot-password no longer sends an email.
+// School mail servers pre-scan links and burn the reset token, plus the
+// default Supabase email template is ugly and slow. Instead, route the
+// user to the OTP flow — once signed in via code, they can set a new
+// password via the post-OTP prompt (which appears on next sign-in since
+// the dismissed flag is per-browser).
+function lpForgotPassword(){
   const msg = document.getElementById('lp-signup-msg');
   msg.style.display = 'none';
   msg.classList.remove('ok','err');
 
-  if(!email || !isValidEduEmail(email)){
-    msg.innerHTML = '⚠️ Enter your university email above first.';
-    msg.classList.add('err');
-    msg.style.display = 'block';
-    return;
-  }
+  // Clear the dismissed flag so the post-OTP set-password step shows again
+  localStorage.removeItem('ldp_pw_prompt_dismissed_v1');
 
-  btn.disabled = true;
-  btn.textContent = 'Sending...';
-
-  try {
-    // redirectTo points back to this app — Supabase appends an access_token in the URL hash
-    const redirectTo = window.location.origin + window.location.pathname + '?reset=1';
-    const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo });
-    if(error){
-      msg.textContent = error.message || 'Could not send reset email. Please try again.';
-      msg.classList.add('err');
-      msg.style.display = 'block';
-    } else {
-      msg.innerHTML = '✓ <strong>Reset link sent</strong> to ' + email + '. Open it on this device and you\'ll land back here to set a new password.';
-      msg.classList.add('ok');
-      msg.style.display = 'block';
-    }
-  } catch(err){
-    msg.textContent = err.message || 'Unexpected error.';
-    msg.classList.add('err');
-    msg.style.display = 'block';
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Forgot password?';
-  }
+  // Hide the password step, show the email step so the user can request a code
+  document.getElementById('lp-step-password').style.display = 'none';
+  document.getElementById('lp-step-email').style.display = 'block';
+  // Don't wipe the email — keep it so the user just clicks Send Code
+  msg.innerHTML = '<strong>Sign in with a code</strong> — we\'ll let you set a new password once you\'re in.';
+  msg.classList.add('ok');
+  msg.style.display = 'block';
+  const emailInput = document.getElementById('lp-email');
+  if(emailInput) emailInput.focus();
 }
 
-// Called after a successful OTP verify for new users (no password yet)
-// and after the user clicks a reset-password email link.
+// Called after a successful OTP verify, to offer setting a password
+// so the user doesn't need a fresh code next time.
 function lpShowSetPasswordStep(mode){
-  // mode: 'after_otp' (optional) or 'reset' (required, from email link)
+  // mode currently always 'after_otp' — the 'reset' branch was removed when
+  // we dropped the email-based password reset flow (school mail scanners
+  // were burning the reset tokens before users could click them).
   const headline = document.getElementById('lp-set-pw-headline');
   const skipBtn = document.getElementById('lp-skip-pw-btn');
-  if(mode === 'reset'){
-    headline.textContent = 'Set a new password';
-    skipBtn.style.display = 'none';
-  } else {
-    headline.textContent = 'Set a password so you can sign in faster next time (optional)';
-    skipBtn.style.display = '';
-  }
+  headline.innerHTML = '<strong>You\'re signed in.</strong> Set a password to skip the code next time? <span style="color:var(--text3);font-weight:400">— optional, you can always sign in with a code instead.</span>';
+  skipBtn.style.display = '';
   document.getElementById('lp-step-email').style.display = 'none';
   document.getElementById('lp-step-otp').style.display = 'none';
   document.getElementById('lp-step-password').style.display = 'none';
@@ -2481,8 +2472,9 @@ async function lpSetPassword(){
   btn.textContent = 'Saving...';
 
   try {
-    // Works for both "logged in via OTP wanting to add a password" and
-    // "arrived from reset email" — Supabase consumes the recovery token automatically.
+    // User is already authenticated (we got here right after OTP success),
+    // so updateUser({password}) just attaches a password to their existing
+    // Supabase Auth row. No email round-trip needed.
     const { error } = await sb.auth.updateUser({ password: newPw });
     if(error){
       msg.textContent = error.message || 'Could not save password.';
@@ -2492,17 +2484,17 @@ async function lpSetPassword(){
       btn.textContent = 'Save Password →';
       return;
     }
-    msg.innerHTML = '✓ <strong>Password saved.</strong> You can sign in with email + password next time.';
+    // Save the dismissed flag so this prompt doesn't show again on this browser
+    localStorage.setItem('ldp_pw_prompt_dismissed_v1', 'true');
+    msg.innerHTML = '✓ <strong>Password saved.</strong> Loading your dashboard...';
     msg.classList.add('ok');
     msg.style.display = 'block';
-    // Clean up the field
     document.getElementById('lp-new-pw-input').value = '';
-    // If we got here via a reset link, send the user into the app now
-    setTimeout(()=>{
+    // Hand off to onSignIn to actually load the dashboard
+    setTimeout(async ()=>{
       document.getElementById('lp-step-set-password').style.display = 'none';
-      document.getElementById('lp-step-email').style.display = 'block';
-      // If a session exists (post-OTP or post-reset), the auth listener already routed them in.
-    }, 1500);
+      await onSignIn();
+    }, 600);
   } catch(err){
     msg.textContent = err.message || 'Unexpected error.';
     msg.classList.add('err');
@@ -2512,23 +2504,12 @@ async function lpSetPassword(){
   }
 }
 
-function lpSkipPassword(){
+async function lpSkipPassword(){
+  // User declined to set a password — remember the choice so we don't ask again
+  // on this browser, then continue to the dashboard.
+  localStorage.setItem('ldp_pw_prompt_dismissed_v1', 'true');
   document.getElementById('lp-step-set-password').style.display = 'none';
-  document.getElementById('lp-step-email').style.display = 'block';
-  // If already authenticated (post-OTP path), the existing onSignIn handler
-  // will have moved them into the dashboard already; this is a no-op for UI.
-}
-
-// On page load, check if Supabase dropped us here via a password-reset link.
-// The URL will contain ?reset=1 (set as our redirectTo) and the access token
-// arrives in the URL hash as ?type=recovery — Supabase's client picks it up
-// automatically and emits a 'PASSWORD_RECOVERY' auth event.
-function lpHandleResetRedirect(){
-  if(!window.location.search.includes('reset=1') &&
-     !window.location.hash.includes('type=recovery')) return;
-  // The auth state listener will trigger lpShowSetPasswordStep('reset') below;
-  // here we just make sure the landing page is showing so the form is visible.
-  showLanding();
+  await onSignIn();
 }
 
 function lpBackToEmail(){
