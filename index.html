@@ -90,7 +90,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 
 /* TABLE */
 .table-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow)}
-.thead{display:grid;grid-template-columns:2.2fr 1fr 0.9fr 0.8fr .6fr .7fr .5fr 70px;padding:9px 16px;border-bottom:1px solid var(--border);background:var(--bg3)}
+.thead{display:grid;grid-template-columns:2.2fr 1fr 0.9fr 0.8fr .6fr .7fr .5fr 110px 70px;padding:9px 16px;border-bottom:1px solid var(--border);background:var(--bg3)}
 .th{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em}
 /* Phase 10: sortable column headers */
 .th.sortable{cursor:pointer;user-select:none;display:flex;align-items:center;gap:5px;transition:color .1s}
@@ -99,7 +99,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 .th.sortable:hover .th-arrow{opacity:.4}
 .th.sortable.sorted{color:var(--accent)}
 .th.sortable.sorted .th-arrow{opacity:1}
-.prow{display:grid;grid-template-columns:2.2fr 1fr 0.9fr 0.8fr .6fr .7fr .5fr 70px;padding:13px 16px;border-bottom:1px solid var(--border);align-items:center;transition:background .1s}
+.prow{display:grid;grid-template-columns:2.2fr 1fr 0.9fr 0.8fr .6fr .7fr .5fr 110px 70px;padding:13px 16px;border-bottom:1px solid var(--border);align-items:center;transition:background .1s}
 .prow:last-child{border-bottom:none}
 .prow:hover{background:var(--bg3)}
 .pname{font-size:13px;font-weight:500;line-height:1.3}
@@ -110,6 +110,11 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 .tag{font-size:10px;padding:2px 6px;border-radius:4px;background:var(--bg3);color:var(--text2);border:1px solid var(--border)}
 .cell{font-size:12px;color:var(--text2)}
 .mono{font-family:var(--mono);font-size:11px}
+
+/* Phase 14: Pipeline column on Programs table — Save / Saved state */
+.prow-pipe-btn{font-size:10px;padding:5px 11px;border-radius:6px;border:1px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer;font-family:var(--sans);font-weight:600;transition:all .12s;white-space:nowrap}
+.prow-pipe-btn:hover{background:var(--accent2);border-color:var(--accent2);transform:translateY(-1px)}
+.prow-pipe-saved{font-size:10px;color:var(--accent);font-weight:600;display:inline-flex;align-items:center;gap:4px;white-space:nowrap;cursor:default}
 
 /* FIT TIERS */
 .fit-tier{font-size:10px;padding:3px 8px;border-radius:4px;font-weight:600;display:inline-block;border:1px solid;letter-spacing:.02em}
@@ -1289,6 +1294,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
       <div class="th sortable" data-sort-key="status" onclick="sortBy('status')">Status<span class="th-arrow">▼</span></div>
       <div class="th sortable" data-sort-key="fit"  onclick="sortBy('fit')">Fit ✦<span class="th-arrow">▼</span></div>
       <div class="th">📅 Remind</div>
+      <div class="th">Pipeline</div>
       <div class="th">Actions</div>
     </div>
     <div id="prog-list"></div>
@@ -3996,6 +4002,20 @@ function renderPrograms(){
         <div>
           ${p.deadline ? `<button class="ics-btn" onclick="openICSModal(${JSON.stringify({name:p.name,org:p.org,deadline:p.deadline,type:'program'}).replace(/"/g,'&quot;')})">📅 Set</button>` : `<span style="font-size:10px;color:var(--text3)">—</span>`}
         </div>
+        <div>
+          ${(() => {
+            // Phase 14: Pipeline column — quick-add to user's application pipeline.
+            // Default stage is 'shortlisted' (matches the AI Fit "+ Shortlist" button).
+            // If already in pipeline, show the current stage as read-only confirmation.
+            const existingApp = _findAppForProgram(p);
+            if(existingApp){
+              const stage = existingApp.status || 'shortlisted';
+              const stageLabel = stage.charAt(0).toUpperCase() + stage.slice(1);
+              return `<span class="prow-pipe-saved" title="In your pipeline (${stageLabel}). Manage on the My Applications tab.">✓ ${stageLabel}</span>`;
+            }
+            return `<button class="prow-pipe-btn" onclick="addProgramToApplications(${p.id}, 'shortlisted')" title="Save to your pipeline at the Shortlisted stage">+ Shortlist</button>`;
+          })()}
+        </div>
         <div class="abts">
           <button class="bsm" onclick="editP(${p.id})">Edit</button>
           <button class="bsm del" onclick="delP(${p.id})">Del</button>
@@ -4241,6 +4261,7 @@ async function addProgramToApplications(progId, stage){
   if(typeof renderApplications === 'function') renderApplications();
   if(typeof renderProgressStrip === 'function') renderProgressStrip();
   renderAlumniSearch();   // re-render so the button flips to "✓ In Applications"
+  if(typeof renderPrograms === 'function') renderPrograms();  // Phase 14: refresh Programs Pipeline column
   const stageLabel = stage.charAt(0).toUpperCase() + stage.slice(1);
   toast(`✓ ${p.org} added to Applications (${stageLabel})`);
 }
