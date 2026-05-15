@@ -576,10 +576,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 
 /* DEADLINES PAGE (Phase 5) */
 .dl-controls{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:14px}
-.dl-toggle{display:inline-flex;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:2px}
-.dl-toggle-btn{background:transparent;border:none;color:var(--text2);font-size:12px;font-family:var(--sans);padding:6px 14px;border-radius:6px;cursor:pointer;font-weight:500;transition:all .15s}
-.dl-toggle-btn.on{background:var(--bg2);color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,.06)}
-.dl-toggle-btn:not(.on):hover{color:var(--text)}
+/* dl-toggle CSS removed in Phase 14 — segmented control replaced by shared .pipeline-toggle pill */
 .dl-bulk-export{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--sans);white-space:nowrap;transition:all .15s;display:inline-flex;align-items:center;gap:6px}
 .dl-bulk-export:hover{background:var(--accent2);transform:translateY(-1px)}
 .dl-bulk-export:disabled{opacity:.5;cursor:not-allowed;transform:none}
@@ -1277,6 +1274,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
     <button class="fpill"    data-st="watch"   onclick="setF('st',this)">Watch</button>
     <div class="divider"></div>
     <button class="fpill" id="visa-pill" onclick="toggleVisaFilter(this)">✓ Visa Only</button>
+    <div class="divider"></div>
+    <button class="fpill pipeline-toggle" onclick="togglePipelineFilter()" title="Show only programs in your application pipeline">My Pipeline</button>
     <div class="spacer"></div>
     <button class="add-btn" onclick="openM('prog')">+ Add Program</button>
   </div>
@@ -1381,15 +1380,12 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
     <button class="info-card-close" onclick="dismissInfoCard('deadlines_v1')" aria-label="Dismiss tip">×</button>
     <strong>Time-sorted urgency view</strong><br>
     Red = act now. Export to calendar in one click.<br>
-    <strong style="color:var(--text)">① Toggle All vs My Apps</strong> · <strong style="color:var(--text)">② Export bulk ICS</strong> · <strong style="color:var(--text)">③ Status nudges show what to do next</strong>
+    <strong style="color:var(--text)">① Toggle My Pipeline (shared with Programs)</strong> · <strong style="color:var(--text)">② Export bulk ICS</strong> · <strong style="color:var(--text)">③ Status nudges show what to do next</strong>
     <a class="info-card-tour" onclick="tourStart('deadlines')">Tour this page →</a>
   </div>
 
   <div class="dl-controls">
-    <div class="dl-toggle" role="tablist" aria-label="Deadline scope">
-      <button class="dl-toggle-btn on" data-scope="all"  onclick="setDLScope('all')"  role="tab" aria-selected="true">All</button>
-      <button class="dl-toggle-btn"    data-scope="mine" onclick="setDLScope('mine')" role="tab" aria-selected="false">My pipeline</button>
-    </div>
+    <button class="fpill pipeline-toggle" onclick="togglePipelineFilter()" title="Show only deadlines tied to your application pipeline">My Pipeline</button>
     <button class="dl-bulk-export" onclick="exportMyPipelineDeadlines()" title="Download all deadlines from your pipeline (My pipeline) as a single ICS file">📅 Export my pipeline to calendar</button>
   </div>
 
@@ -2851,7 +2847,7 @@ const TOURS = {
   ],
   deadlines: [
     {target:'.dl-timeline',    title:'Urgency-sorted timeline', body:'Red = act now, amber = approaching, grey = comfortable. The list re-sorts itself as dates roll.'},
-    {target:'.dl-toggle',      title:'All vs My Apps',          body:'Toggle between every tracked deadline and just the ones tied to applications you\u2019ve logged.'},
+    {target:'.pipeline-toggle',title:'All vs My pipeline',          body:'Toggle between every tracked deadline and just the ones tied to applications you\u2019ve logged. The same toggle on the Programs tab is shared — flip it once, both pages filter together.'},
     {target:'.dl-bulk-export', title:'Export your pipeline to calendar', body:'Drops every dated deadline from your pipeline into a single ICS file — open it once in Google, Outlook, or Apple Calendar and every program lands with 30/7/1-day reminders pre-built.'}
   ]
 };
@@ -2859,6 +2855,66 @@ const TOURS = {
 let _tourKey = null;
 let _tourQueue = [];
 let _tourIdx = 0;
+// Phase 14: 30-second stack lock prevents tours from chaining when a user
+// hops between tabs quickly. Also tracked: per-tour seen flag in localStorage,
+// used as fallback when userProfile (Supabase-backed tours_completed) hasn't
+// loaded yet on a fresh browser session.
+let _lastTourTime = 0;
+const TOUR_SEEN_LS_PREFIX = 'ldp_tour_seen_';
+
+function _isTourSeen(pageKey){
+  const dbSeen = (userProfile?.tours_completed || []).includes(pageKey);
+  let lsSeen = false;
+  try { lsSeen = localStorage.getItem(TOUR_SEEN_LS_PREFIX + pageKey + '_v1') === '1'; } catch(e){}
+  return dbSeen || lsSeen;
+}
+
+// Gated auto-trigger for the first-visit tour on a given page.
+// Called from showPage() for non-aifit pages immediately, and from the AI Fit
+// dwell timer (10s after entering that page if the user hasn't uploaded yet).
+function maybeAutoTour(pageKey){
+  if(_tourKey) return;                                       // already running
+  if(!currentUser) return;                                   // not signed in
+  if(!TOURS[pageKey]) return;                                // unknown page
+  if(_isTourSeen(pageKey)) return;                           // already seen (Supabase OR LS)
+  if(document.querySelector('.overlay.open')) return;        // another modal is up (e.g. onboarding)
+  // 30-second stack lock: if another tour just ended, don't immediately start a new one
+  if(Date.now() - _lastTourTime < 30000) return;
+  _lastTourTime = Date.now();
+  tourStart(pageKey);
+}
+
+// ─── AI Fit dwell timer (Phase 14, Priority 4) ───────────────────
+// AI Fit page is special: the natural first action is "upload your resume".
+// We don't want to interrupt that with a tour, so we only auto-trigger the
+// aifit tour if the user lingers on the page for ~10s without uploading.
+// State machine:
+//   showPage('aifit')          → startAifitDwell()      // arm the 10s timer
+//   handleFileUpload (success) → clearAifitDwell()      // user is engaged
+//   runAIAnalysis start        → _aifitScanning = true  // scan in progress
+//   runAIAnalysis end (finally)→ _aifitScanning = false
+//   showPage(any non-aifit)    → clearAifitDwell()      // left the page
+let _aifitDwellTimer = null;
+let _aifitScanning   = false;
+
+function startAifitDwell(){
+  clearAifitDwell();
+  if(!currentUser) return;
+  if(_aifitScanning) return;                                       // scan in progress
+  if(_isTourSeen('aifit')) return;                                 // already toured
+  _aifitDwellTimer = setTimeout(() => {
+    _aifitDwellTimer = null;
+    if(_aifitScanning) return;                                     // race: scan started in the 10s window
+    maybeAutoTour('aifit');
+  }, 10000);
+}
+
+function clearAifitDwell(){
+  if(_aifitDwellTimer){
+    clearTimeout(_aifitDwellTimer);
+    _aifitDwellTimer = null;
+  }
+}
 
 function tourStart(pageKey){
   if(!TOURS[pageKey]){ console.warn('tourStart: unknown pageKey', pageKey); return; }
@@ -2954,6 +3010,14 @@ async function tourEnd(completed){
   _tourKey = null;
   _tourQueue = [];
   _tourIdx = 0;
+  // Mark seen in localStorage on BOTH complete and skip so auto-trigger doesn't re-fire
+  // on the next visit. The manual "Tour this page →" link calls tourStart() directly,
+  // bypassing this gate, so users can always re-run if they want.
+  if(key){
+    try { localStorage.setItem(TOUR_SEEN_LS_PREFIX + key + '_v1', '1'); } catch(e){}
+    // Reset stack lock — 30s window starts NOW, not when the tour was opened
+    _lastTourTime = Date.now();
+  }
   if(completed && key){
     await markTourCompleted(key);
   }
@@ -3660,14 +3724,19 @@ function showPage(id){
   
   ({programs:renderPrograms,alumni:()=>{initAlumniSchoolDrop();renderAlumniSectorList();renderAlumniSearch();},applications:renderApplications,deadlines:renderDeadlines,aifit:()=>{}})[id]?.();
 
-  // Phase 4: auto-launch the first-visit tour for this page (gated)
-  setTimeout(() => {
-    if(_tourKey || !currentUser) return;
-    if(!userProfile?.onboarding_completed_at) return;
-    if((userProfile?.tours_completed||[]).includes(id)) return;
-    if(document.querySelector('.overlay.open')) return;
-    tourStart(id);
-  }, 600);
+  // Phase 4 / Phase 14: first-visit auto-tour wiring.
+  // - aifit page → dwell timer (10s with no upload → tour). Special-cased because
+  //   the natural first action on AI Fit is "upload resume", and we don't want to
+  //   interrupt that with a tour. Only show the tour if the user actually stalls.
+  // - All other pages → fire maybeAutoTour() immediately (with 600ms render-settle delay).
+  //   Gated by: not-already-seen (Supabase tours_completed OR localStorage),
+  //   no other modal open, 30s stack lock between tours.
+  if(id === 'aifit'){
+    startAifitDwell();
+  } else {
+    clearAifitDwell();   // leaving the aifit page → kill pending dwell timer
+    setTimeout(() => maybeAutoTour(id), 600);
+  }
 }
 
 // Legacy stub — the new lpSignUp() (defined above in auth section) handles signup.
@@ -3750,6 +3819,13 @@ function clearAll(){
   const vp = document.getElementById('visa-pill'); if(vp) vp.classList.remove('on');
   ['geo','fn','st'].forEach(_syncFilterPills);
   const ps = document.getElementById('prog-search'); if(ps) ps.value = '';
+  // Also clear the shared pipeline filter — "Clear filters" should mean ALL filters off.
+  // This is a SHARED state with the Deadlines page; that's the documented design.
+  if(_pipelineFilter){
+    _pipelineFilter = false;
+    try { localStorage.setItem('ldp_pipeline_filter_v1', '0'); } catch(e){}
+    _syncPipelineToggleUI();
+  }
   _persistFilterState();
   renderPrograms();
 }
@@ -3818,6 +3894,7 @@ function verifiedBadge(p){
 }
 
 function renderPrograms(){
+  _syncPipelineToggleUI();   // keep the Programs pill in lockstep with shared state
   // Phase 7: smart banner reflects resume + scan freshness
   renderFitBanner();
   const q=(document.getElementById('prog-search')||{}).value?.toLowerCase()||'';
@@ -3830,6 +3907,8 @@ function renderPrograms(){
     if(F.st.size  && !F.st.has(p.status))  return false;
     if(window._fitOnly && (+p.fit||0) < 4) return false;
     if(window._visaOnly && !p.visa)        return false;
+    // Universal pipeline filter — shared with Deadlines page
+    if(_pipelineFilter && !_findAppForProgram(p)) return false;
     if(q && !p.name.toLowerCase().includes(q) && !p.org.toLowerCase().includes(q) && !(p.notes||'').toLowerCase().includes(q)) return false;
     return true;
   });
@@ -4495,17 +4574,30 @@ function renderApplications(){
 // Each item carries metadata: rolling, inPipeline, appStatus, dlnote.
 // Render path: buildDeadlineItems → filter by scope → renderDLTimeline + buckets.
 
-let _dlScope = 'all';   // 'all' | 'mine'
+// Universal "My Pipeline" filter — shared state across Programs and Deadlines pages.
+// Kanban (Applications page) is NOT affected — it always shows pipeline by definition.
+// State is persisted to localStorage so the filter survives reloads and tab switches.
+let _pipelineFilter = false;   // false = show All, true = show only items in user's pipeline
 
-function setDLScope(scope){
-  if(scope !== 'all' && scope !== 'mine') return;
-  _dlScope = scope;
-  document.querySelectorAll('.dl-toggle-btn').forEach(b => {
-    const on = b.getAttribute('data-scope') === scope;
-    b.classList.toggle('on', on);
-    b.setAttribute('aria-selected', on ? 'true' : 'false');
+// Restore from localStorage on script load (safe: localStorage already exists in browser)
+try { _pipelineFilter = localStorage.getItem('ldp_pipeline_filter_v1') === '1'; } catch(e){ _pipelineFilter = false; }
+
+function togglePipelineFilter(){
+  _pipelineFilter = !_pipelineFilter;
+  try { localStorage.setItem('ldp_pipeline_filter_v1', _pipelineFilter ? '1' : '0'); } catch(e){}
+  _syncPipelineToggleUI();
+  // Re-render whichever page is currently active. The other page re-syncs on its next render.
+  const active = document.querySelector('.page.active');
+  if(active?.id === 'page-programs')  renderPrograms();
+  if(active?.id === 'page-deadlines') renderDeadlines();
+}
+
+// Keep every .pipeline-toggle button in lockstep (called from toggle + render funcs)
+function _syncPipelineToggleUI(){
+  document.querySelectorAll('.pipeline-toggle').forEach(b => {
+    b.classList.toggle('on', _pipelineFilter);
+    b.textContent = _pipelineFilter ? '✓ My Pipeline' : 'My Pipeline';
   });
-  renderDeadlines();
 }
 
 function buildDeadlineItems(){
@@ -4693,10 +4785,11 @@ function renderDLTimeline(items){
 }
 
 function renderDeadlines(){
+  _syncPipelineToggleUI();   // keep the Deadlines pill in lockstep with shared state
   let items = buildDeadlineItems();
 
-  // Scope filter
-  if(_dlScope === 'mine'){
+  // Scope filter — shared with the Programs tab
+  if(_pipelineFilter){
     items = items.filter(i => i.inPipeline);
   }
 
@@ -4721,8 +4814,8 @@ function renderDeadlines(){
   if(!bucketsEl) return;
 
   if(totalRows === 0){
-    bucketsEl.innerHTML = `<div class="empty">${_dlScope === 'mine'
-      ? 'No deadlines tied to your pipeline yet. Add deadlines on the Applications tab, or switch to <strong>All</strong> to see every tracked deadline.'
+    bucketsEl.innerHTML = `<div class="empty">${_pipelineFilter
+      ? 'No deadlines tied to your pipeline yet. Add deadlines on the Applications tab, or turn off <strong>My Pipeline</strong> to see every tracked deadline.'
       : 'No upcoming deadlines tracked. Add deadline dates on the Programs tab.'}</div>`;
     return;
   }
@@ -4740,25 +4833,25 @@ function renderDeadlines(){
 // because some internal callers still use it, but the UI button only fires
 // this wrapper now — nobody actually wants to bulk-export all 48 LDPs).
 function exportMyPipelineDeadlines(){
-  const prevScope = _dlScope;
-  _dlScope = 'mine';
+  const prev = _pipelineFilter;
+  _pipelineFilter = true;
   try {
     exportAllDeadlines();
   } finally {
-    _dlScope = prevScope;
+    _pipelineFilter = prev;
   }
 }
 
 function exportAllDeadlines(){
   let items = buildDeadlineItems();
-  if(_dlScope === 'mine') items = items.filter(i => i.inPipeline);
+  if(_pipelineFilter) items = items.filter(i => i.inPipeline);
 
   // Bulk export covers only DATED, future items (calendar entries need a date)
   const today = new Date(); today.setHours(0,0,0,0);
   const dated = items.filter(i => !i.rolling && i.date && i.date >= today);
 
   if(dated.length === 0){
-    if(_dlScope === 'mine'){
+    if(_pipelineFilter){
       toast('Nothing dated in your pipeline yet — log an application with a deadline first, or check the Programs tab for rolling deadlines.');
     } else {
       toast('Nothing dated to export — rolling items don\u2019t have a fixed date.');
@@ -4880,6 +4973,9 @@ async function extractTextFromFile(file){
 async function handleFileUpload(event){
   const file = event.target.files[0];
   if(!file) return;
+  // User is engaged with the page → cancel any pending aifit tour dwell timer.
+  // Even if the file fails to parse, picking a file shows intent.
+  clearAifitDwell();
   if(file.size > 5*1024*1024){alert('File too large — please use a file under 5MB.');return;}
 
   const fileDisplay = document.getElementById('aifit-file-display');
@@ -4956,6 +5052,10 @@ if(uzEl){
 async function runAIAnalysis(){
 
   if(!resumeText){alert('Please upload your resume first.');return;}
+
+  // Phase 14: gate the aifit dwell timer for the duration of the scan
+  _aifitScanning = true;
+  clearAifitDwell();
 
   // Vercel proxy handles the API key — no key needed in the browser
   const PROXY_URL = 'https://ldp-proxy.vercel.app/api/scan';
@@ -5081,6 +5181,7 @@ Schema:
   } finally {
     // Defensive: always reset button state, even if rendering above throws
     btn.disabled=false;btn.textContent='✦ Re-analyse';
+    _aifitScanning = false;
   }
 }
 
