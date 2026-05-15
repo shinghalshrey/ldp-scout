@@ -2667,6 +2667,10 @@ async function lpOAuthSignIn(provider, email, domain){
       provider: provider,
       options: {
         redirectTo: window.location.origin,
+        // Supabase Azure docs explicitly require requesting 'email' scope so
+        // the provider returns a verified email address. 'openid' and 'profile'
+        // are implicit defaults but listing them avoids surprises if defaults change.
+        scopes: 'openid email profile',
         queryParams: queryParams
       }
     });
