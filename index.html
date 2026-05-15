@@ -1043,13 +1043,22 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
       <!-- Auth form — preserves every ID the JS depends on -->
       <div class="lp2-form">
 
-        <!-- Step 1: Email input -->
+        <!-- Step 1: Email input. The "Continue" button uses lpContinueAuth() which
+             routes intelligently: if the email's domain is in SCHOOL_SSO_MAP, it
+             redirects to that provider's OAuth with a domain restriction (hd= for
+             Google, domain_hint= for Microsoft) so only school accounts can pass.
+             For unmapped domains, it falls through to OTP code. The "Use a code
+             instead" link forces the OTP path even for mapped domains — escape
+             hatch for users whose SSO account is locked or whose school changed
+             providers since we last verified the mapping. -->
         <div id="lp-step-email">
           <div class="lp-signup-bar-v2">
-            <input id="lp-email" type="email" placeholder="you@esade.edu" autocomplete="email" onkeydown="if(event.key==='Enter') lpSendOTP()">
-            <button onclick="lpSendOTP()" id="lp-signup-btn">Send Code →</button>
+            <input id="lp-email" type="email" placeholder="you@esade.edu" autocomplete="email" oninput="lpUpdateContinueButton()" onkeydown="if(event.key==='Enter') lpContinueAuth()">
+            <button onclick="lpContinueAuth()" id="lp-signup-btn">Continue →</button>
           </div>
-          <div style="display:flex;gap:16px;margin-top:10px;align-items:center;">
+          <p id="lp-route-hint" style="display:none;font-size:11px;color:var(--text3);margin-top:8px;line-height:1.5;"></p>
+          <div style="display:flex;gap:16px;margin-top:10px;align-items:center;flex-wrap:wrap;">
+            <button onclick="lpForceOTPFlow()" id="lp-use-code-btn" style="background:none;border:none;color:var(--text3);font-size:12px;cursor:pointer;font-family:var(--sans);text-decoration:underline;text-underline-offset:3px;padding:0;display:none;">Use a code instead →</button>
             <button onclick="lpShowPasswordStep()" id="lp-use-pw-btn" style="background:none;border:none;color:var(--blue);font-size:12px;cursor:pointer;font-family:var(--sans);text-decoration:underline;text-underline-offset:3px;padding:0;font-weight:500;">Use a password instead →</button>
           </div>
         </div>
@@ -1839,6 +1848,47 @@ const EDU_DOMAIN_WHITELIST = [
   'agsm.edu.au',         // AGSM (UNSW)
 ];
 
+// ─── PHASE 14: SSO ROUTING MAP ─────────────────────────────────────
+// Maps a school email domain to the OAuth provider it uses for student
+// accounts. Used by lpContinueAuth() to redirect users to the RIGHT
+// identity provider with a domain restriction — so personal Gmail or
+// personal Outlook accounts can never sign in, even via SSO.
+//
+// SAFETY: getting an entry wrong here is NOT catastrophic. The user will
+// see "no account found" from the provider, can click back, and use the
+// "Use a code instead" escape hatch in the UI which forces the OTP path.
+//
+// VERIFIED (do not change without re-checking):
+//   - esade.edu, alumni.esade.edu — Microsoft 365 (ESADE Alumni: Office 365;
+//     student portal hosted on urledu.sharepoint.com — SharePoint = Microsoft)
+//   - hec.edu — Microsoft 365 (HEC Paris migrated 1500 staff+students from
+//     Google Workspace to Microsoft 365 in 2024 via CloudM)
+//
+// UNVERIFIED — DO NOT ADD UNTIL CONFIRMED FROM A PRIMARY SOURCE.
+// To verify a school: check their IT support / student portal page; look for
+// "outlook.office365.com" (→ azure) or "mail.google.com" (→ google) in their
+// login URLs. Or just ask a student at that school.
+//
+// Providers:
+//   'azure'  → Microsoft / Azure AD (M365 for Education)
+//   'google' → Google Workspace for Education
+//
+// Anything NOT in this map → falls through to OTP code flow (existing behavior).
+const SCHOOL_SSO_MAP = {
+  'esade.edu':         'azure',
+  'alumni.esade.edu':  'azure',
+  'hec.edu':           'azure',
+};
+
+// Given an email, return { provider: 'azure'|'google'|null, domain: string }
+// provider=null means: no SSO mapping → use OTP code flow as fallback.
+function _emailProviderRoute(email){
+  const domain = (email||'').toLowerCase().split('@')[1] || '';
+  if(!domain) return { provider: null, domain: '' };
+  const provider = SCHOOL_SSO_MAP[domain] || null;
+  return { provider, domain };
+}
+
 function isValidEduEmail(email){
   if(!email || !email.includes('@')) return false;
   const domain = email.split('@')[1].toLowerCase().trim();
@@ -1858,6 +1908,44 @@ function isValidEduEmail(email){
   for(const kw of schoolKeywords){
     if(domain.includes(kw)) return true;
   }
+  return false;
+}
+
+// Phase 14: SSO-aware email-domain gate.
+//
+// Why this exists: the OTP and password sign-in paths both validate emails
+// against isValidEduEmail() BEFORE creating an account. The SSO/OAuth path
+// can't do that — the provider authenticates the user first, hands us a
+// session, and only THEN do we learn their email. So if someone signs in
+// with personal@gmail.com via Google, we end up with a fully authenticated
+// session for an email that should never have passed our gate.
+//
+// This helper is the catch-net. It runs in two places:
+//   1. The auth state listener (covers fresh OAuth sign-in events)
+//   2. initAuth() right after getSession() (covers returning visits where
+//      the session was already cached locally — listener doesn't re-fire)
+//
+// On failure: signs out, sets currentUser=null, shows the landing page
+// with an explanatory error. Returns false. Caller MUST early-return.
+async function _enforceEduEmailOrSignOut(){
+  if(!currentUser) return true;                              // not signed in → nothing to enforce
+  const email = (currentUser.email || '').toLowerCase();
+  if(isValidEduEmail(email)) return true;                    // valid school email → proceed
+  const badEmail = email || '(unknown)';
+  try { await sb.auth.signOut(); } catch(e){ console.warn('signOut on bad-email failed', e); }
+  currentUser = null;
+  updateAuthUI();
+  showLanding();
+  // Give the landing DOM a tick to render, then surface the error in the message slot
+  setTimeout(() => {
+    const msg = document.getElementById('lp-signup-msg');
+    if(msg){
+      msg.innerHTML = `⚠️ <strong>${badEmail}</strong> isn't a recognised university email. LDP Scout is invite-only for MBA students. Please sign in with your school email (e.g. you@esade.edu, you@hec.edu, you@london.edu).`;
+      msg.classList.remove('ok');
+      msg.classList.add('err');
+      msg.style.display = 'block';
+    }
+  }, 200);
   return false;
 }
 
@@ -1912,7 +2000,8 @@ async function initAuth() {
     currentUser = null;
   }
 
-  // Listen for auth state changes (handles the async token exchange from magic link)
+  // Listen for auth state changes (handles the async token exchange from magic link
+  // AND the OAuth callback from Google/Microsoft SSO)
   sb.auth.onAuthStateChange(async (event, session) => {
     const wasSignedIn = !!currentUser;
     currentUser = session?.user ?? null;
@@ -1923,10 +2012,19 @@ async function initAuth() {
       if(window.location.hash.includes('access_token')){
         history.replaceState(null, '', window.location.pathname);
       }
+      // Phase 14: SSO bypass guard. OAuth providers (Google, Microsoft) skip
+      // our pre-auth isValidEduEmail() check because we only see the email
+      // AFTER the provider authenticates. Enforce here. If the email isn't
+      // a recognised school email, _enforceEduEmailOrSignOut signs them out
+      // and shows the error — we must early-return so onSignIn() doesn't fire.
+      const eduOK = await _enforceEduEmailOrSignOut();
+      if(!eduOK) return;
       // Phase 14 (revised): if this was an OTP signin and the user hasn't
       // dismissed the password prompt before, hold them on the landing page
       // to offer setting a password. The user is already authenticated;
       // updateUser({password}) works without an email round-trip.
+      // NOTE: OAuth sign-ins don't set _ldp_lastSigninWasOtp, so this branch
+      // correctly skips them — OAuth users go straight to the dashboard.
       if(window._ldp_lastSigninWasOtp){
         window._ldp_lastSigninWasOtp = false;
         const dismissed = localStorage.getItem('ldp_pw_prompt_dismissed_v1') === 'true';
@@ -1943,9 +2041,13 @@ async function initAuth() {
   });
 
   updateAuthUI();
-  // On initial load: if already signed in, hide landing + load data
+  // On initial load: if already signed in, hide landing + load data.
+  // Run the SSO email guard FIRST — if the cached session is for an invalid
+  // email (e.g. a previous OAuth sign-in with personal Gmail that wasn't
+  // caught the first time), reject it before loading the dashboard.
   if(currentUser){
-    await onSignIn();
+    const eduOK = await _enforceEduEmailOrSignOut();
+    if(eduOK) await onSignIn();
   } else {
     showLanding();
   }
@@ -2182,7 +2284,7 @@ async function lpSendOTP(){
       msg.classList.add('err');
       msg.style.display = 'block';
       btn.disabled = false;
-      btn.textContent = 'Send Code →';
+      lpUpdateContinueButton();   // restore proper label based on current email
       return;
     }
 
@@ -2195,7 +2297,7 @@ async function lpSendOTP(){
     msg.classList.add('ok');
     msg.style.display = 'block';
     btn.disabled = false;
-    btn.textContent = 'Send Code →';
+    lpUpdateContinueButton();     // restore proper label (button will be hidden anyway, but kept in sync)
     // Focus the OTP input
     setTimeout(()=>{ document.getElementById('lp-otp-input').focus(); }, 200);
 
@@ -2204,7 +2306,7 @@ async function lpSendOTP(){
     msg.classList.add('err');
     msg.style.display = 'block';
     btn.disabled = false;
-    btn.textContent = 'Send Code →';
+    lpUpdateContinueButton();
   }
 }
 
@@ -2429,6 +2531,163 @@ async function lpSignInWithPassword(){
   }
 }
 
+// ─── PHASE 14 (revised): UNIFIED SIGN-IN ROUTER ──────────────────────
+//
+// Single entry point for the email sign-in form. Decides at click-time
+// whether to send the user to an OAuth provider (with domain restriction)
+// or fall through to the OTP code flow.
+//
+// Flow:
+//   1. User types school email → lpUpdateContinueButton updates the button
+//      label so they can see what'll happen ("Continue with Microsoft →"
+//      vs "Send code →") and reveals/hides the "Use a code instead" link
+//   2. User clicks Continue → lpContinueAuth() runs:
+//        a. Validate the email is a recognised school email (isValidEduEmail)
+//        b. Look up the domain in SCHOOL_SSO_MAP
+//        c. If mapped → redirect to that provider's OAuth with hd= or
+//           domain_hint= so only that school's accounts can pass
+//        d. If unmapped → fall through to lpSendOTP() (existing OTP flow)
+//   3. After OAuth redirect-back, the auth state listener's
+//      _enforceEduEmailOrSignOut() acts as a defense-in-depth check
+//      in case the provider's domain restriction didn't catch something
+
+// Update the Continue button label + show/hide "Use a code instead" based
+// on whether the typed email maps to an SSO provider. Called on every
+// keystroke in the email field.
+function lpUpdateContinueButton(){
+  const emailEl  = document.getElementById('lp-email');
+  const btn      = document.getElementById('lp-signup-btn');
+  const codeLink = document.getElementById('lp-use-code-btn');
+  const hint     = document.getElementById('lp-route-hint');
+  if(!emailEl || !btn) return;
+  const email = (emailEl.value || '').trim().toLowerCase();
+  if(!email || !email.includes('@')){
+    btn.textContent = 'Continue →';
+    if(codeLink) codeLink.style.display = 'none';
+    if(hint) hint.style.display = 'none';
+    return;
+  }
+  const route = _emailProviderRoute(email);
+  if(route.provider === 'azure'){
+    btn.textContent = 'Continue with Microsoft →';
+    if(codeLink) codeLink.style.display = 'inline-block';
+    if(hint){
+      hint.textContent = `We'll redirect you to Microsoft to sign in with your ${route.domain} account.`;
+      hint.style.display = 'block';
+    }
+  } else if(route.provider === 'google'){
+    btn.textContent = 'Continue with Google →';
+    if(codeLink) codeLink.style.display = 'inline-block';
+    if(hint){
+      hint.textContent = `We'll redirect you to Google to sign in with your ${route.domain} account.`;
+      hint.style.display = 'block';
+    }
+  } else {
+    btn.textContent = 'Send code →';
+    if(codeLink) codeLink.style.display = 'none';
+    if(hint) hint.style.display = 'none';
+  }
+}
+
+// Main router. Validates the email and either fires OAuth or OTP.
+async function lpContinueAuth(){
+  const emailEl = document.getElementById('lp-email');
+  const msg     = document.getElementById('lp-signup-msg');
+  const email   = (emailEl.value || '').trim().toLowerCase();
+  msg.style.display = 'none';
+  msg.classList.remove('ok','err');
+
+  if(!email){
+    msg.textContent = 'Please enter your school email.';
+    msg.classList.add('err');
+    msg.style.display = 'block';
+    return;
+  }
+  if(!isValidEduEmail(email)){
+    msg.innerHTML = '⚠️ Please use your university school email (.edu, .ac.uk, or your MBA school domain). LDP Scout is currently invite-only for MBA students.<br><span style="font-size:11px;color:var(--text3)">Accepted examples: you@esade.edu · you@hec.edu · you@london.edu</span>';
+    msg.classList.add('err');
+    msg.style.display = 'block';
+    return;
+  }
+  const route = _emailProviderRoute(email);
+  if(route.provider){
+    // SSO path — redirect to provider with domain restriction
+    await lpOAuthSignIn(route.provider, email, route.domain);
+  } else {
+    // No SSO mapping for this school → OTP fallback (existing flow)
+    await lpSendOTP();
+  }
+}
+
+// Explicit escape hatch: user is on a domain we'd normally route to SSO,
+// but they clicked "Use a code instead" — force the OTP flow regardless.
+// Useful when our mapping is wrong, or the user's SSO account is locked,
+// or they just prefer email codes.
+async function lpForceOTPFlow(){
+  await lpSendOTP();
+}
+
+// OAuth redirect with domain restriction.
+//
+// hd=<domain>            — Google: restricts to accounts in this Workspace domain.
+//                          Personal Gmail accounts are filtered out by Google itself.
+// domain_hint=<domain>   — Microsoft: pre-selects this tenant, suppresses the
+//                          "use a different account" option in most flows.
+// login_hint=<email>     — Both providers: pre-fills the email field, skipping
+//                          a step for the user.
+// prompt=select_account  — Forces the account picker to ALWAYS show, even if
+//                          the user is already signed into the provider. Without
+//                          this, a wrong-account user gets stuck reusing the
+//                          same cached login in an infinite reject loop.
+async function lpOAuthSignIn(provider, email, domain){
+  const msg = document.getElementById('lp-signup-msg');
+  const btn = document.getElementById('lp-signup-btn');
+  msg.style.display = 'none';
+  msg.classList.remove('ok','err');
+
+  if(btn){
+    btn.disabled = true;
+    btn.textContent = 'Redirecting...';
+  }
+
+  // Build provider-specific query params
+  const queryParams = {
+    prompt: 'select_account',
+    login_hint: email
+  };
+  if(provider === 'google' && domain){
+    queryParams.hd = domain;             // Google: restrict to this Workspace domain
+  }
+  if(provider === 'azure' && domain){
+    queryParams.domain_hint = domain;    // Microsoft: pre-select this tenant
+  }
+
+  try {
+    const { error } = await sb.auth.signInWithOAuth({
+      provider: provider,
+      options: {
+        redirectTo: window.location.origin,
+        queryParams: queryParams
+      }
+    });
+    if(error){
+      msg.innerHTML = (error.message || `Could not start ${provider === 'azure' ? 'Microsoft' : 'Google'} sign-in.`) +
+        ` <br><span style="font-size:11px">Try the <strong>"Use a code instead"</strong> link below — that always works.</span>`;
+      msg.classList.add('err');
+      msg.style.display = 'block';
+      if(btn){ btn.disabled = false; lpUpdateContinueButton(); }
+      return;
+    }
+    // Success path: browser is now navigating away. Auth listener handles return.
+  } catch(err){
+    msg.innerHTML = (err.message || 'Unexpected error starting sign-in.') +
+      ` <br><span style="font-size:11px">Try the <strong>"Use a code instead"</strong> link below — that always works.</span>`;
+    msg.classList.add('err');
+    msg.style.display = 'block';
+    if(btn){ btn.disabled = false; lpUpdateContinueButton(); }
+  }
+}
+
 // Phase 14 (revised): forgot-password no longer sends an email.
 // School mail servers pre-scan links and burn the reset token, plus the
 // default Supabase email template is ugly and slow. Instead, route the
@@ -2446,12 +2705,14 @@ function lpForgotPassword(){
   // Hide the password step, show the email step so the user can request a code
   document.getElementById('lp-step-password').style.display = 'none';
   document.getElementById('lp-step-email').style.display = 'block';
-  // Don't wipe the email — keep it so the user just clicks Send Code
+  // Don't wipe the email — keep it so the user just clicks Continue
   msg.innerHTML = '<strong>Sign in with a code</strong> — we\'ll let you set a new password once you\'re in.';
   msg.classList.add('ok');
   msg.style.display = 'block';
   const emailInput = document.getElementById('lp-email');
   if(emailInput) emailInput.focus();
+  // Refresh button label based on whatever email is in the field
+  if(typeof lpUpdateContinueButton === 'function') lpUpdateContinueButton();
 }
 
 // Called after a successful OTP verify, to offer setting a password
@@ -2539,6 +2800,8 @@ function lpBackToEmail(){
   document.getElementById('lp-otp-input').value = '';
   const pw = document.getElementById('lp-pw-input'); if(pw) pw.value = '';
   document.getElementById('lp-email').focus();
+  // Phase 14 (revised): refresh Continue label based on email still in field
+  if(typeof lpUpdateContinueButton === 'function') lpUpdateContinueButton();
 }
 
 function showAuthModal() {
@@ -5664,6 +5927,14 @@ initAuth();
 // Phase 10: restore saved filter+sort state before the first render
 _restoreFilterState();
 renderPrograms();
+
+// Phase 14 (revised): if the browser autofills the email field on page load,
+// the oninput event doesn't fire — so the Continue button label could be stale
+// (showing "Continue →" when it should say "Continue with Microsoft →"). Call
+// the updater once after a tick so any autofill has settled into the input.
+setTimeout(() => {
+  if(typeof lpUpdateContinueButton === 'function') lpUpdateContinueButton();
+}, 100);
 
 // Set dynamic program count in topbar stats
 const pcEl=document.getElementById('prog-count');
