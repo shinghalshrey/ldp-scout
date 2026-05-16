@@ -236,7 +236,7 @@ async function fetchProgramsFromSupabase() {
 
     const { data, error } = await sb
       .from('programs')
-      .select('id, company, program_name, industry, function, location, geo, status, deadline, dlnote, visa, url, tags, notes')
+      .select('id, company, program_name, industry, function, location, geo, status, deadline, dlnote, visa, url, tags, notes, program_type, duration, description, eligibility, work_experience, target_degree, source_url')
       .order('id', { ascending: true });
 
     if (error) {
@@ -265,6 +265,14 @@ async function fetchProgramsFromSupabase() {
       tags:     Array.isArray(row.tags) ? row.tags : [],
       notes:    row.notes || '',
       url:      row.url || '',
+      // Phase 16 (P2): scraped fields — render with esc(), keep raw text.
+      program_type:    row.program_type    || '',  // 'Full Time' | 'Internship' | ''
+      duration:        row.duration        || '',  // free-text, e.g. '2 years', '24 - 30 months'
+      description:     row.description     || '',
+      eligibility:     row.eligibility     || '',
+      work_experience: row.work_experience || '',
+      target_degree:   row.target_degree   || '',
+      source_url:      row.source_url      || '',
     }));
 
     // Refresh the localStorage cache so future page-loads have a fresh fallback
@@ -2213,14 +2221,37 @@ function renderPrograms(){
     :list.map(p=>{
       const [bc,bl]=sm[p.status]||['b-closed','—'];
       const dl=p.deadline?new Date(p.deadline).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):(p.dlnote||'—');
+      // Phase 16 (P2): render scraped fields with esc(); editorial typography.
+      const ptype = p.program_type ? `<span class="ptype">${esc(p.program_type)}</span>` : '';
+      const pdur  = p.duration ? `<span class="pdur">${esc(p.duration)}</span>` : '';
+      const meta  = (p.program_type || p.duration)
+        ? `<div class="pmeta">${ptype}${ptype && pdur ? ' &middot; ' : ''}${pdur}</div>` : '';
+      const desc  = p.description
+        ? `<div class="pdesc">${esc(trunc(p.description, 120))}</div>` : '';
+      // Read-only "Details" disclosure — full scraped fields + source link.
+      const hasDetails = p.description || p.eligibility || p.work_experience || p.target_degree || p.source_url;
+      const detailsBlock = hasDetails ? `
+        <details class="pdetails">
+          <summary>Details</summary>
+          <div class="pdetails-body">
+            ${p.description     ? `<div class="pd-row"><div class="pd-lbl">About</div><div class="pd-val">${esc(p.description)}</div></div>` : ''}
+            ${p.eligibility     ? `<div class="pd-row"><div class="pd-lbl">Eligibility</div><div class="pd-val">${esc(p.eligibility)}</div></div>` : ''}
+            ${p.work_experience ? `<div class="pd-row"><div class="pd-lbl">Work experience</div><div class="pd-val">${esc(p.work_experience)}</div></div>` : ''}
+            ${p.target_degree   ? `<div class="pd-row"><div class="pd-lbl">Target degree</div><div class="pd-val">${esc(p.target_degree)}</div></div>` : ''}
+            ${p.source_url      ? `<div class="pd-row"><div class="pd-lbl">Source</div><div class="pd-val"><a href="${esc(p.source_url)}" target="_blank" rel="noopener noreferrer">View original posting →</a></div></div>` : ''}
+          </div>
+        </details>` : '';
       return `<div class="prow">
         <div>
-          <div class="pname">${p.url?`<a href="${p.url}" target="_blank" rel="noopener noreferrer" style="color:var(--text);text-decoration:none;border-bottom:1px solid var(--border2);padding-bottom:1px" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--text)'">${p.name}</a>`:p.name}</div>
-          <div class="porg">${p.org}${p.visa?` <span style="font-size:10px;color:var(--teal);font-weight:600;margin-left:4px">✓ Visa</span>`:''}</div>
-          <div class="tags">${(p.tags||[]).map(t=>`<span class="tag">${t}</span>`).join('')}${verifiedBadge(p)}</div>
+          <div class="pname">${p.url?`<a href="${esc(p.url)}" target="_blank" rel="noopener noreferrer" style="color:var(--text);text-decoration:none;border-bottom:1px solid var(--border2);padding-bottom:1px" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--text)'">${esc(p.name)}</a>`:esc(p.name)}</div>
+          <div class="porg">${esc(p.org)}${p.visa?` <span style="font-size:10px;color:var(--teal);font-weight:600;margin-left:4px">✓ Visa</span>`:''}</div>
+          ${meta}
+          ${desc}
+          <div class="tags">${(p.tags||[]).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}${verifiedBadge(p)}</div>
+          ${detailsBlock}
         </div>
         <div class="cell">${cap(p.fn)} · ${cap(p.sector)}</div>
-        <div class="cell">${p.loc||p.geo}</div>
+        <div class="cell">${esc(p.loc||p.geo)}</div>
         <div class="cell mono" style="font-size:10px;line-height:1.5">${dl}</div>
         <div><span class="badge ${bc}">${bl}</span></div>
         <div>
@@ -2799,12 +2830,17 @@ function renderApplications(){
           else                { cls='ok';   lbl = days+' days left'; }
           daysBadge = `<div class="apdays ${cls}">${lbl}</div>`;
         }
+        // Phase 16 (P2): pull program_type from progs[] when this app maps to a tracked program.
+        const _linkedProg = a.program_id ? progs.find(pp => pp.id === a.program_id) : null;
+        const _ptype = _linkedProg?.program_type || '';
+        const ptypeBadge = _ptype ? `<div class="apptype">${esc(_ptype)}</div>` : '';
         return `<div class="apcard" draggable="true" data-app-id="${a.id}"
             ondragstart="dragAppStart(event,'${String(a.id).replace(/'/g,"\\'")}')"
             ondragend="dragAppEnd(event)"
             onclick="editAp('${String(a.id).replace(/'/g,"\\'")}')">
-          <div class="apct">${a.name}</div>
-          <div class="apco">${a.org||''}${a.geo?' · '+a.geo:''}</div>
+          <div class="apct">${esc(a.name)}</div>
+          <div class="apco">${esc(a.org||'')}${a.geo?' · '+esc(a.geo):''}</div>
+          ${ptypeBadge}
           ${a.next?`<div class="apnx">→ ${a.next}</div>`:''}
           ${a.contact?`<div style="font-size:10px;color:var(--text3);margin-top:4px">👤 ${a.contact}</div>`:''}
           ${a.deadline?`<div class="apdl">Due: ${new Date(a.deadline).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</div>`:''}
@@ -3308,6 +3344,27 @@ async function runAIAnalysis(){
   // Vercel proxy handles the API key — no key needed in the browser
   const PROXY_URL = 'https://ldp-proxy.vercel.app/api/scan';
 
+  // Phase 16 (P1): proxy now requires a Supabase JWT. Pull it once up-front;
+  // if the session is gone (e.g. signed out in another tab) bail with a clear msg.
+  let _proxyAuthHeader = '';
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if(!session?.access_token){
+      alert('Your session has expired. Please sign in again to run AI Fit.');
+      return;
+    }
+    _proxyAuthHeader = `Bearer ${session.access_token}`;
+  } catch(e){
+    console.warn('Could not fetch Supabase session for proxy call:', e);
+    alert('Could not verify your session. Please sign in again.');
+    return;
+  }
+  const callProxy = (payload) => fetch(PROXY_URL, {
+    method:'POST',
+    headers:{'Content-Type':'application/json', 'Authorization': _proxyAuthHeader},
+    body: JSON.stringify(payload),
+  });
+
   const btn=document.getElementById('analyze-btn');
   btn.disabled=true;btn.textContent='Analysing...';
   // Phase 13: switch to post-scan view so the spinner has a visible container
@@ -3318,8 +3375,18 @@ async function runAIAnalysis(){
   // Cap resume at 4000 chars to stay within token budget
   const resumeSnippet = resumeText.substring(0, 4000);
 
-  // Compact program list
-  const progSummary = progs.map(p=>`${p.id}|${p.name}|${p.org}|${p.fn}|${p.sector}|${p.geo}|${p.status}`).join('\n');
+  // Compact program list. Phase 16 (P2): include description / eligibility / work_experience
+  // (compact, truncated) so the tier classification can reason about real fit, not just metadata.
+  // Format: id|name|org|fn|sector|geo|status|type|wx|degree|about|elig
+  const progSummary = progs.map(p=>{
+    const about = trunc(p.description, 200);
+    const elig  = trunc(p.eligibility, 160);
+    return [
+      p.id, p.name, p.org, p.fn, p.sector, p.geo, p.status,
+      p.program_type||'', p.work_experience||'', p.target_degree||'',
+      about, elig
+    ].map(x => String(x||'').replace(/\|/g,'/').replace(/\n/g,' ')).join('|');
+  }).join('\n');
 
   try {
     // ─── CALL 1: Tier classification only ─────────────────────────
@@ -3338,17 +3405,13 @@ CRITICAL: Every program ID must appear in exactly ONE tier. Respond ONLY with ra
 Schema:
 {"profile_summary":"2-sentence summary of candidate","tiers":{"BEST_FIT":[{"id":N,"reason":"<25 word reason citing specific resume evidence"}],"STRONG_FIT":[...],"ACHIEVABLE":[...],"LONG_SHOT":[...],"NOT_FIT":[{"id":N,"reason":"string"}]}}`;
 
-    const tierUsr = `RESUME:\n${resumeSnippet}\n\nPROGRAMS (ID|Name|Org|Function|Sector|Geo|Status):\n${progSummary}`;
+    const tierUsr = `RESUME:\n${resumeSnippet}\n\nPROGRAMS (ID|Name|Org|Function|Sector|Geo|Status|Type|WorkExperience|TargetDegree|About|Eligibility):\n${progSummary}`;
 
-    const tierRes = await fetch(PROXY_URL, {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({
-        model:'claude-sonnet-4-5',
-        max_tokens: 4000,
-        system: tierSys,
-        messages: [{role:'user', content: tierUsr}]
-      })
+    const tierRes = await callProxy({
+      model:'claude-sonnet-4-5',
+      max_tokens: 4000,
+      system: tierSys,
+      messages: [{role:'user', content: tierUsr}]
     });
 
     if(!tierRes.ok){
@@ -3385,15 +3448,11 @@ Schema:
 
     const gapUsr = `RESUME:\n${resumeSnippet}\n\nTIER CONTEXT: ${tierContext}\nPROFILE SUMMARY: ${tierParsed.profile_summary || 'N/A'}`;
 
-    const gapRes = await fetch(PROXY_URL, {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({
-        model:'claude-sonnet-4-5',
-        max_tokens: 3000,
-        system: gapSys,
-        messages: [{role:'user', content: gapUsr}]
-      })
+    const gapRes = await callProxy({
+      model:'claude-sonnet-4-5',
+      max_tokens: 3000,
+      system: gapSys,
+      messages: [{role:'user', content: gapUsr}]
     });
 
     if(!gapRes.ok){
@@ -3847,6 +3906,24 @@ async function delCurrentApp(){
 
 // ═══════════════ HELPERS ═══════════════
 function cap(s){return s?s.charAt(0).toUpperCase()+s.slice(1):'';}
+
+// Phase 16 (P2): HTML-escape any scraped text before interpolating into innerHTML.
+// All seven new DB fields (description, eligibility, work_experience, etc.) flow
+// through scraped third-party HTML and MUST be escaped on render.
+function esc(v){
+  if(v == null) return '';
+  return String(v)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+// Truncate to N chars on a word boundary, append ellipsis if cut.
+function trunc(v, n){
+  const s = (v == null ? '' : String(v)).replace(/\s+/g,' ').trim();
+  if(s.length <= n) return s;
+  const cut = s.slice(0, n);
+  const i = cut.lastIndexOf(' ');
+  return (i > n*0.6 ? cut.slice(0, i) : cut) + '…';
+}
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
 
 // Close modals on outside click

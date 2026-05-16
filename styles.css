@@ -89,6 +89,30 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 .plink:hover{text-decoration:underline}
 .tags{display:flex;flex-wrap:wrap;gap:3px;margin-top:5px}
 .tag{font-size:10px;padding:2px 6px;border-radius:4px;background:var(--bg3);color:var(--text2);border:1px solid var(--border)}
+
+/* Phase 16 (P2): scraped DB fields — editorial typography, no colored pills */
+.pmeta{font-size:10px;color:var(--text3);margin-top:3px;letter-spacing:.06em;text-transform:uppercase;font-weight:500}
+.ptype{color:var(--text2)}
+.pdur{color:var(--text3)}
+.pdesc{font-size:11px;color:var(--text2);margin-top:5px;line-height:1.4;max-width:46em}
+.pdetails{margin-top:7px;font-size:11px}
+.pdetails > summary{cursor:pointer;color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:.06em;padding:2px 0;display:inline-block;list-style:none}
+.pdetails > summary::-webkit-details-marker{display:none}
+.pdetails > summary::before{content:'+ ';color:var(--text3)}
+.pdetails[open] > summary::before{content:'– '}
+.pdetails > summary:hover{color:var(--text2)}
+.pdetails-body{margin-top:8px;padding:10px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;display:grid;gap:8px}
+.pd-row{display:grid;grid-template-columns:120px 1fr;gap:10px;align-items:start}
+.pd-lbl{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;font-weight:500;padding-top:1px}
+.pd-val{font-size:11px;color:var(--text2);line-height:1.5;white-space:pre-wrap;word-wrap:break-word}
+.pd-val a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--border2)}
+.pd-val a:hover{border-color:var(--accent)}
+@media (max-width:768px){
+  .pd-row{grid-template-columns:1fr;gap:2px}
+}
+
+/* Kanban card: program_type badge (typographic, no color) */
+.apptype{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-top:4px;font-weight:500}
 .cell{font-size:12px;color:var(--text2)}
 .mono{font-family:var(--mono);font-size:11px}
 
