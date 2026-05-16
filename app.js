@@ -1396,6 +1396,8 @@ async function saveScanToHistory(result){
       resume_chars: resumeText.length,
       program_count: progs.length
     });
+    // Bump client-side counter to mirror the new server-side count.
+    _scanCount = (typeof _scanCount === 'number' ? _scanCount : 0) + 1;
     // Mark resume last-scanned
     const nowIso = new Date().toISOString();
     await sb.from('user_resumes').update({ last_scan_at: nowIso }).eq('user_id', currentUser.id);
@@ -1405,6 +1407,94 @@ async function saveScanToHistory(result){
   } catch(e){
     console.warn('saveScanToHistory failed (non-blocking):', e);
   }
+}
+
+// ═══════════════ PHASE 16 (P3): SCAN HISTORY LOAD + QUOTA ════════════
+// Client mirror of the server-side SCAN_QUOTA constant in scan.js. Used for
+// UI gating only — the proxy is the source of truth.
+const SCAN_QUOTA_CLIENT = 5;
+// In-memory count of completed scans for the current user. Populated on AI Fit
+// page entry by loadAndRenderLastScan(); incremented after each successful
+// saveScanToHistory(). `null` means "not yet fetched".
+let _scanCount = null;
+
+// Phase 16 (P3): Called by showPage('aifit'). Looks up the user's most recent
+// completed scan in user_scan_history and renders it if found — so users don't
+// have to re-scan every time they come back. Also primes _scanCount so the UI
+// reflects quota state. Safe to call without a résumé: just no-ops if absent.
+async function loadAndRenderLastScan(){
+  if(!currentUser) return;
+  try {
+    // Pull count + latest row in one round-trip. We use two queries because
+    // PostgREST count-with-data is awkward; the second is bounded by limit(1).
+    const countResp = await sb
+      .from('user_scan_history')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', currentUser.id);
+    _scanCount = countResp.count || 0;
+
+    // If they've burned through all 5 scans, show the hard block immediately —
+    // unless we have a previous scan to show, in which case we render that
+    // (read-only) with a note about quota.
+    const latestResp = await sb
+      .from('user_scan_history')
+      .select('result, resume_chars, created_at')
+      .eq('user_id', currentUser.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if(latestResp.error){
+      console.warn('loadAndRenderLastScan query failed:', latestResp.error.message);
+      return;
+    }
+    const row = latestResp.data;
+    if(!row) {
+      // No scan yet — leave pre-scan view as-is (upload UI).
+      // But if quota is already exhausted somehow, gate the upload too.
+      if(_scanCount >= SCAN_QUOTA_CLIENT) renderQuotaExhausted(_scanCount);
+      return;
+    }
+
+    // Sanity: result must be a usable tier JSON. If it's malformed (legacy
+    // truncated scan, etc.) skip rendering so the user can re-scan.
+    if(!row.result || typeof row.result !== 'object' || !row.result.tiers) return;
+
+    const scanDate = new Date(row.created_at)
+      .toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
+    const resumeChanged = (row.resume_chars != null)
+                       && (row.resume_chars !== (resumeText || '').length);
+    renderAIResults(row.result, {
+      scan_date: scanDate,
+      scans_used: _scanCount,
+      resume_changed: resumeChanged,
+    });
+  } catch(e){
+    console.warn('loadAndRenderLastScan failed (non-blocking):', e);
+  }
+}
+
+// Phase 16 (P3): Hard-block UI for the 5-scan free-tier limit. Rendered when
+// the user has used all free scans and tries to scan again. Server enforces
+// independently (returns 429), but rendering here saves a wasted API call.
+function renderQuotaExhausted(used){
+  document.getElementById('aifit-view-pre').style.display = 'none';
+  document.getElementById('aifit-view-post').style.display = 'block';
+  const usedSafe = (typeof used === 'number') ? used : SCAN_QUOTA_CLIENT;
+  document.getElementById('aifit-results-container').innerHTML = `
+    <div style="max-width:520px;margin:40px auto;text-align:center;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);padding:32px;box-shadow:var(--shadow-md)">
+      <div style="font-size:32px;margin-bottom:14px">🔒</div>
+      <div style="font-family:var(--serif);font-size:20px;margin-bottom:10px">Free scan limit reached</div>
+      <div style="font-size:13px;color:var(--text2);line-height:1.65;margin-bottom:20px">
+        You've used <strong>${usedSafe} of ${SCAN_QUOTA_CLIENT}</strong> free AI Fit scans.
+        To unlock more, email
+        <a href="mailto:hello@ldpscout.com?subject=Request%20more%20AI%20Fit%20scans" style="color:var(--accent);text-decoration:underline">hello@ldpscout.com</a>
+        and we'll get you sorted.
+      </div>
+      <div style="font-size:11px;color:var(--text3)">
+        Your previous scan results are still saved — they appear automatically when you visit this page.
+      </div>
+    </div>`;
 }
 // ────────────────────────────────────────────────────────────────
 
@@ -1963,7 +2053,7 @@ function showPage(id){
   const tabs=document.querySelectorAll('.nav-tab');
   if(idx>=0&&tabs[idx]) tabs[idx].classList.add('active');
   
-  ({programs:renderPrograms,alumni:()=>{initAlumniSchoolDrop();renderAlumniSectorList();renderAlumniSearch();},applications:renderApplications,deadlines:renderDeadlines,aifit:()=>{}})[id]?.();
+  ({programs:renderPrograms,alumni:()=>{initAlumniSchoolDrop();renderAlumniSectorList();renderAlumniSearch();},applications:renderApplications,deadlines:renderDeadlines,aifit:loadAndRenderLastScan})[id]?.();
 
   // Phase 4 / Phase 14: first-visit auto-tour wiring.
   // - aifit page → dwell timer (10s with no upload → tour). Special-cased because
@@ -3337,6 +3427,15 @@ async function runAIAnalysis(){
 
   if(!resumeText){alert('Please upload your resume first.');return;}
 
+  // Phase 16 (P3): client-side quota gate. _scanCount is the cached count
+  // populated by loadAndRenderLastScan or after a previous saveScanToHistory.
+  // Server still enforces independently — this just avoids a wasted round-trip
+  // when we already know the user is over the limit.
+  if(typeof _scanCount === 'number' && _scanCount >= SCAN_QUOTA_CLIENT){
+    renderQuotaExhausted(_scanCount);
+    return;
+  }
+
   // Phase 14: gate the aifit dwell timer for the duration of the scan
   _aifitScanning = true;
   clearAifitDwell();
@@ -3407,14 +3506,32 @@ Schema:
 
     const tierUsr = `RESUME:\n${resumeSnippet}\n\nPROGRAMS (ID|Name|Org|Function|Sector|Geo|Status|Type|WorkExperience|TargetDegree|About|Eligibility):\n${progSummary}`;
 
+    // Phase 16 (P3): Opus 4.7 for tier classification — high-stakes reasoning
+    // across 393+ programs. max_tokens bumped to 32000 so the full tier JSON
+    // never gets truncated (~80 tokens per program × 400 programs ≈ 32K).
+    // Gap analysis below stays on Sonnet 4.5 — smaller output, cheaper.
     const tierRes = await callProxy({
-      model:'claude-sonnet-4-5',
-      max_tokens: 4000,
+      model:'claude-opus-4-7',
+      max_tokens: 32000,
       system: tierSys,
       messages: [{role:'user', content: tierUsr}]
     });
 
     if(!tierRes.ok){
+      // Phase 16 (P3): special-case quota and quota-check errors so we render
+      // friendly UI instead of a generic "Tier classification failed (429): ..."
+      // toast. The proxy sets status 429 for quota exhausted, 503 for transient
+      // quota-check failures (e.g. Supabase momentarily unreachable).
+      if(tierRes.status === 429){
+        const j = await tierRes.json().catch(()=>({}));
+        const used = j?.error?.used;
+        if(typeof used === 'number') _scanCount = used;   // sync client mirror
+        renderQuotaExhausted(typeof used === 'number' ? used : SCAN_QUOTA_CLIENT);
+        return;   // skip the generic error renderer in `catch`
+      }
+      if(tierRes.status === 503){
+        throw new Error('Quota check is temporarily unavailable. Please try again in a moment.');
+      }
       const errText = await tierRes.text();
       throw new Error(`Tier classification failed (${tierRes.status}): ${errText.substring(0,200)}`);
     }
@@ -3456,6 +3573,19 @@ Schema:
     });
 
     if(!gapRes.ok){
+      // Phase 16 (P3): same quota handling as the tier call. In practice the
+      // gap call should never 429 right after tier passes, but a concurrent
+      // scan in another tab could theoretically push the count over the line.
+      if(gapRes.status === 429){
+        const j = await gapRes.json().catch(()=>({}));
+        const used = j?.error?.used;
+        if(typeof used === 'number') _scanCount = used;
+        renderQuotaExhausted(typeof used === 'number' ? used : SCAN_QUOTA_CLIENT);
+        return;
+      }
+      if(gapRes.status === 503){
+        throw new Error('Quota check is temporarily unavailable. Please try again in a moment.');
+      }
       const errText = await gapRes.text();
       throw new Error(`Gap analysis failed (${gapRes.status}): ${errText.substring(0,200)}`);
     }
@@ -3473,9 +3603,13 @@ Schema:
       suggestions: gapParsed.suggestions
     };
 
-    renderAIResults(merged);
+    // Phase 16 (P3): pass an optimistic scans_used so the "X of 5 scans" chip
+    // reflects THIS scan, not the previous count. saveScanToHistory below is
+    // fire-and-forget; if it eventually fails the next page load will resync.
+    const optimisticCount = (typeof _scanCount === 'number' ? _scanCount : 0) + 1;
+    renderAIResults(merged, { scans_used: optimisticCount });
 
-    // Save to scan history (non-blocking)
+    // Save to scan history (non-blocking) — this also bumps _scanCount on success.
     if(currentUser) saveScanToHistory(merged);
 
   } catch(err){
@@ -3560,17 +3694,22 @@ function syncAIResultsToPrograms(result){
   toast('✦ AI results synced to Programs tab');
 }
 
-function renderAIResults(result){
+// Phase 16 (P3): renderAIResults now accepts an optional `meta` argument so we
+// can render either a fresh scan (no meta → uses today's date, default state)
+// or a cached scan loaded from user_scan_history (meta carries scan_date,
+// scans_used, resume_changed). The render path is identical otherwise.
+function renderAIResults(result, meta){
+  meta = meta || {};
   // Sync results to programs table (for Fit column)
   syncAIResultsToPrograms(result);
-  
+
   // Switch to post-scan view
   document.getElementById('aifit-view-pre').style.display = 'none';
   document.getElementById('aifit-view-post').style.display = 'block';
-  
+
   const pm = {};
   progs.forEach(p => { pm[p.id] = p; });
-  
+
   // Count programs per tier
   const tierCounts = {
     BEST_FIT: (result.tiers?.BEST_FIT || []).length,
@@ -3579,13 +3718,28 @@ function renderAIResults(result){
     LONG_SHOT: (result.tiers?.LONG_SHOT || []).length,
     NOT_FIT: (result.tiers?.NOT_FIT || []).length
   };
-  
+
   const totalScanned = tierCounts.BEST_FIT + tierCounts.STRONG_FIT + tierCounts.ACHIEVABLE + tierCounts.LONG_SHOT + tierCounts.NOT_FIT;
-  const scanDate = new Date().toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
-  
+  const scanDate = meta.scan_date
+    || new Date().toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
+  // Cached _scanCount populated by loadAndRenderLastScan / runAIAnalysis; meta
+  // overrides if explicitly passed. Falls back to '?' when unknown.
+  const scansUsed = (typeof meta.scans_used === 'number') ? meta.scans_used
+                  : (typeof _scanCount === 'number' ? _scanCount : null);
+  const scansUsedTxt = (scansUsed === null) ? '' : ` · ${scansUsed} of ${SCAN_QUOTA_CLIENT} scans used`;
+
   // Build HTML
   let html = '';
-  
+
+  // Stale-resume banner (only when loading a cached scan whose resume_chars
+  // no longer matches the resume currently in memory).
+  if(meta.resume_changed){
+    html += `<div class="aifit-stale-banner" style="background:#fef3c7;border:1px solid #fbbf24;color:#92400e;padding:10px 14px;border-radius:8px;font-size:12px;margin-bottom:12px;display:flex;align-items:center;gap:8px">
+      <span style="font-size:14px">⚠️</span>
+      <span>Your résumé has been updated since this scan — re-scan for fresh results.</span>
+    </div>`;
+  }
+
   // Summary strip
   html += `<div class="aifit-summary-strip">
     <div class="aifit-summary-left">
@@ -3599,7 +3753,8 @@ function renderAIResults(result){
       </div>
     </div>
     <div class="aifit-summary-right">
-      <span class="aifit-summary-date">Scan · ${scanDate}</span>
+      <span class="aifit-summary-date">Scan · ${scanDate}${scansUsedTxt}</span>
+      <button class="aifit-rescan-btn" onclick="reuploadResume()" title="Upload a different résumé" style="background:transparent;border:1px solid var(--border2);color:var(--text2);margin-right:6px">Upload new résumé</button>
       <button class="aifit-rescan-btn" onclick="rescanAIFit()">Re-scan</button>
     </div>
   </div>`;
@@ -3761,14 +3916,38 @@ function toggleAIFitTier(tierKey){
   }
 }
 
-// Re-scan button — swap back to pre-scan view, reflect actual upload state
+// Phase 16 (P3): Re-scan button runs the analysis immediately if a résumé is
+// already in memory (the common case — user revisited an old scan). Only falls
+// back to the upload view if there's no résumé yet.
 function rescanAIFit(){
+  // Client-side quota gate (server still enforces; this avoids a wasted call).
+  if(typeof _scanCount === 'number' && _scanCount >= SCAN_QUOTA_CLIENT){
+    renderQuotaExhausted(_scanCount);
+    return;
+  }
+  if(resumeText && resumeText.trim().length >= 200){
+    // Have a résumé → just re-run the analysis on the existing post-scan view
+    runAIAnalysis();
+    return;
+  }
+  // No résumé in memory → fall through to upload UI
   document.getElementById('aifit-view-post').style.display = 'none';
   document.getElementById('aifit-view-pre').style.display = 'block';
   const btn = document.getElementById('analyze-btn');
   btn.textContent = '✦ Analyse My Fit';
-  // Only enable if there's a resume actually in memory; otherwise force-disable
-  btn.disabled = !(resumeText && resumeText.trim().length >= 200);
+  btn.disabled = true;
+}
+
+// Phase 16 (P3): "Upload new résumé" button — switches to pre-scan view and
+// triggers the existing hidden file input. After the file is processed, the
+// user is on the upload screen with the new file shown; they click Analyse.
+function reuploadResume(){
+  document.getElementById('aifit-view-post').style.display = 'none';
+  document.getElementById('aifit-view-pre').style.display = 'block';
+  const fileInput = document.getElementById('resume-file-input');
+  if(!fileInput) return;
+  fileInput.value = '';   // clear so re-selecting the same file still fires change
+  fileInput.click();
 }
 
 // ═══════════════ MODALS ═══════════════
