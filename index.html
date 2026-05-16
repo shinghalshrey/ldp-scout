@@ -151,7 +151,7 @@
           <span class="lp2-step-num">01</span>
           <div>
             <h3 class="lp2-step-title">Discover the right programs.</h3>
-            <p class="lp2-step-body">Browse 48 verified MBA-specific LDPs across Europe, the UAE, and beyond. Filter by sector, function, geography, visa support, and stage. The list is curated for MBAs — none of the generic graduate noise.</p>
+            <p class="lp2-step-body">Browse <span class="ldp-prog-count">48</span> verified MBA-specific LDPs across Europe, the UAE, and beyond. Filter by sector, function, geography, visa support, and stage. The list is curated for MBAs — none of the generic graduate noise.</p>
           </div>
         </li>
         <li>
@@ -224,6 +224,9 @@
       <span>Verified <span id="freshness-date"></span></span>
     </div>
     <span id="user-info" style="color:var(--text2);font-size:12px;margin-right:8px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
+    <!-- Phase 16 (P3): unified Profile button — name, school, password in one modal. -->
+    <button id="acct-profile-btn" onclick="openProfileModal()" style="display:none;padding:6px 12px;border-radius:8px;background:transparent;color:var(--text2);border:1px solid var(--border2);cursor:pointer;font-weight:500;font-size:12px;margin-right:6px;font-family:var(--sans);" title="Edit your profile">Profile</button>
+    <!-- Legacy Set/Change password button — kept hidden for backward compat with existing handlers. -->
     <button id="acct-set-pw-btn" onclick="openSetPasswordModal()" style="display:none;padding:6px 12px;border-radius:8px;background:transparent;color:var(--text2);border:1px solid var(--border2);cursor:pointer;font-weight:500;font-size:12px;margin-right:6px;font-family:var(--sans);" title="Set or change your password">Set password</button>
     <button id="auth-btn" onclick="handleAuth()" style="padding:6px 14px;border-radius:8px;background:var(--accent);color:white;border:none;cursor:pointer;font-weight:600;font-size:12px;">Sign In</button>
   </div>
@@ -241,11 +244,11 @@
 
 <!-- PROGRAMS PAGE -->
 <div class="page active" id="page-programs">
-  <div class="sech"><h2>Programs<span class="info-card-reopen" data-hint-key="programs_v1" onclick="reopenInfoCard('programs_v1')" title="Show page tips">?</span></h2><p>All 48 verified MBA LDP rotational programs — filter, search, and save to your application pipeline.</p></div>
+  <div class="sech"><h2>Programs<span class="info-card-reopen" data-hint-key="programs_v1" onclick="reopenInfoCard('programs_v1')" title="Show page tips">?</span></h2><p>All <span class="ldp-prog-count">48</span> verified MBA LDP rotational programs — filter, search, and save to your application pipeline.</p></div>
 
   <div class="info-card" data-hint-key="programs_v1">
     <button class="info-card-close" onclick="dismissInfoCard('programs_v1')" aria-label="Dismiss tip">×</button>
-    <strong>Master list of 48 verified MBA LDPs</strong><br>
+    <strong>Master list of <span class="ldp-prog-count">48</span> verified MBA LDPs</strong><br>
     Filter, search, and save programs to your pipeline.<br>
     <strong style="color:var(--text)">① Filter by geo/function/status</strong> · <strong style="color:var(--text)">② Click a row to open details</strong> · <strong style="color:var(--text)">③ Click the careers-page link to apply</strong>
     <a class="info-card-tour" onclick="tourStart('programs')">Tour this page →</a>
@@ -404,7 +407,7 @@
   <div id="aifit-view-pre" class="aifit-pre-scan">
     <header class="aifit-header">
       <span class="aifit-eyebrow">LDP SCOUT · AI FIT SCAN</span>
-      <h1 class="aifit-title">Match your resume to 48 MBA Leadership Development Programs</h1>
+      <h1 class="aifit-title">Match your resume to <span class="ldp-prog-count">48</span> MBA Leadership Development Programs</h1>
       <p class="aifit-subtitle">Get a tier-ranked fit analysis and gap assessment based on your professional background in seconds.</p>
     </header>
 
@@ -440,7 +443,7 @@
       </div>
       <div class="aifit-step">
         <span class="aifit-step-num">02. MAP</span>
-        <p class="aifit-step-text">AI evaluates your profile against 48 active LDPs.</p>
+        <p class="aifit-step-text">AI evaluates your profile against <span class="ldp-prog-count">48</span> active LDPs.</p>
       </div>
       <div class="aifit-step">
         <span class="aifit-step-num">03. STRATEGIZE</span>
@@ -522,7 +525,7 @@
   <button class="mclose" onclick="closeM('app')">×</button>
   <div class="mtitle">Log Application</div>
   <div class="fgrid">
-    <div class="fg full"><label>Program / Role <span style="font-size:10px;color:var(--text3);font-weight:400">(type to search 48 tracked programs)</span></label><input id="aps-name" list="prog-suggestions" placeholder="Amazon Pathways Operations LDP" oninput="autoFillFromProgram(this.value)" autocomplete="off"><datalist id="prog-suggestions"></datalist></div>
+    <div class="fg full"><label>Program / Role <span style="font-size:10px;color:var(--text3);font-weight:400">(type to search <span class="ldp-prog-count">48</span> tracked programs)</span></label><input id="aps-name" list="prog-suggestions" placeholder="Amazon Pathways Operations LDP" oninput="autoFillFromProgram(this.value)" autocomplete="off"><datalist id="prog-suggestions"></datalist></div>
     <div class="fg"><label>Organisation</label><input id="aps-org" placeholder="Amazon"></div>
     <div class="fg"><label>Geography</label><input id="aps-geo" placeholder="EU / UAE"></div>
     <div class="fg"><label>Stage</label>
@@ -620,6 +623,38 @@
     <div style="display:flex;gap:8px;justify-content:flex-end;">
       <button onclick="closeSetPasswordModal()" style="background:transparent;border:1px solid var(--border2);color:var(--text2);padding:9px 16px;border-radius:8px;cursor:pointer;font-family:var(--sans);font-size:13px;">Cancel</button>
       <button id="setpw-save-btn" onclick="saveAccountPassword()" style="background:var(--accent);color:#fff;border:none;padding:9px 18px;border-radius:8px;cursor:pointer;font-family:var(--sans);font-size:13px;font-weight:600;">Save password</button>
+    </div>
+  </div>
+</div>
+
+<!-- PHASE 16 (P3): PROFILE MODAL — unified name + school + password edit. -->
+<div class="ics-modal-overlay" id="profile-modal-overlay">
+  <div class="ics-modal" style="max-width:460px">
+    <h3>Your profile</h3>
+    <div class="ics-modal-sub">Update your name, school, and password. Leave the password fields blank to keep your existing one.</div>
+
+    <div style="margin-bottom:14px">
+      <label style="display:block;font-size:11px;color:var(--text2);margin-bottom:6px;font-family:var(--sans)">Full name</label>
+      <input id="profile-name" type="text" placeholder="Your full name" autocomplete="name" style="width:100%;padding:11px 14px;border:1px solid var(--border2);border-radius:8px;font-size:14px;font-family:var(--sans);background:var(--bg3);outline:none;box-sizing:border-box;">
+    </div>
+
+    <div style="margin-bottom:14px;position:relative">
+      <label style="display:block;font-size:11px;color:var(--text2);margin-bottom:6px;font-family:var(--sans)">Business school</label>
+      <input id="profile-school-input" type="text" placeholder="Type to search…" autocomplete="off" oninput="renderProfileSchoolOpts(this.value)" onfocus="renderProfileSchoolOpts(this.value)" style="width:100%;padding:11px 14px;border:1px solid var(--border2);border-radius:8px;font-size:14px;font-family:var(--sans);background:var(--bg3);outline:none;box-sizing:border-box;">
+      <div id="profile-school-drop" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:10;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;margin-top:4px;max-height:220px;overflow-y:auto;box-shadow:var(--shadow-md)"></div>
+    </div>
+
+    <hr style="border:none;border-top:1px solid var(--border2);margin:18px 0">
+    <div style="font-size:11px;color:var(--text3);margin-bottom:10px;font-family:var(--sans)">Change password — leave blank to skip</div>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px">
+      <input id="profile-pw1" type="password" autocomplete="new-password" minlength="8" placeholder="New password (8+ characters)" style="padding:11px 14px;border:1px solid var(--border2);border-radius:8px;font-size:14px;font-family:var(--sans);background:var(--bg3);outline:none;">
+      <input id="profile-pw2" type="password" autocomplete="new-password" minlength="8" placeholder="Confirm new password" style="padding:11px 14px;border:1px solid var(--border2);border-radius:8px;font-size:14px;font-family:var(--sans);background:var(--bg3);outline:none;">
+    </div>
+
+    <p id="profile-msg" style="display:none;font-size:12px;margin:0 0 14px;padding:8px 12px;border-radius:6px;line-height:1.5;"></p>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button onclick="closeProfileModal()" style="background:transparent;border:1px solid var(--border2);color:var(--text2);padding:9px 16px;border-radius:8px;cursor:pointer;font-family:var(--sans);font-size:13px;">Cancel</button>
+      <button id="profile-save-btn" onclick="saveProfileChanges()" style="background:var(--accent);color:#fff;border:none;padding:9px 18px;border-radius:8px;cursor:pointer;font-family:var(--sans);font-size:13px;font-weight:600;">Save changes</button>
     </div>
   </div>
 </div>
