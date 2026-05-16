@@ -1441,14 +1441,21 @@ let _scanCount = null;
 // have to re-scan every time they come back. Also primes _scanCount so the UI
 // reflects quota state. Safe to call without a résumé: just no-ops if absent.
 async function loadAndRenderLastScan(){
-  if(!currentUser) return;
+  console.log('[loadAndRenderLastScan] currentUser at call time:', currentUser ? currentUser.id : 'null');
+  // Use sb.auth.getUser() for a fresh, authoritative session check rather than
+  // the in-memory currentUser. On first navigation after login, currentUser may
+  // be set but the Supabase client's internal session token hasn't propagated
+  // yet, causing RLS-gated queries to silently return empty. getUser() forces
+  // the client to resolve the session fully before we query.
+  const { data: { user } } = await sb.auth.getUser();
+  if(!user) return;
   try {
     // Pull count + latest row in one round-trip. We use two queries because
     // PostgREST count-with-data is awkward; the second is bounded by limit(1).
     const countResp = await sb
       .from('user_scan_history')
       .select('id', { count: 'exact', head: true })
-      .eq('user_id', currentUser.id);
+      .eq('user_id', user.id);
     if(countResp.error){
       // Log visibly — a 403 here means GRANT or RLS is misconfigured server-side.
       console.error('[loadAndRenderLastScan] count query failed — code:', countResp.error.code,
@@ -1463,7 +1470,7 @@ async function loadAndRenderLastScan(){
     const latestResp = await sb
       .from('user_scan_history')
       .select('result, resume_chars, created_at')
-      .eq('user_id', currentUser.id)
+      .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
