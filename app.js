@@ -1399,12 +1399,21 @@ async function saveResumeToDB(rawText, fileName){
 async function saveScanToHistory(result){
   if(!currentUser) return;
   try {
-    await sb.from('user_scan_history').insert({
+    // Supabase v2 never throws on DB errors — always destructure { error }.
+    const { error: insertErr } = await sb.from('user_scan_history').insert({
       user_id: currentUser.id,
       result: result,
       resume_chars: resumeText.length,
       program_count: progs.length
     });
+    if(insertErr){
+      // Log visibly so RLS / GRANT failures surface in the console.
+      console.error('[saveScanToHistory] INSERT failed — code:', insertErr.code,
+        '| message:', insertErr.message,
+        '| hint:', insertErr.hint,
+        '| details:', insertErr.details);
+      throw insertErr;
+    }
     // Bump client-side counter to mirror the new server-side count.
     _scanCount = (typeof _scanCount === 'number' ? _scanCount : 0) + 1;
     // Mark resume last-scanned
@@ -1414,7 +1423,7 @@ async function saveScanToHistory(result){
     resumeLastScanAt = nowIso;
     renderFitBanner();
   } catch(e){
-    console.warn('saveScanToHistory failed (non-blocking):', e);
+    console.error('[saveScanToHistory] failed (non-blocking):', e);
   }
 }
 
@@ -1440,6 +1449,12 @@ async function loadAndRenderLastScan(){
       .from('user_scan_history')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', currentUser.id);
+    if(countResp.error){
+      // Log visibly — a 403 here means GRANT or RLS is misconfigured server-side.
+      console.error('[loadAndRenderLastScan] count query failed — code:', countResp.error.code,
+        '| message:', countResp.error.message,
+        '| hint:', countResp.error.hint);
+    }
     _scanCount = countResp.count || 0;
 
     // If they've burned through all 5 scans, show the hard block immediately —
@@ -1454,7 +1469,9 @@ async function loadAndRenderLastScan(){
       .maybeSingle();
 
     if(latestResp.error){
-      console.warn('loadAndRenderLastScan query failed:', latestResp.error.message);
+      console.error('[loadAndRenderLastScan] latest-row query failed — code:', latestResp.error.code,
+        '| message:', latestResp.error.message,
+        '| hint:', latestResp.error.hint);
       return;
     }
     const row = latestResp.data;
