@@ -280,12 +280,25 @@ async function fetchProgramsFromSupabase() {
 
     progsLoadedFromDb = true;
     console.log(`[LDP Scout] ✓ Loaded ${progs.length} programs from Supabase`);
+    // Phase 16 (P3): keep all user-visible "N programs" strings in sync with the
+    // actual DB count instead of the legacy hardcoded "48".
+    updateProgramCountInUI();
     return true;
 
   } catch (e) {
     console.error('[LDP Scout] Exception in fetchProgramsFromSupabase:', e);
     return false;
   }
+}
+
+// Phase 16 (P3): Replaces the text content of every <span class="ldp-prog-count">
+// in the DOM with the live count of loaded programs. Safe to call repeatedly.
+function updateProgramCountInUI(){
+  const n = (Array.isArray(progs) ? progs.length : 0);
+  if(!n) return;   // don't show 0 mid-load
+  document.querySelectorAll('.ldp-prog-count').forEach(el => {
+    el.textContent = n;
+  });
 }
 
 async function onSignIn(){
@@ -372,24 +385,20 @@ function updateAuthUI() {
   const btn = document.getElementById('auth-btn');
   const userInfo = document.getElementById('user-info');
   const setPwBtn = document.getElementById('acct-set-pw-btn');
+  const profileBtn = document.getElementById('acct-profile-btn');
   if (currentUser) {
     if (btn) btn.textContent = 'Sign Out';
     if (userInfo) userInfo.textContent = currentUser.email;
-    if (setPwBtn) {
-      // Phase 15: flip "Set password" → "Change password" based on user_metadata flag.
-      // The flag is written by lpSetPassword and saveAccountPassword after a successful
-      // updateUser({password}). Stored in Supabase's auth.users.user_metadata JSON column,
-      // so it syncs across devices and survives sign-outs.
-      const hasPw = !!(currentUser.user_metadata && currentUser.user_metadata.has_password);
-      setPwBtn.textContent = hasPw ? 'Change password' : 'Set password';
-      setPwBtn.title = hasPw
-        ? 'Change your password'
-        : 'Set a password so you can sign in without a code next time';
-      setPwBtn.style.display = 'inline-block';
-    }
+    // Phase 16 (P3): Profile button replaces the standalone Set/Change password
+    // button — the unified profile modal covers name, school, and password.
+    if (profileBtn) profileBtn.style.display = 'inline-block';
+    // Keep the legacy Set-password button hidden but functional (in case any
+    // older code paths still call openSetPasswordModal).
+    if (setPwBtn) setPwBtn.style.display = 'none';
   } else {
     if (btn) btn.textContent = 'Sign In';
     if (userInfo) userInfo.textContent = '';
+    if (profileBtn) profileBtn.style.display = 'none';
     if (setPwBtn) setPwBtn.style.display = 'none';
   }
 }
@@ -2032,7 +2041,170 @@ document.addEventListener('DOMContentLoaded', ()=>{
       if(e.target === o) closeSetPasswordModal();
     });
   }
+  // Same wiring for the Profile modal (Phase 16 P3).
+  const po = document.getElementById('profile-modal-overlay');
+  if(po){
+    po.addEventListener('click', e=>{
+      if(e.target === po) closeProfileModal();
+    });
+  }
 });
+
+// ═══════════════ PHASE 16 (P3): PROFILE MODAL ═══════════════
+// Unified editor for full_name, school_key/label (user_profiles) and password
+// (Supabase auth). Replaces the standalone Set/Change password button in the
+// topbar; the underlying password update path mirrors saveAccountPassword.
+let _profileSelectedSchool = null;
+
+function openProfileModal(){
+  if(!currentUser) return;
+  const ov = document.getElementById('profile-modal-overlay');
+  if(!ov) return;
+  // Prefill from the in-memory userProfile (loaded by loadUserProfile on signin).
+  const nameEl = document.getElementById('profile-name');
+  const schoolEl = document.getElementById('profile-school-input');
+  if(nameEl)   nameEl.value   = (userProfile && userProfile.full_name)    || '';
+  if(schoolEl) schoolEl.value = (userProfile && userProfile.school_label) || '';
+  _profileSelectedSchool = (userProfile && userProfile.school_key)
+    ? { key: userProfile.school_key, label: userProfile.school_label || '' }
+    : null;
+  // Clear password fields and status message every open.
+  const pw1 = document.getElementById('profile-pw1'); if(pw1) pw1.value = '';
+  const pw2 = document.getElementById('profile-pw2'); if(pw2) pw2.value = '';
+  const msg = document.getElementById('profile-msg');
+  if(msg){ msg.style.display = 'none'; msg.textContent = ''; }
+  const drop = document.getElementById('profile-school-drop');
+  if(drop) drop.style.display = 'none';
+  ov.classList.add('show');
+}
+
+function closeProfileModal(){
+  const ov = document.getElementById('profile-modal-overlay');
+  if(ov) ov.classList.remove('show');
+  const drop = document.getElementById('profile-school-drop');
+  if(drop) drop.style.display = 'none';
+}
+
+// School autocomplete dropdown for the profile modal — mirrors the onboarding
+// school picker, but scoped to the profile modal's DOM.
+function renderProfileSchoolOpts(q){
+  const drop = document.getElementById('profile-school-drop');
+  if(!drop) return;
+  const query = (q || '').trim().toLowerCase();
+  const filtered = (typeof ALL_MBA_SCHOOLS !== 'undefined' ? ALL_MBA_SCHOOLS : [])
+    .filter(s => !query || s.label.toLowerCase().includes(query))
+    .slice(0, 10);
+  if(!filtered.length){
+    drop.style.display = 'none';
+    return;
+  }
+  drop.innerHTML = filtered.map(s => {
+    const safeLabel = String(s.label).replace(/'/g, "\\'");
+    return `<div onclick="pickProfileSchool('${s.key}', '${safeLabel}')" style="padding:9px 12px;cursor:pointer;font-size:13px;font-family:var(--sans);border-bottom:1px solid var(--border2)" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='transparent'">${s.label}</div>`;
+  }).join('');
+  drop.style.display = 'block';
+}
+
+function pickProfileSchool(key, label){
+  _profileSelectedSchool = { key, label };
+  const input = document.getElementById('profile-school-input');
+  if(input) input.value = label;
+  const drop = document.getElementById('profile-school-drop');
+  if(drop) drop.style.display = 'none';
+}
+
+async function saveProfileChanges(){
+  const btn = document.getElementById('profile-save-btn');
+  const msg = document.getElementById('profile-msg');
+  const showMsg = (text, isError) => {
+    if(!msg) return;
+    msg.textContent = text;
+    msg.style.display = 'block';
+    msg.style.background = isError ? 'var(--coral-bg)' : 'var(--accent-bg)';
+    msg.style.color      = isError ? 'var(--coral)'    : 'var(--accent)';
+  };
+
+  const nameVal   = (document.getElementById('profile-name').value || '').trim();
+  const schoolVal = (document.getElementById('profile-school-input').value || '').trim();
+  const pw1       = document.getElementById('profile-pw1').value;
+  const pw2       = document.getElementById('profile-pw2').value;
+
+  if(!nameVal){
+    showMsg('Please enter your name.', true);
+    return;
+  }
+  // School validation: if the user typed something, it must match a known school
+  // (either from the dropdown click or by exact case-insensitive label match).
+  let schoolToSave = null;
+  if(schoolVal){
+    if(_profileSelectedSchool && _profileSelectedSchool.label === schoolVal){
+      schoolToSave = _profileSelectedSchool;
+    } else {
+      const match = (typeof ALL_MBA_SCHOOLS !== 'undefined' ? ALL_MBA_SCHOOLS : [])
+        .find(s => s.label.toLowerCase() === schoolVal.toLowerCase());
+      if(!match){
+        showMsg('Pick a school from the dropdown.', true);
+        return;
+      }
+      schoolToSave = { key: match.key, label: match.label };
+    }
+  }
+  // Password rules: both blank → skip; both filled → must match + 8+ chars.
+  if((pw1 || pw2) && pw1 !== pw2){
+    showMsg('The two passwords don\u2019t match.', true);
+    return;
+  }
+  if(pw1 && pw1.length < 8){
+    showMsg('Password must be at least 8 characters.', true);
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Saving…';
+
+  try {
+    // 1. Update name + school in user_profiles.
+    const updates = { full_name: nameVal };
+    if(schoolToSave){
+      updates.school_key   = schoolToSave.key;
+      updates.school_label = schoolToSave.label;
+    }
+    await saveUserProfile(updates);
+
+    // 2. If a password was entered, push it to Supabase Auth.
+    if(pw1){
+      const { data: updateData, error } = await sb.auth.updateUser({
+        password: pw1,
+        data: { has_password: true }
+      });
+      if(error){
+        showMsg(error.message || 'Could not save password.', true);
+        btn.disabled = false;
+        btn.textContent = 'Save changes';
+        return;
+      }
+      if(updateData && updateData.user) currentUser = updateData.user;
+      try { localStorage.setItem('ldp_pw_prompt_dismissed_v1', 'true'); } catch(e){}
+    }
+
+    // 3. Refresh the bits of the UI that depend on profile state.
+    updateAuthUI();
+    renderProgressStrip();     // Profile pill may now light up
+    updateFitTabIndicator();
+    showMsg('\u2713 Saved.', false);
+    btn.disabled = false;
+    btn.textContent = 'Save changes';
+    setTimeout(() => {
+      closeProfileModal();
+      toast('\u2728 Profile updated');
+    }, 900);
+  } catch(err){
+    console.error('saveProfileChanges failed:', err);
+    showMsg((err && err.message) || 'Save failed. Please try again.', true);
+    btn.disabled = false;
+    btn.textContent = 'Save changes';
+  }
+}
 
 // Phase 2 cleanup: removed no-op stubs saveOnboarding / skipOnboarding / applyProfile / dismissPaywall.
 // Onboarding now lives in the onb* state machine; paywall was removed (isUnlocked = true).
@@ -3489,7 +3661,10 @@ async function runAIAnalysis(){
 
   try {
     // ─── CALL 1: Tier classification only ─────────────────────────
-    // Smaller, focused output → much less likely to truncate
+    // Phase 16 (P3 Option A): compact output. The top three tiers (the only ones
+    // users actually read) carry short reasons; LONG_SHOT and NOT_FIT are just
+    // IDs. Saves ~60% of output tokens with zero visible quality loss because
+    // those tiers are collapsed by default in the UI anyway.
     const tierSys = `You are an expert MBA career advisor specialising in Leadership Development Programs. Classify EVERY program into one of 5 tiers based on the resume.
 
 TIERS:
@@ -3499,19 +3674,19 @@ TIERS:
 - LONG_SHOT: Gaps exist, worth trying with network
 - NOT_FIT: Structural mismatch, skip
 
-CRITICAL: Every program ID must appear in exactly ONE tier. Respond ONLY with raw valid JSON. No markdown, no code fences, no preamble.
+CRITICAL: Every program ID must appear in exactly ONE tier. BEST_FIT, STRONG_FIT and ACHIEVABLE entries each need a short reason (≤20 words, cite specific resume evidence). LONG_SHOT and NOT_FIT entries are just bare IDs — no reasons, no objects. Respond ONLY with raw valid JSON. No markdown, no code fences, no preamble.
 
 Schema:
-{"profile_summary":"2-sentence summary of candidate","tiers":{"BEST_FIT":[{"id":N,"reason":"<25 word reason citing specific resume evidence"}],"STRONG_FIT":[...],"ACHIEVABLE":[...],"LONG_SHOT":[...],"NOT_FIT":[{"id":N,"reason":"string"}]}}`;
+{"profile_summary":"2-sentence summary of candidate","tiers":{"BEST_FIT":[{"id":N,"reason":"<20 word reason"}],"STRONG_FIT":[{"id":N,"reason":"<20 word reason"}],"ACHIEVABLE":[{"id":N,"reason":"<20 word reason"}],"LONG_SHOT":[N,N,N],"NOT_FIT":[N,N,N]}}`;
 
     const tierUsr = `RESUME:\n${resumeSnippet}\n\nPROGRAMS (ID|Name|Org|Function|Sector|Geo|Status|Type|WorkExperience|TargetDegree|About|Eligibility):\n${progSummary}`;
 
-    // Phase 16 (P3): Opus 4.7 for tier classification — high-stakes reasoning
+    // Phase 16 (P3): Opus 4.6 for tier classification — high-stakes reasoning
     // across 393+ programs. max_tokens bumped to 32000 so the full tier JSON
     // never gets truncated (~80 tokens per program × 400 programs ≈ 32K).
     // Gap analysis below stays on Sonnet 4.5 — smaller output, cheaper.
     const tierRes = await callProxy({
-      model:'claude-opus-4-7',
+      model:'claude-opus-4-6',
       max_tokens: 32000,
       system: tierSys,
       messages: [{role:'user', content: tierUsr}]
@@ -3681,12 +3856,15 @@ function syncAIResultsToPrograms(result){
   // Map tier to fit score
   const tierScore={BEST_FIT:5,STRONG_FIT:4,ACHIEVABLE:3,LONG_SHOT:2,NOT_FIT:1};
   Object.entries(tierScore).forEach(([tier,score])=>{
-    (result.tiers[tier]||[]).forEach(item=>{
+    (result.tiers[tier]||[]).forEach(raw=>{
+      // Phase 16 (P3 Option A): LONG_SHOT and NOT_FIT come back as bare IDs.
+      // Normalise to {id, reason?} so the rest of this is shape-agnostic.
+      const item = (typeof raw === 'object' && raw !== null) ? raw : { id: raw };
       const prog=progs.find(p=>p.id==item.id);
       if(prog){
         prog.fit=score;
         prog.aiTier=tier;
-        prog.aiReason=item.reason;
+        prog.aiReason=item.reason || '';
       }
     });
   });
@@ -3787,24 +3965,30 @@ function renderAIResults(result, meta){
         </div>
       </div>
       <div class="aifit-tier-cards" id="${tierId}" style="display:${isOpen ? 'flex' : 'none'}">
-        ${items.map(item => {
+        ${items.map(rawItem => {
+          // Phase 16 (P3 Option A): tier items can be either {id, reason} objects
+          // (BEST_FIT / STRONG_FIT / ACHIEVABLE) or bare numeric IDs (LONG_SHOT /
+          // NOT_FIT). Normalise either shape to {id, reason} so render is uniform.
+          const item = (typeof rawItem === 'object' && rawItem !== null)
+            ? rawItem
+            : { id: rawItem, reason: '' };
           const p = pm[item.id];
           if(!p) return '';
-          
+
           const initial = (p.org || '?').charAt(0).toUpperCase();
-          
+
           // Tags: show sector, geo, visa
           const tags = [];
           if(p.sector) tags.push(cap(p.sector));
           if(p.geo) tags.push(cap(p.geo));
           if(p.visa) tags.push('Visa');
-          
+
           return `<div class="aifit-program-card">
             <div class="aifit-program-card-left">
               <div class="aifit-program-initial">${initial}</div>
               <div class="aifit-program-info">
                 <div class="aifit-program-name">${p.name}</div>
-                <div class="aifit-program-reason">${item.reason}</div>
+                ${item.reason ? `<div class="aifit-program-reason">${item.reason}</div>` : ''}
               </div>
             </div>
             <div class="aifit-program-card-right">
