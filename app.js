@@ -176,10 +176,16 @@ async function initAuth() {
       // updateUser({password}) works without an email round-trip.
       if(window._ldp_lastSigninWasOtp){
         window._ldp_lastSigninWasOtp = false;
-        const dismissed = localStorage.getItem('ldp_pw_prompt_dismissed_v1') === 'true';
-        if(!dismissed){
-          lpShowSetPasswordStep('after_otp');
-          return;
+        // Skip prompt if user already has a password set (Phase 15 flag).
+        // Only === true counts; undefined/false → show prompt (new-user path).
+        if(currentUser?.user_metadata?.has_password === true){
+          // fall through to onSignIn() below
+        } else {
+          const dismissed = localStorage.getItem('ldp_pw_prompt_dismissed_v1') === 'true';
+          if(!dismissed){
+            lpShowSetPasswordStep('after_otp');
+            return;
+          }
         }
       }
       await onSignIn();
@@ -537,6 +543,7 @@ async function lpVerifyOTP(){
     // Success — user is now signed in. The auth listener has already
     // fired and (because the flag was set before this call) either
     // showed the set-password prompt OR loaded the dashboard.
+    console.log('[lpVerifyOTP] post-verify, has_password:', currentUser?.user_metadata?.has_password);
     msg.innerHTML = '✓ <strong>Signed in!</strong>';
     msg.classList.add('ok');
     msg.style.display = 'block';
@@ -732,6 +739,12 @@ function lpForgotPassword(){
 // Called after a successful OTP verify, to offer setting a password
 // so the user doesn't need a fresh code next time.
 function lpShowSetPasswordStep(mode){
+  // Belt-and-suspenders: never show if user already has a password.
+  if(currentUser?.user_metadata?.has_password === true){
+    console.warn('[lpShowSetPasswordStep] set-password step called but user already has password — skipping');
+    onSignIn();
+    return;
+  }
   // mode currently always 'after_otp' — the 'reset' branch was removed when
   // we dropped the email-based password reset flow (school mail scanners
   // were burning the reset tokens before users could click them).
