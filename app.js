@@ -1430,7 +1430,7 @@ async function saveScanToHistory(result){
 // ═══════════════ PHASE 16 (P3): SCAN HISTORY LOAD + QUOTA ════════════
 // Client mirror of the server-side SCAN_QUOTA constant in scan.js. Used for
 // UI gating only — the proxy is the source of truth.
-const SCAN_QUOTA_CLIENT = 5;
+const SCAN_QUOTA_CLIENT = 3;
 // In-memory count of completed scans for the current user. Populated on AI Fit
 // page entry by loadAndRenderLastScan(); incremented after each successful
 // saveScanToHistory(). `null` means "not yet fetched".
@@ -1464,7 +1464,7 @@ async function loadAndRenderLastScan(){
     }
     _scanCount = countResp.count || 0;
 
-    // If they've burned through all 5 scans, show the hard block immediately —
+    // If they've burned through all 3 scans, show the hard block immediately —
     // unless we have a previous scan to show, in which case we render that
     // (read-only) with a note about quota.
     const latestResp = await sb
@@ -3802,7 +3802,7 @@ Schema:
       suggestions: gapParsed.suggestions
     };
 
-    // Phase 16 (P3): pass an optimistic scans_used so the "X of 5 scans" chip
+    // Phase 16 (P3): pass an optimistic scans_used so the "X of 3 scans" chip
     // reflects THIS scan, not the previous count. saveScanToHistory below is
     // fire-and-forget; if it eventually fails the next page load will resync.
     const optimisticCount = (typeof _scanCount === 'number' ? _scanCount : 0) + 1;
