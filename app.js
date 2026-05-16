@@ -3956,7 +3956,7 @@ function renderAIResults(result, meta){
     </div>
     <div class="aifit-summary-right">
       <span class="aifit-summary-date">Scan · ${scanDate}${scansUsedTxt}</span>
-      <button class="aifit-rescan-btn" onclick="reuploadResume()" title="Upload a different résumé" style="background:transparent;border:1px solid var(--border2);color:var(--text2);margin-right:6px">Upload new résumé</button>
+      <button class="aifit-upload-btn" onclick="reuploadResume()" title="Upload a different résumé">Upload new résumé</button>
       <button class="aifit-rescan-btn" onclick="rescanAIFit()">Re-scan</button>
     </div>
   </div>`;
