@@ -170,22 +170,26 @@ async function initAuth() {
       if(window.location.hash.includes('access_token')){
         history.replaceState(null, '', window.location.pathname);
       }
-      // Phase 14 (revised): if this was an OTP signin and the user hasn't
-      // dismissed the password prompt before, hold them on the landing page
-      // to offer setting a password. The user is already authenticated;
-      // updateUser({password}) works without an email round-trip.
+      // Task 9: after an OTP signin, decide whether to force the mandatory
+      // password-setup step.
+      //   - _ldp_forceSetPassword = true  → forgot-password or password-fallback
+      //                                     or signup. Show set-password screen
+      //                                     even if has_password is already true.
+      //   - signup / new user (has_password !== true) → show it.
+      //   - signin_code with has_password === true → skip to dashboard.
       if(window._ldp_lastSigninWasOtp){
         window._ldp_lastSigninWasOtp = false;
-        // Skip prompt if user already has a password set (Phase 15 flag).
-        // Only === true counts; undefined/false → show prompt (new-user path).
-        if(currentUser?.user_metadata?.has_password === true){
-          // fall through to onSignIn() below
-        } else {
-          const dismissed = localStorage.getItem('ldp_pw_prompt_dismissed_v1') === 'true';
-          if(!dismissed){
-            lpShowSetPasswordStep('after_otp');
-            return;
-          }
+        const force = window._ldp_forceSetPassword === true;
+        window._ldp_forceSetPassword = false;
+        if(force){
+          console.log('[auth] mandatory password setup shown for:', currentUser?.email);
+          lpShowSetPasswordStep('after_otp', { force: true });
+          return;
+        }
+        if(currentUser?.user_metadata?.has_password !== true){
+          console.log('[auth] mandatory password setup shown for:', currentUser?.email);
+          lpShowSetPasswordStep('after_otp');
+          return;
         }
       }
       await onSignIn();
@@ -371,7 +375,9 @@ function onSignOut(){
   if(emailStep) emailStep.style.display = 'block';
   if(signupMsg){ signupMsg.style.display = 'none'; signupMsg.textContent = ''; }
   if(verifyBtn){ verifyBtn.disabled = false; verifyBtn.textContent = 'Verify →'; }
-  if(signupBtn){ signupBtn.disabled = false; signupBtn.textContent = 'Send Code →'; }
+  if(signupBtn){ signupBtn.disabled = false; signupBtn.textContent = 'Sign Up'; }
+  const signinBtn = document.getElementById('lp-signin-btn');
+  if(signinBtn){ signinBtn.disabled = false; signinBtn.textContent = 'Sign In'; }
   // Phase 14: also reset the password + set-password steps
   const pwStep = document.getElementById('lp-step-password');
   const setPwStep = document.getElementById('lp-step-set-password');
@@ -418,18 +424,82 @@ async function handleAuth() {
   }
 }
 
-// ─── Landing page sign-up — OTP code flow ────────────────────────
-// Step 1: User enters .edu email → we send an 8-digit OTP code via email.
-// Step 2: User enters the code → we verify it → signed in.
-// No magic link = no Safe Links consuming the token.
+// ─── Landing page auth — Task 9 restructured flow ────────────────
+// Two top-level entry points from the landing buttons:
+//   lpSignUp() — for users without an account (creates via OTP).
+//   lpSignIn() — for users with an account (password by default, with
+//                code-fallback and forgot-password sub-paths).
+// Both call email_account_status(p_email) before doing anything else so
+// we never accidentally let the wrong button send an OTP.
 
-let _otpEmail = ''; // stash the email between steps
+let _otpEmail   = ''; // stash the email between steps
+let _otpContext = ''; // 'signup' | 'signin_code' | 'forgot_password' | 'password_fallback'
+let _pwHasPassword = false; // does the email shown on lp-step-password have a password set?
 
-async function lpSendOTP(){
+// Lightweight wrapper over the email_account_status RPC. Returns
+// { account_exists: boolean, has_password: boolean } or null on error.
+async function emailAccountStatus(email){
+  try {
+    const { data, error } = await sb.rpc('email_account_status', { p_email: email });
+    if(error) throw error;
+    // Supabase returns an array of rows for table-returning RPCs — grab row 0.
+    const row = Array.isArray(data) ? data[0] : data;
+    return {
+      account_exists: !!(row && row.account_exists),
+      has_password:   !!(row && row.has_password),
+    };
+  } catch(err){
+    console.error('[auth] RPC email_account_status failed:', err);
+    return null;
+  }
+}
+
+// Internal: send OTP for a given context and switch the UI to the OTP step.
+// Returns true on success, false on error (caller's button state must reset).
+async function _sendOtpForContext(email, context){
+  const msg = document.getElementById('lp-signup-msg');
+  try {
+    const { error } = await sb.auth.signInWithOtp({
+      email,
+      options: {
+        // Only the signup path should ever create a new user. Existing-user
+        // flows pass false so a typo can't spawn an unverified shell account.
+        shouldCreateUser: context === 'signup',
+      }
+    });
+    if(error){
+      msg.textContent = error.message || 'Could not send code. Please try again.';
+      msg.classList.add('err');
+      msg.style.display = 'block';
+      return false;
+    }
+    console.log('[auth] OTP sent to:', email, 'context:', context);
+    _otpEmail = email;
+    _otpContext = context;
+    document.getElementById('lp-otp-email-display').textContent = email;
+    document.getElementById('lp-step-email').style.display       = 'none';
+    document.getElementById('lp-step-password').style.display    = 'none';
+    document.getElementById('lp-step-set-password').style.display = 'none';
+    document.getElementById('lp-step-otp').style.display         = 'block';
+    msg.innerHTML = '✓ <strong>Code sent!</strong> Check your inbox for an 8-digit code from <strong>LDP Scout</strong> (noreply@ldpscout.com). School emails can take 1-3 minutes.';
+    msg.classList.add('ok');
+    msg.style.display = 'block';
+    setTimeout(()=>{ const el = document.getElementById('lp-otp-input'); if(el) el.focus(); }, 200);
+    return true;
+  } catch(err){
+    msg.textContent = err.message || 'Unexpected error. Please try again.';
+    msg.classList.add('err');
+    msg.style.display = 'block';
+    return false;
+  }
+}
+
+// ─── Sign Up button ──────────────────────────────────────────────
+async function lpSignUp(){
   const emailInput = document.getElementById('lp-email');
   const btn = document.getElementById('lp-signup-btn');
   const msg = document.getElementById('lp-signup-msg');
-  const email = (emailInput.value||'').trim();
+  const email = (emailInput.value || '').trim().toLowerCase();
 
   msg.style.display = 'none';
   msg.classList.remove('ok','err');
@@ -448,45 +518,89 @@ async function lpSendOTP(){
   }
 
   btn.disabled = true;
-  btn.textContent = 'Sending...';
+  btn.textContent = 'Checking…';
 
-  try {
-    // Send OTP (8-digit code) via email — no redirect URL needed
-    const { error } = await sb.auth.signInWithOtp({
-      email,
-      options: {
-        shouldCreateUser: true  // auto-create user if first time
-      }
-    });
-    if(error){
-      msg.textContent = error.message || 'Could not send code. Please try again.';
-      msg.classList.add('err');
-      msg.style.display = 'block';
-      btn.disabled = false;
-      btn.textContent = 'Send Code →';
-      return;
-    }
-
-    // Success — show OTP input step
-    _otpEmail = email;
-    document.getElementById('lp-otp-email-display').textContent = email;
-    document.getElementById('lp-step-email').style.display = 'none';
-    document.getElementById('lp-step-otp').style.display = 'block';
-    msg.innerHTML = '✓ <strong>Code sent!</strong> Check your inbox for an 8-digit code from <strong>LDP Scout</strong> (noreply@ldpscout.com). School emails can take 1-3 minutes.';
-    msg.classList.add('ok');
-    msg.style.display = 'block';
-    btn.disabled = false;
-    btn.textContent = 'Send Code →';
-    // Focus the OTP input
-    setTimeout(()=>{ document.getElementById('lp-otp-input').focus(); }, 200);
-
-  } catch(err){
-    msg.textContent = err.message || 'Unexpected error. Please try again.';
+  const status = await emailAccountStatus(email);
+  if(!status){
+    msg.textContent = 'Could not verify account status. Please try again.';
     msg.classList.add('err');
     msg.style.display = 'block';
     btn.disabled = false;
-    btn.textContent = 'Send Code →';
+    btn.textContent = 'Sign Up';
+    return;
   }
+  console.log('[auth] signup attempt:', email, 'account_exists:', status.account_exists);
+
+  if(status.account_exists){
+    msg.textContent = 'You already have an account. Use Sign In.';
+    msg.classList.add('err');
+    msg.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = 'Sign Up';
+    return;
+  }
+
+  // New user → mandatory password setup after OTP verification.
+  window._ldp_forceSetPassword = true;
+  btn.textContent = 'Sending…';
+  const ok = await _sendOtpForContext(email, 'signup');
+  btn.disabled = false;
+  btn.textContent = 'Sign Up';
+  if(!ok) window._ldp_forceSetPassword = false;
+}
+
+// ─── Sign In button ──────────────────────────────────────────────
+async function lpSignIn(){
+  const emailInput = document.getElementById('lp-email');
+  const btn = document.getElementById('lp-signin-btn');
+  const msg = document.getElementById('lp-signup-msg');
+  const email = (emailInput.value || '').trim().toLowerCase();
+
+  msg.style.display = 'none';
+  msg.classList.remove('ok','err');
+
+  if(!email){
+    msg.textContent = 'Please enter your school email.';
+    msg.classList.add('err');
+    msg.style.display = 'block';
+    return;
+  }
+  if(!isValidEduEmail(email)){
+    msg.innerHTML = '⚠️ Please use your school email. LDP Scout is currently invite-only for MBA students.<br><span style="font-size:11px;color:var(--text3)">Accepted examples: you@esade.edu · you@hec.edu · you@london.edu. School not in our list? Email <a href="mailto:hello@ldpscout.com" style="color:var(--blue)">hello@ldpscout.com</a> and we\'ll add it within 24 hours.</span>';
+    msg.classList.add('err');
+    msg.style.display = 'block';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Checking…';
+
+  const status = await emailAccountStatus(email);
+  if(!status){
+    msg.textContent = 'Could not verify account status. Please try again.';
+    msg.classList.add('err');
+    msg.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = 'Sign In';
+    return;
+  }
+  console.log('[auth] signin attempt:', email, 'account_exists:', status.account_exists, 'has_password:', status.has_password);
+
+  if(!status.account_exists){
+    msg.textContent = 'No account found. Use Sign Up to create one.';
+    msg.classList.add('err');
+    msg.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = 'Sign In';
+    return;
+  }
+
+  // Account exists — show the password step. For legacy users without a
+  // password set we still show it (their submit will fall back to OTP).
+  _pwHasPassword = status.has_password;
+  lpShowPasswordStep({ hasPassword: status.has_password });
+  btn.disabled = false;
+  btn.textContent = 'Sign In';
 }
 
 async function lpVerifyOTP(){
@@ -572,12 +686,13 @@ async function lpResendOTP(){
   try {
     const { error } = await sb.auth.signInWithOtp({
       email: _otpEmail,
-      options: { shouldCreateUser: true }
+      options: { shouldCreateUser: _otpContext === 'signup' }
     });
     if(error){
       msg.textContent = error.message;
       msg.classList.add('err');
     } else {
+      console.log('[auth] OTP sent to:', _otpEmail, 'context:', _otpContext + ' (resend)');
       msg.innerHTML = '✓ New code sent to <strong>'+_otpEmail+'</strong>. Check your inbox.';
       msg.classList.add('ok');
       document.getElementById('lp-otp-input').value = '';
@@ -593,31 +708,29 @@ async function lpResendOTP(){
   resendBtn.disabled = false;
 }
 
-// ─── PASSWORD AUTH (Phase 14) ────────────────────────────────────
-// Reuses Supabase Auth's native email+password — no schema changes,
-// same auth.users table as the OTP flow.
-
-function lpShowPasswordStep(){
-  const emailInput = document.getElementById('lp-email');
-  const email = (emailInput.value || '').trim().toLowerCase();
-  const msg = document.getElementById('lp-signup-msg');
+// ─── PASSWORD STEP ───────────────────────────────────────────────
+// Task 9: invoked from lpSignIn() once we've confirmed an account exists
+// for the email. The opts.hasPassword flag drives the inline hint shown
+// above the password field for the legacy "no password yet" edge case.
+function lpShowPasswordStep(opts){
+  const hasPw = !!(opts && opts.hasPassword);
+  const email = (document.getElementById('lp-email').value || '').trim().toLowerCase();
+  const msg   = document.getElementById('lp-signup-msg');
   msg.style.display = 'none';
   msg.classList.remove('ok','err');
 
-  // Require a valid-looking email first — same validator the OTP path uses
-  if(!email || !isValidEduEmail(email)){
-    msg.innerHTML = '⚠️ Please enter your school email first (e.g. you@esade.edu). School not in our list? Email <a href="mailto:hello@ldpscout.com" style="color:var(--blue)">hello@ldpscout.com</a>.';
-    msg.classList.add('err');
+  document.getElementById('lp-pw-email-display').textContent = email;
+  document.getElementById('lp-step-email').style.display       = 'none';
+  document.getElementById('lp-step-otp').style.display         = 'none';
+  document.getElementById('lp-step-set-password').style.display = 'none';
+  document.getElementById('lp-step-password').style.display    = 'block';
+
+  if(!hasPw){
+    msg.textContent = "Your account doesn't have a password yet. We'll send you a code to set one.";
+    msg.classList.add('ok');
     msg.style.display = 'block';
-    emailInput.focus();
-    return;
   }
 
-  document.getElementById('lp-pw-email-display').textContent = email;
-  document.getElementById('lp-step-email').style.display = 'none';
-  document.getElementById('lp-step-otp').style.display = 'none';
-  document.getElementById('lp-step-set-password').style.display = 'none';
-  document.getElementById('lp-step-password').style.display = 'block';
   setTimeout(()=>{ const el=document.getElementById('lp-pw-input'); if(el) el.focus(); }, 100);
 }
 
@@ -640,46 +753,21 @@ async function lpSignInWithPassword(){
   btn.textContent = 'Signing in...';
 
   try {
-    // Try signing in first (returning user with existing password)
     const signIn = await sb.auth.signInWithPassword({ email, password });
     if(!signIn.error){
-      // Returning user — success. Auth listener handles the rest.
       msg.innerHTML = '✓ <strong>Signed in!</strong> Loading your dashboard...';
       msg.classList.add('ok');
       msg.style.display = 'block';
       return;
     }
 
-    // Sign-in failed. Most likely either (a) new user — no account yet, or
-    // (b) wrong password. Try sign-up: if it creates the account, they're new.
-    // If sign-up complains "user already exists", they had an account but the
-    // password they typed was wrong.
-    btn.textContent = 'Creating account...';
-    const signUp = await sb.auth.signUp({ email, password });
-    if(signUp.error){
-      const errText = (signUp.error.message || '').toLowerCase();
-      if(errText.includes('already') || errText.includes('registered') || errText.includes('exists')){
-        // Account exists. Two sub-cases (Supabase doesn't tell us which):
-        //   (a) Password is genuinely wrong
-        //   (b) User has only ever signed in via OTP — no password set yet
-        // (b) is by far the more common case for our user base. Auto-route
-        // them to OTP so they can sign in and set a password. Clear the
-        // dismissed flag so the post-OTP set-password prompt fires.
-        localStorage.removeItem('ldp_pw_prompt_dismissed_v1');
-        msg.innerHTML = 'This email is already registered, but we couldn\'t sign you in with that password. <strong>Sending you a code instead</strong> — you\'ll be able to set a new password once you\'re in.';
-        msg.classList.add('ok');
-        msg.style.display = 'block';
-        // Switch to the OTP step and fire lpSendOTP automatically
-        document.getElementById('lp-step-password').style.display = 'none';
-        document.getElementById('lp-step-email').style.display = 'block';
-        // Trigger OTP send after a short delay so the user reads the message
-        setTimeout(()=>{ lpSendOTP(); }, 700);
-        btn.disabled = false;
-        btn.textContent = 'Sign In →';
-        return;
-      } else {
-        msg.textContent = signUp.error.message || 'Could not create account.';
-      }
+    // Sign-in failed. Two cases:
+    //   - Account has a password (_pwHasPassword=true): treat as wrong password.
+    //   - Account has no password yet (legacy): auto-redirect to OTP flow with
+    //     forced mandatory password setup afterwards.
+    if(_pwHasPassword){
+      console.error('[auth] password signin failed:', email);
+      msg.textContent = signIn.error.message || 'Incorrect password. Try again or use "Forgot password?".';
       msg.classList.add('err');
       msg.style.display = 'block';
       btn.disabled = false;
@@ -687,21 +775,15 @@ async function lpSignInWithPassword(){
       return;
     }
 
-    // signUp succeeded. With "Confirm email" OFF in Supabase, the user has
-    // a session immediately. The auth listener picks up SIGNED_IN and
-    // routes them into the dashboard. With "Confirm email" ON, signUp
-    // succeeds but returns no session — surface that case explicitly.
-    if(!signUp.data?.session){
-      msg.innerHTML = '⚠️ Almost there — Supabase is set to require email confirmation. Either confirm via the email we just sent, or ask Pranav to turn off "Confirm email" in Supabase.';
-      msg.classList.add('err');
-      msg.style.display = 'block';
+    console.error('[auth] password signin failed, redirecting to OTP:', email);
+    window._ldp_forceSetPassword = true;
+    btn.textContent = 'Sending code…';
+    const ok = await _sendOtpForContext(email, 'password_fallback');
+    if(!ok){
+      window._ldp_forceSetPassword = false;
       btn.disabled = false;
       btn.textContent = 'Sign In →';
-      return;
     }
-    msg.innerHTML = '✓ <strong>Account created.</strong> Loading your dashboard...';
-    msg.classList.add('ok');
-    msg.style.display = 'block';
   } catch(err){
     msg.textContent = err.message || 'Unexpected error. Please try again.';
     msg.classList.add('err');
@@ -711,50 +793,45 @@ async function lpSignInWithPassword(){
   }
 }
 
-// Phase 14 (revised): forgot-password no longer sends an email.
-// School mail servers pre-scan links and burn the reset token, plus the
-// default Supabase email template is ugly and slow. Instead, route the
-// user to the OTP flow — once signed in via code, they can set a new
-// password via the post-OTP prompt (which appears on next sign-in since
-// the dismissed flag is per-browser).
-function lpForgotPassword(){
-  const msg = document.getElementById('lp-signup-msg');
-  msg.style.display = 'none';
-  msg.classList.remove('ok','err');
-
-  // Clear the dismissed flag so the post-OTP set-password step shows again
-  localStorage.removeItem('ldp_pw_prompt_dismissed_v1');
-
-  // Hide the password step, show the email step so the user can request a code
-  document.getElementById('lp-step-password').style.display = 'none';
-  document.getElementById('lp-step-email').style.display = 'block';
-  // Don't wipe the email — keep it so the user just clicks Continue
-  msg.innerHTML = '<strong>Sign in with a code</strong> — we\'ll let you set a new password once you\'re in.';
-  msg.classList.add('ok');
-  msg.style.display = 'block';
-  const emailInput = document.getElementById('lp-email');
-  if(emailInput) emailInput.focus();
+// "Login using code instead?" — user already authenticated by code, no
+// mandatory password setup unless the account doesn't have one yet (in
+// which case the natural new-user path in onAuthStateChange will run it).
+async function lpSignInWithCode(){
+  const email = (document.getElementById('lp-email').value || '').trim().toLowerCase();
+  if(!email) return;
+  await _sendOtpForContext(email, 'signin_code');
 }
 
-// Called after a successful OTP verify, to offer setting a password
-// so the user doesn't need a fresh code next time.
-function lpShowSetPasswordStep(mode){
-  // Belt-and-suspenders: never show if user already has a password.
-  if(currentUser?.user_metadata?.has_password === true){
+// "Forgot password?" — OTP flow with forced password setup after verify.
+async function lpForgotPassword(){
+  const email = (document.getElementById('lp-email').value || '').trim().toLowerCase();
+  if(!email) return;
+  window._ldp_forceSetPassword = true;
+  const ok = await _sendOtpForContext(email, 'forgot_password');
+  if(!ok) window._ldp_forceSetPassword = false;
+}
+
+// Called after a successful OTP verify to make the user set a password.
+// Task 9: mandatory — no skip button, no localStorage dismissal. The
+// belt-and-suspenders early return below short-circuits when the user
+// already has a password set, EXCEPT when opts.force=true (forgot-password
+// or password_fallback paths, where we want a fresh password regardless).
+function lpShowSetPasswordStep(mode, opts){
+  const force = !!(opts && opts.force);
+  if(!force && currentUser?.user_metadata?.has_password === true){
     console.warn('[lpShowSetPasswordStep] set-password step called but user already has password — skipping');
     onSignIn();
     return;
   }
-  // mode currently always 'after_otp' — the 'reset' branch was removed when
-  // we dropped the email-based password reset flow (school mail scanners
-  // were burning the reset tokens before users could click them).
   const headline = document.getElementById('lp-set-pw-headline');
-  const skipBtn = document.getElementById('lp-skip-pw-btn');
-  headline.innerHTML = '<strong>You\'re signed in.</strong> Set a password to skip the code next time? <span style="color:var(--text3);font-weight:400">— optional, you can always sign in with a code instead.</span>';
-  skipBtn.style.display = '';
-  document.getElementById('lp-step-email').style.display = 'none';
-  document.getElementById('lp-step-otp').style.display = 'none';
-  document.getElementById('lp-step-password').style.display = 'none';
+  if(headline){
+    headline.innerHTML = force
+      ? '<strong>You\'re signed in.</strong> Set a new password to finish.'
+      : '<strong>You\'re signed in.</strong> Set a password to finish — you\'ll use it to sign in next time.';
+  }
+  document.getElementById('lp-step-email').style.display        = 'none';
+  document.getElementById('lp-step-otp').style.display          = 'none';
+  document.getElementById('lp-step-password').style.display     = 'none';
   document.getElementById('lp-step-set-password').style.display = 'block';
   setTimeout(()=>{ const el=document.getElementById('lp-new-pw-input'); if(el) el.focus(); }, 100);
 }
@@ -797,8 +874,6 @@ async function lpSetPassword(){
     // Phase 15: refresh currentUser locally so updateAuthUI flips the button label
     // when the dashboard renders next (without waiting for next sign-in).
     if(updateData?.user) currentUser = updateData.user;
-    // Save the dismissed flag so this prompt doesn't show again on this browser
-    localStorage.setItem('ldp_pw_prompt_dismissed_v1', 'true');
     msg.innerHTML = '✓ <strong>Password saved.</strong> Loading your dashboard...';
     msg.classList.add('ok');
     msg.style.display = 'block';
@@ -815,14 +890,6 @@ async function lpSetPassword(){
     btn.disabled = false;
     btn.textContent = 'Save Password →';
   }
-}
-
-async function lpSkipPassword(){
-  // User declined to set a password — remember the choice so we don't ask again
-  // on this browser, then continue to the dashboard.
-  localStorage.setItem('ldp_pw_prompt_dismissed_v1', 'true');
-  document.getElementById('lp-step-set-password').style.display = 'none';
-  await onSignIn();
 }
 
 function lpBackToEmail(){
@@ -2047,9 +2114,6 @@ async function saveAccountPassword(){
     // Phase 15: refresh local user + flip button label live
     if(updateData?.user) currentUser = updateData.user;
     updateAuthUI();
-    // Success — also flag the post-OTP prompt as dismissed so the user
-    // doesn't get re-prompted on their next OTP signin
-    try { localStorage.setItem('ldp_pw_prompt_dismissed_v1', 'true'); } catch(e){}
     msg.textContent = '✓ Password saved. You can sign in with this password next time.';
     msg.style.display = 'block';
     msg.style.background = 'var(--accent-bg)';
@@ -2221,7 +2285,6 @@ async function saveProfileChanges(){
         return;
       }
       if(updateData && updateData.user) currentUser = updateData.user;
-      try { localStorage.setItem('ldp_pw_prompt_dismissed_v1', 'true'); } catch(e){}
     }
 
     // 3. Refresh the bits of the UI that depend on profile state.

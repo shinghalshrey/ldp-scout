@@ -38,33 +38,32 @@
       <!-- Auth form — preserves every ID the JS depends on -->
       <div class="lp2-form">
 
-        <!-- Step 1: Email input — OTP-only flow. User enters school email,
-             clicks Send Code, receives an 8-digit code via email, types it
-             in step 1a. Optional "Use a password instead" for returning users
-             who set a password during a prior post-OTP prompt. -->
+        <!-- Step 1: Email + Sign Up / Sign In. Task 9 — two-button entry.
+             Sign Up only proceeds for emails with no existing account; Sign In
+             only proceeds for emails that already have one. Both check the
+             EDU_DOMAIN_WHITELIST before calling email_account_status RPC. -->
         <div id="lp-step-email">
-          <div class="lp-signup-bar-v2">
-            <input id="lp-email" type="email" placeholder="you@esade.edu" autocomplete="email" onkeydown="if(event.key==='Enter') lpSendOTP()">
-            <button onclick="lpSendOTP()" id="lp-signup-btn">Send Code →</button>
-          </div>
-          <div style="display:flex;gap:16px;margin-top:10px;align-items:center;flex-wrap:wrap;">
-            <button onclick="lpShowPasswordStep()" id="lp-use-pw-btn" style="background:none;border:none;color:var(--blue);font-size:12px;cursor:pointer;font-family:var(--sans);text-decoration:underline;text-underline-offset:3px;padding:0;font-weight:500;">Use a password instead →</button>
+          <div class="lp-auth-row">
+            <input id="lp-email" type="email" placeholder="you@esade.edu" autocomplete="email" onkeydown="if(event.key==='Enter') lpSignIn()">
+            <div class="lp-auth-btns">
+              <button onclick="lpSignUp()" id="lp-signup-btn" class="lp-auth-btn">Sign Up</button>
+              <button onclick="lpSignIn()" id="lp-signin-btn" class="lp-auth-btn">Sign In</button>
+            </div>
           </div>
         </div>
 
-        <!-- Step 1b: Password input (sign-in OR sign-up — same flow) -->
+        <!-- Step 1b: Password input — only shown after Sign In confirms the
+             account exists. Code-instead and Forgot-password subpaths below. -->
         <div id="lp-step-password" style="display:none;">
-          <div style="font-size:13px;color:var(--text2);margin-bottom:10px;">Sign in or sign up with a password for <strong id="lp-pw-email-display"></strong></div>
+          <div style="font-size:13px;color:var(--text2);margin-bottom:10px;">Sign in to <strong id="lp-pw-email-display"></strong></div>
           <div class="lp-signup-bar-v2">
             <input id="lp-pw-input" type="password" placeholder="Password (min 8 characters)" autocomplete="current-password" minlength="8" onkeydown="if(event.key==='Enter') lpSignInWithPassword()">
             <button onclick="lpSignInWithPassword()" id="lp-pw-signin-btn">Sign In →</button>
           </div>
           <div style="display:flex;gap:16px;margin-top:8px;align-items:center;flex-wrap:wrap;">
-            <span style="font-size:11px;color:var(--text3);">New here? Just enter a password — we'll create your account.</span>
-          </div>
-          <div style="display:flex;gap:16px;margin-top:6px;align-items:center;flex-wrap:wrap;">
+            <button onclick="lpSignInWithCode()" id="lp-code-instead-btn" style="background:none;border:none;color:var(--text3);font-size:12px;cursor:pointer;font-family:var(--sans);text-decoration:underline;text-underline-offset:3px;padding:0;">Login using code instead?</button>
             <button onclick="lpForgotPassword()" id="lp-forgot-btn" style="background:none;border:none;color:var(--text3);font-size:12px;cursor:pointer;font-family:var(--sans);text-decoration:underline;text-underline-offset:3px;padding:0;">Forgot password?</button>
-            <button onclick="lpBackToEmail()" style="background:none;border:none;color:var(--text3);font-size:12px;cursor:pointer;font-family:var(--sans);text-decoration:underline;text-underline-offset:3px;padding:0;">Use a code instead</button>
+            <button onclick="lpBackToEmail()" style="background:none;border:none;color:var(--text3);font-size:12px;cursor:pointer;font-family:var(--sans);text-decoration:underline;text-underline-offset:3px;padding:0;">Use a different email</button>
           </div>
         </div>
 
@@ -81,15 +80,12 @@
           </div>
         </div>
 
-        <!-- Step 3: Set password (post-OTP, optional) -->
+        <!-- Step 3: Set password (post-OTP) — MANDATORY (Task 9). No skip. -->
         <div id="lp-step-set-password" style="display:none;">
-          <div style="font-size:13px;color:var(--text2);margin-bottom:10px;" id="lp-set-pw-headline">Set a password so you can sign in faster next time</div>
+          <div style="font-size:13px;color:var(--text2);margin-bottom:10px;" id="lp-set-pw-headline">Set a password to finish — you'll use it to sign in next time.</div>
           <div class="lp-signup-bar-v2">
             <input id="lp-new-pw-input" type="password" placeholder="At least 8 characters" autocomplete="new-password" minlength="8" onkeydown="if(event.key==='Enter') lpSetPassword()">
             <button onclick="lpSetPassword()" id="lp-set-pw-btn">Save Password →</button>
-          </div>
-          <div style="display:flex;gap:16px;margin-top:8px;align-items:center;">
-            <button onclick="lpSkipPassword()" id="lp-skip-pw-btn" style="background:none;border:none;color:var(--text3);font-size:12px;cursor:pointer;font-family:var(--sans);text-decoration:underline;text-underline-offset:3px;padding:0;">Skip — I'll keep using codes</button>
           </div>
         </div>
 

@@ -622,6 +622,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 /* ICS CHOICE MODAL */
 .ics-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:400;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
 .ics-modal-overlay.open{display:flex}
+.ics-modal-overlay.show{display:flex}
 .ics-modal{background:var(--bg2);border:1px solid var(--border2);border-radius:16px;padding:28px;width:460px;max-width:95vw;box-shadow:var(--shadow-md)}
 .ics-modal h3{font-family:var(--serif);font-size:18px;font-weight:400;margin-bottom:6px}
 .ics-modal-sub{font-size:12px;color:var(--text2);line-height:1.65;margin-bottom:20px}
@@ -727,6 +728,18 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 .lp2-edu-hint{display:inline-flex;align-items:center;gap:8px;font-size:12px;color:var(--text2);margin-bottom:14px}
 .lp2-edu-hint .dot{width:7px;height:7px;border-radius:50%;background:var(--accent)}
 .lp2-form .lp-signup-bar-v2{display:flex;gap:10px;align-items:stretch}
+/* Task 9: two-button entry row (email + Sign Up + Sign In, equal weight) */
+.lp2-form .lp-auth-row{display:flex;gap:10px;align-items:stretch;flex-wrap:wrap}
+.lp2-form .lp-auth-row > input{flex:1 1 240px;min-width:0}
+.lp2-form .lp-auth-btns{display:flex;gap:8px;flex:0 0 auto}
+.lp2-form .lp-auth-btn{background:var(--accent);color:#fff;border:none;border-radius:999px;padding:13px 22px;font-size:14px;font-weight:500;cursor:pointer;font-family:var(--sans);white-space:nowrap;transition:background .15s}
+.lp2-form .lp-auth-btn:hover{background:var(--accent2)}
+.lp2-form .lp-auth-btn:disabled{opacity:.5;cursor:wait}
+@media (max-width:520px){
+  .lp2-form .lp-auth-row{flex-direction:column}
+  .lp2-form .lp-auth-btns{display:grid;grid-template-columns:1fr 1fr}
+  .lp2-form .lp-auth-btn{width:100%}
+}
 .lp2-form input[type="email"],.lp2-form input[type="password"],.lp2-form input[type="text"]{flex:1;border:1px solid var(--border2);background:var(--bg2);border-radius:999px;padding:13px 20px;font-size:15px;font-family:var(--sans);color:var(--text);outline:none;transition:border-color .15s,box-shadow .15s}
 .lp2-form input[type="email"]:focus,.lp2-form input[type="password"]:focus,.lp2-form input[type="text"]:focus{border-color:var(--accent);box-shadow:0 0 0 4px rgba(29,106,69,.12)}
 .lp2-form input::placeholder{color:var(--text3)}
