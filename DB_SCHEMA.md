@@ -114,7 +114,9 @@ Community-contributed program intelligence. Read-public, write-own.
 
 - `has_password` (bool) — set when user completes password setup post-OTP. Suppresses the password prompt on subsequent logins. (Added in Task 3.)
 
-**Issue X resolution (May 18):** all accounts in the `singal`/`singhal` query have `email_confirmed_at` populated, meaning every account received and entered an OTP. The Session 3 concern that "Supabase accepted a fake code" is **not** what happened — Supabase always sends a real OTP to whatever address is entered, and confirmation requires the OTP to be retrieved from the inbox and entered. The whitelist correctly gates the *domain*, not the *local-part* — that's by design and matches how email-based identity works generally. **No security bug.** Open question: the `shrey.singal1@alumni.esade.edu` account (May 18, no plus-sign) — either Esade has catch-all forwarding to your real inbox, or that's a real different alumnus with a name one character off from yours.
+Issue X status (May 18, reopened): the shrey.singal1@alumni.esade.edu account was created via the password flow, not the OTP flow, by a user (me) who does not control that inbox. email_confirmed_at is populated despite no real OTP being delivered to the typo address. Investigation in progress: likely cause is the Supabase project's "Confirm email" setting being off, allowing password-signup to auto-confirm without inbox verification. This means the whitelist gates the domain but the local-part is not actually verified for password signups. Real bug. See Issue X in current task list.
+
+
 
 ---
 
