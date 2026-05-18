@@ -69,15 +69,35 @@ npx vercel --prod
 
 ---
 
-## Auth flow (current state, post-Session 3)
+## Auth flow (canonical, post-Session 4)
 
-1. User enters school email → frontend checks against `EDU_DOMAIN_WHITELIST` (exact-domain match, case-insensitive). No `.edu`/`.ac.uk` regex fallback (removed in Phase 15).
-2. Send 8-digit OTP via Supabase email.
-3. User enters code → Supabase verifies → session issued.
-4. If `user_metadata.has_password === true` → skip password setup, go to app.
-5. If no `has_password` flag → offer optional "Set a password" step. **Currently optional. Open question whether to make this mandatory (Option C from Session 3).**
+**First-time visitor:** OTP only. Email → Send Code → 8-digit code → land in app. Post-OTP, optional "Set a password" step lets them set one (writes `user_metadata.has_password = true`).
 
-A "Use a password instead" link sits below Send Code for returning users. Currently a small green underlined link — Issue Y is making it more visible.
+**Returning user with password:** Lands on signin page showing BOTH options with equal prominence — "Sign in with code" and "Sign in with password". User picks either.
+
+**Returning user without password:** OTP only (same as first-time, but they're already in the DB).
+
+**Password-signup (entering a new email on the password form):** NOT ALLOWED. Should redirect to OTP flow with a message like "We'll send a verification code first."
+
+**Supabase setting:** "Confirm email" toggle is **ON** (verified May 18, 2026). With OTP flow, this is fine — the OTP code IS the confirmation, no clickable link involved, so email-safety scanners don't preconsume it.
+
+**Session persistence:** Supabase sessions live in localStorage for ~30 days. In incognito, sessions are wiped when ALL incognito windows are closed, not when individual windows close.
+
+## Known UI bugs (May 18 2026)
+
+1. **Profile button does nothing when clicked.** Modal HTML + functions exist (`openProfileModal`, `saveProfileChanges` in `app.js:2096+`). Diagnostic needed — likely a button wiring or render bug, not a missing feature.
+
+2. **"Pranav" string in user-facing error** (`app.js:695`). Developer name leaked into a user message about Supabase confirm-email. Fix when removing the password-signup path (Task 9).
+
+3. **Password-signup path bypasses domain whitelist.** Allows accounts at non-whitelisted domains (e.g., `pranav1180@gmail.edu` was created). Fixes itself when password-signup is removed (Task 9).
+
+## Known UI bugs (May 18 2026)
+
+1. **Profile button does nothing when clicked.** Modal HTML + functions exist (`openProfileModal`, `saveProfileChanges` in `app.js:2096+`). Diagnostic needed — likely a button wiring or render bug, not a missing feature.
+
+2. **"Pranav" string in user-facing error** (`app.js:695`). Developer name leaked into a user message about Supabase confirm-email. Fix when removing the password-signup path (Task 9).
+
+3. **Password-signup path bypasses domain whitelist.** Allows accounts at non-whitelisted domains (e.g., `pranav1180@gmail.edu` was created). Fixes itself when password-signup is removed (Task 9).
 
 ---
 

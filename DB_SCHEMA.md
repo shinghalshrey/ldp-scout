@@ -114,8 +114,9 @@ Community-contributed program intelligence. Read-public, write-own.
 
 - `has_password` (bool) — set when user completes password setup post-OTP. Suppresses the password prompt on subsequent logins. (Added in Task 3.)
 
-Issue X status (May 18, reopened): the shrey.singal1@alumni.esade.edu account was created via the password flow, not the OTP flow, by a user (me) who does not control that inbox. email_confirmed_at is populated despite no real OTP being delivered to the typo address. Investigation in progress: likely cause is the Supabase project's "Confirm email" setting being off, allowing password-signup to auto-confirm without inbox verification. This means the whitelist gates the domain but the local-part is not actually verified for password signups. Real bug. See Issue X in current task list.
+**Issue X status (May 18, RESOLVED):** Original concern was email verification bypass via password signup. Root cause: Supabase "Confirm email" setting was OFF, allowing password-signup to auto-confirm without inbox verification. Resolution: enabled "Confirm email" toggle in Supabase dashboard. Bogus accounts (`shrey.singha123l@...`, `shrey.singhal1@...`, `jaskaransingh.thakkar@alumni.esade`, `pranav1180@gmail.edu`) deleted from `auth.users`.
 
+**Defense-in-depth follow-up (Task 9):** Remove the password-signup UI path entirely. New users only sign up via OTP. Existing users with passwords (currently only `abhinav.singh@alumni.esade.edu` and `shrey.singhal@alumni.esade.edu` per `has_password = true` in metadata) keep the password sign-in option.
 
 
 ---
