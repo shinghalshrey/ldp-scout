@@ -1,1 +1,27 @@
-index.html.bak
+# Editor / OS noise
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Backups
+*.bak
+*.bak.*
+*~
+
+# Logs
+*.log
+npm-debug.log*
+
+# Local env / secrets (none currently, but defensive)
+.env
+.env.local
+.env.*.local
+
+# Node (if you ever add a build step)
+node_modules/
+dist/
+build/
+
+# Vercel
+.vercel/
