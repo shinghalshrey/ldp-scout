@@ -121,42 +121,37 @@ function applyPagePersonalization(pageId){
   }
 
   // ─── ALUMNI FINDER ─────────────────────────────────────────────
+  // Task 19.2.2: now uses editorial header (h1 + subline + eyebrow row).
   if(pageId === 'alumni'){
-    const h2 = document.querySelector('#page-alumni .sech h2');
-    const sub = document.querySelector('#page-alumni .sech p');
-    if(h2){
-      // Preserve the trailing info-card-reopen "?" if present (Alumni h2 has it inline)
-      const reopen = h2.querySelector('.info-card-reopen');
-      h2.textContent = firstName ? `Alumni Finder, ${firstName}` : 'Alumni Finder';
-      if(reopen) h2.appendChild(reopen);
+    const h1  = document.getElementById('alumni-h1');
+    const sub = document.getElementById('alumni-subline');
+    if(h1){
+      h1.textContent = firstName ? `Alumni Finder, ${firstName}.` : 'Find alumni at your target programs.';
     }
     if(sub){
       sub.textContent = firstName
-        ? `Find alumni at your target programs, ${firstName} — build the right LinkedIn searches before applications open.`
+        ? `Find alumni at your target programs — build the right LinkedIn searches before applications open.`
         : 'Build the right LinkedIn searches and connection messages to reach the right people inside target programs — before applications open.';
     }
   }
 
   // ─── APPLICATIONS PAGE ─────────────────────────────────────────
-  // h2 personalized here; #app-sub stays inside renderApplications() because
-  // it carries live pipeline counts that change with every render.
+  // Task 19.2.2: now uses editorial header. h1 + app-sub still rendered
+  // by renderApplications() (live counts), this fn only sets the h1 base.
   if(pageId === 'applications'){
-    const h2 = document.querySelector('#page-applications .sech h2');
-    if(h2){
-      const reopen = h2.querySelector('.info-card-reopen');
-      h2.textContent = firstName ? `${firstName}'s pipeline` : 'My Applications';
-      if(reopen) h2.appendChild(reopen);
+    const h1 = document.getElementById('apps-h1');
+    if(h1){
+      h1.textContent = firstName ? `${firstName}'s pipeline` : 'My Applications';
     }
   }
 
   // ─── DEADLINES PAGE ────────────────────────────────────────────
+  // Task 19.2.2: editorial header.
   if(pageId === 'deadlines'){
-    const h2 = document.querySelector('#page-deadlines .sech h2');
-    const sub = document.querySelector('#page-deadlines .sech p');
-    if(h2){
-      const reopen = h2.querySelector('.info-card-reopen');
-      h2.textContent = firstName ? `${firstName}, your upcoming deadlines` : 'Upcoming Deadlines';
-      if(reopen) h2.appendChild(reopen);
+    const h1 = document.getElementById('deadlines-h1');
+    const sub = document.getElementById('deadlines-subline');
+    if(h1){
+      h1.textContent = firstName ? `${firstName}, your upcoming deadlines` : 'Upcoming Deadlines';
     }
     if(sub){
       const dls = firstName ? _deadlinesThisMonth() : 0;
@@ -533,6 +528,13 @@ async function onSignIn(){
   _refreshActivePagePersonalization();
   // Phase 12: refresh programs from Supabase (falls back to localStorage/DP[] if it fails)
   await fetchProgramsFromSupabase();
+  // Task 19.2.2 — Hydrate progs[].aiTier from saved scan history BEFORE
+  // first renderPrograms(). Without this, the AI Fit column shows "Scan
+  // résumé" placeholders on every page refresh until the user navigates
+  // to the AI Fit page (which then triggers loadAndRenderLastScan and
+  // syncs the data back). Silent hydration here means the data is
+  // immediately reflected in the Programs table on load.
+  await hydrateAITierFromHistory();
   renderPrograms();
   renderApplications();
   // Phase 2: trigger first-run onboarding if neither timestamp is set
@@ -1744,6 +1746,43 @@ let _scanCount = null;
 // completed scan in user_scan_history and renders it if found — so users don't
 // have to re-scan every time they come back. Also primes _scanCount so the UI
 // reflects quota state. Safe to call without a résumé: just no-ops if absent.
+//
+// Task 19.2.2: hydrateAITierFromHistory (below) is a silent companion that
+// just mutates progs[].aiTier without touching the AI Fit page UI. Called
+// once at sign-in so the Programs table's AI Fit column is populated
+// immediately on refresh, not only after the user visits AI Fit.
+
+// Silent hydration: fetch most recent scan and apply tier results to progs[].
+// No UI rendering, no view switching. Caller is responsible for re-rendering
+// any visible tables (typically a renderPrograms() right after).
+async function hydrateAITierFromHistory(){
+  try {
+    const { data: { user } } = await sb.auth.getUser();
+    if(!user) return;
+    const { data: row, error } = await sb
+      .from('user_scan_history')
+      .select('result')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if(error) {
+      console.warn('[hydrateAITierFromHistory] query failed:', error.message);
+      return;
+    }
+    if(!row || !row.result || typeof row.result !== 'object' || !row.result.tiers) return;
+    // Reuse the existing tier-to-progs sync. It mutates progs[] in-place
+    // (assigns .fit, .aiTier, .aiReason) and persists localStorage. Suppress
+    // the "synced to Programs tab" toast since this is silent hydration.
+    const wasToastSuppressed = window._suppressSyncToast;
+    window._suppressSyncToast = true;
+    syncAIResultsToPrograms(row.result);
+    window._suppressSyncToast = wasToastSuppressed;
+  } catch(e){
+    console.warn('[hydrateAITierFromHistory] non-blocking error:', e);
+  }
+}
+
 async function loadAndRenderLastScan(){
   console.log('[loadAndRenderLastScan] currentUser at call time:', currentUser ? currentUser.id : 'null');
   // Use sb.auth.getUser() for a fresh, authoritative session check rather than
@@ -2866,27 +2905,15 @@ function renderPrograms(){
       const [bc,bl]=sm[p.status]||['b-closed','—'];
       const dl=p.deadline?new Date(p.deadline).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):(p.dlnote||'—');
       // Task 19.2.1 — program meta (FULL TIME · 2 YEARS) and description
-      // were removed from the table row. They made rows visually uneven and
-      // their info is still accessible via the "+ Details" disclosure below.
-      // Read-only "Details" disclosure — full scraped fields + source link.
-      const hasDetails = p.description || p.eligibility || p.work_experience || p.target_degree || p.source_url;
-      const detailsBlock = hasDetails ? `
-        <details class="pdetails">
-          <summary>Details</summary>
-          <div class="pdetails-body">
-            ${p.description     ? `<div class="pd-row"><div class="pd-lbl">About</div><div class="pd-val">${esc(p.description)}</div></div>` : ''}
-            ${p.eligibility     ? `<div class="pd-row"><div class="pd-lbl">Eligibility</div><div class="pd-val">${esc(p.eligibility)}</div></div>` : ''}
-            ${p.work_experience ? `<div class="pd-row"><div class="pd-lbl">Work experience</div><div class="pd-val">${esc(p.work_experience)}</div></div>` : ''}
-            ${p.target_degree   ? `<div class="pd-row"><div class="pd-lbl">Target degree</div><div class="pd-val">${esc(p.target_degree)}</div></div>` : ''}
-            ${p.source_url      ? `<div class="pd-row"><div class="pd-lbl">Source</div><div class="pd-val"><a href="${esc(p.source_url)}" target="_blank" rel="noopener noreferrer">View original posting →</a></div></div>` : ''}
-          </div>
-        </details>` : '';
+      // were removed from the table row. They made rows visually uneven.
+      // Task 19.2.2 — "+ Details" disclosure also removed. The program-name
+      // link IS the primary action; users wanting the source page click the
+      // name. If p.url is missing the name renders as plain text (no link).
       return `<div class="prow">
         <div>
           <div class="pname">${p.url?`<a href="${esc(p.url)}" target="_blank" rel="noopener noreferrer" style="color:var(--text);text-decoration:none;border-bottom:1px solid var(--border2);padding-bottom:1px" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--text)'">${esc(p.name)}</a>`:esc(p.name)}</div>
           <div class="porg">${esc(p.org)}${p.visa?` <span style="font-size:10px;color:var(--teal);font-weight:600;margin-left:4px">✓ Visa</span>`:''}</div>
           <div class="tags">${(p.tags||[]).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}${verifiedBadge(p)}</div>
-          ${detailsBlock}
         </div>
         <div class="cell">${cap(p.fn)}</div>
         <div class="cell">${cap(p.sector)}</div>
@@ -2914,22 +2941,22 @@ function renderPrograms(){
 
   document.getElementById('prog-stats').innerHTML=`
     <div class="stat-card sc-total ${anyFilterActive?'sc-active':''}" onclick="clearAll()" title="Click to clear all filters">
-      <div class="stat-num">${progs.length}</div>
+      <div class="stat-num cn">${progs.length}</div>
       <div class="stat-lbl">Total Programs</div>
       <div class="stat-hint">Clear filters</div>
     </div>
     <div class="stat-card sc-fit ${fitActive}" onclick="fitClick()" title="Filter: High-fit programs only">
-      <div class="stat-num cgo">${highFit}</div>
+      <div class="stat-num cn">${highFit}</div>
       <div class="stat-lbl">★★★★+ AI Fit</div>
       <div class="stat-hint">Click to filter</div>
     </div>
     <div class="stat-card sc-open ${F.st.has('open')?'sc-active':''}" onclick="statClick('open')" title="Filter: Open now">
-      <div class="stat-num cg">${open}</div>
+      <div class="stat-num cn">${open}</div>
       <div class="stat-lbl">Open Now</div>
       <div class="stat-hint">Click to filter</div>
     </div>
     <div class="stat-card sc-rolling ${F.st.has('rolling')?'sc-active':''}" onclick="statClick('rolling')" title="Filter: Rolling">
-      <div class="stat-num cb">${rolling}</div>
+      <div class="stat-num cn">${rolling}</div>
       <div class="stat-lbl">Rolling</div>
       <div class="stat-hint">Click to filter</div>
     </div>
@@ -4443,7 +4470,8 @@ function syncAIResultsToPrograms(result){
     });
   });
   persist();
-  toast('✦ AI results synced to Programs tab');
+  // Task 19.2.2 — suppress toast when called by silent hydration on sign-in.
+  if(!window._suppressSyncToast) toast('✦ AI results synced to Programs tab');
 }
 
 // Phase 16 (P3): renderAIResults now accepts an optional `meta` argument so we
@@ -4568,7 +4596,9 @@ function renderAIResults(result, meta){
             <div class="aifit-program-card-left">
               <div class="aifit-program-initial">${initial}</div>
               <div class="aifit-program-info">
-                <div class="aifit-program-name">${p.name}</div>
+                <div class="aifit-program-name">${p.url
+                  ? `<a href="${esc(p.url)}" target="_blank" rel="noopener noreferrer" class="aifit-program-name-link">${esc(p.name)}</a>`
+                  : esc(p.name)}</div>
                 ${item.reason ? `<div class="aifit-program-reason">${item.reason}</div>` : ''}
               </div>
             </div>

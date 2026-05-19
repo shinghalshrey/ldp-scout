@@ -356,10 +356,11 @@
     <!-- MAIN COLUMN -->
     <main class="prog-main">
       <header class="prog-header" id="prog-header">
-        <div class="prog-eyebrow" id="prog-eyebrow">
-          <span id="prog-eyebrow-text">Your LDP command centre</span>
-          <span class="prog-eyebrow-sep">·</span>
-          <a class="prog-tour-link" onclick="tourStart('programs')" title="Walk through this page">Tour this page →</a>
+        <div class="page-editorial-eyebrow-row">
+          <div class="prog-eyebrow" id="prog-eyebrow">
+            <span id="prog-eyebrow-text">Your LDP command centre</span>
+          </div>
+          <a class="page-tour-link" onclick="tourStart('programs')" title="Walk through this page">Tour this page →</a>
         </div>
         <h1 class="prog-h1" id="prog-h1">Welcome back, <span id="prog-welcome-name">there</span>.</h1>
         <p class="prog-subline" id="prog-subline">
@@ -400,17 +401,15 @@
 
 <!-- ALUMNI PAGE — Phase 11 rebuild -->
 <div class="page" id="page-alumni">
-  <div class="sech"><h2>Alumni Finder<span class="info-card-reopen" data-hint-key="alumni_v1" onclick="reopenInfoCard('alumni_v1')" title="Show page tips">?</span></h2><p>Build the right LinkedIn searches and connection messages to reach the right people inside target programs — before applications open.</p></div>
-
-  <div class="info-card" data-hint-key="alumni_v1" style="margin-bottom:16px">
-    <button class="info-card-close" onclick="dismissInfoCard('alumni_v1')" aria-label="Dismiss tip">×</button>
-    <strong>How to use this page:</strong><br>
-    <strong style="color:var(--text)">① Pick your school</strong> in the sidebar — alumni-filtered searches get a ★ badge.<br>
-    <strong style="color:var(--text)">② Filter by industry vertical</strong> to focus on the sectors that fit your background.<br>
-    <strong style="color:var(--text)">③ Click "Draft Message"</strong> on any program for 3 ready-to-paste 300-character templates.<br>
-    <strong style="color:var(--text)">④ Click "+ Add to Networking"</strong> to log the program in your pipeline at the Networking stage.
-    <a class="info-card-tour" onclick="tourStart('alumni')">Tour this page →</a>
-  </div>
+  <header class="page-editorial-header" id="alumni-header">
+    <div class="page-editorial-eyebrow-row">
+      <div class="page-editorial-eyebrow"><span id="alumni-eyebrow-text">Alumni Finder · LinkedIn discovery</span></div>
+      <a class="page-tour-link" onclick="tourStart('alumni')" title="Walk through this page">Tour this page →</a>
+    </div>
+    <h1 class="page-editorial-h1" id="alumni-h1">Find alumni at your target programs.</h1>
+    <p class="page-editorial-subline" id="alumni-subline">Build the right LinkedIn searches and connection messages to reach the right people inside target programs — before applications open.</p>
+  </header>
+  <!-- Task 19.2.2 — info-card removed. Tour link lives in the header. -->
 
   <div class="al-layout">
     <!-- ─── SIDEBAR: school + sector filters + tip ─── -->
@@ -458,15 +457,16 @@
 
 <!-- APPLICATIONS PAGE -->
 <div class="page" id="page-applications">
-  <div class="sech"><h2>My Applications<span class="info-card-reopen" data-hint-key="apps_v1" onclick="reopenInfoCard('apps_v1')" title="Show page tips">?</span></h2><p id="app-sub"></p></div>
+  <header class="page-editorial-header" id="apps-header">
+    <div class="page-editorial-eyebrow-row">
+      <div class="page-editorial-eyebrow"><span id="apps-eyebrow-text">Your application pipeline</span></div>
+      <a class="page-tour-link" onclick="tourStart('applications')" title="Walk through this page">Tour this page →</a>
+    </div>
+    <h1 class="page-editorial-h1" id="apps-h1">My Applications</h1>
+    <p class="page-editorial-subline" id="app-sub"></p>
+  </header>
+  <!-- Task 19.2.2 — info-card removed. Tour link lives in the header. -->
 
-  <div class="info-card" data-hint-key="apps_v1">
-    <button class="info-card-close" onclick="dismissInfoCard('apps_v1')" aria-label="Dismiss tip">×</button>
-    <strong>Your active pipeline</strong><br>
-    Track every program you're pursuing across stages.<br>
-    <strong style="color:var(--text)">① Log applications via + button</strong> · <strong style="color:var(--text)">② Drag cards between stages</strong> · <strong style="color:var(--text)">③ Click a card to edit dates and notes</strong>
-    <a class="info-card-tour" onclick="tourStart('applications')">Tour this page →</a>
-  </div>
   <div class="filter-row" style="margin-bottom:18px">
     <input class="si-input" id="app-search" type="text" placeholder="Search applications..." oninput="renderApplications()">
     <div class="spacer"></div>
@@ -477,15 +477,15 @@
 
 <!-- DEADLINES PAGE -->
 <div class="page" id="page-deadlines">
-  <div class="sech"><h2>Upcoming Deadlines<span class="info-card-reopen" data-hint-key="deadlines_v1" onclick="reopenInfoCard('deadlines_v1')" title="Show page tips">?</span></h2><p>Plan your application sprint: 90-day horizon, urgency buckets, and one-click calendar export.</p></div>
-
-  <div class="info-card" data-hint-key="deadlines_v1">
-    <button class="info-card-close" onclick="dismissInfoCard('deadlines_v1')" aria-label="Dismiss tip">×</button>
-    <strong>Time-sorted urgency view</strong><br>
-    Red = act now. Export to calendar in one click.<br>
-    <strong style="color:var(--text)">① Toggle My Pipeline (shared with Programs)</strong> · <strong style="color:var(--text)">② Export bulk ICS</strong> · <strong style="color:var(--text)">③ Status nudges show what to do next</strong>
-    <a class="info-card-tour" onclick="tourStart('deadlines')">Tour this page →</a>
-  </div>
+  <header class="page-editorial-header" id="deadlines-header">
+    <div class="page-editorial-eyebrow-row">
+      <div class="page-editorial-eyebrow"><span id="deadlines-eyebrow-text">90-day horizon · urgency buckets</span></div>
+      <a class="page-tour-link" onclick="tourStart('deadlines')" title="Walk through this page">Tour this page →</a>
+    </div>
+    <h1 class="page-editorial-h1" id="deadlines-h1">Upcoming Deadlines</h1>
+    <p class="page-editorial-subline" id="deadlines-subline">Plan your application sprint: 90-day horizon, urgency buckets, and one-click calendar export.</p>
+  </header>
+  <!-- Task 19.2.2 — info-card removed. Tour link lives in the header. -->
 
   <div class="dl-controls">
     <button class="fpill pipeline-toggle" onclick="togglePipelineFilter()" title="Show only deadlines tied to your application pipeline">My Pipeline</button>

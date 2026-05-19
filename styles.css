@@ -1439,69 +1439,47 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
    ═══════════════════════════════════════════════════════════════════ */
 
 /* ─── Full-height vertical column dividers ─────────────────────────
-   Previous Task 19.2 approach put border-left on individual cells.
-   On rows where the Program/Org cell had tall content (tags + details
-   disclosure), the SHORTER cells didn't stretch vertically so their
-   border-left looked ragged.
+   ROOT CAUSE of the Task 19.2.1 failure: the base .prow rule (styles.css:83)
+   has `align-items: center`. CSS Grid's default cell behavior IS stretch,
+   but `align-items: center` on the row overrode that — every cell sat at
+   its content height. Border-left on a cell then only drew to cell-content
+   height. Tall rows with tags + descriptions made the dividers look ragged.
 
-   Fix: force every cell to align-items: stretch within the row, and
-   keep border-left on each cell-after-first. CSS Grid's default IS
-   stretch, but it only works if cells are direct flex/grid containers.
-   We add display: flex with align-items: stretch on the row so each
-   immediate child cell expands to row height — then border-left
-   renders edge-to-edge.
-
-   Use min-height on every cell directly is cleaner — applied via
-   the existing flex/grid layout. The key trick: cell content lives
-   in a flex container so the border travels the full cell height. */
+   FIX: override align-items back to `stretch` on the Programs table only.
+   Now every cell expands to row height; border-left renders edge-to-edge.
+   No display:flex needed, no min-height tricks. */
 .prog-table-wrap .prow,
 .prog-table-wrap .thead {
-  align-items: stretch;          /* enforce default, in case anything overrides */
+  align-items: stretch;
 }
+/* Restore vertical centering for cell CONTENT (not the cell box). Each cell
+   becomes a flex container so its content stays centered while the cell box
+   stretches to row height. */
 .prog-table-wrap .prow > *,
 .prog-table-wrap .thead > * {
-  /* Each cell becomes a flex container with content vertically centered.
-     This is what makes the border-left on each subsequent cell render
-     full-height regardless of the cell's own content height. */
   display: flex;
   flex-direction: column;
   justify-content: center;
-  min-height: 100%;
 }
-/* First column (Program/Org) is the tallest; let it top-align so the
-   program name sits at the visual top of the row rather than centered
-   between the tags below. */
+/* First column (Program/Org) is the tallest — top-align its content so the
+   program name sits at the visual top, with tags/badges below. */
 .prog-table-wrap .prow > *:first-child {
   justify-content: flex-start;
   padding-top: 4px;
 }
+/* Task 19.2.2: center-align text in all columns EXCEPT the first
+   (Program/Org column stays left-aligned per Pranav's spec). */
+.prog-table-wrap .prow > *:not(:first-child),
+.prog-table-wrap .thead > *:not(:first-child) {
+  text-align: center;
+  align-items: center;     /* flex axis: center children horizontally */
+}
 
 /* ─── Editorial tour link in the eyebrow ──────────────────────────
-   Replaces the bottom-of-page blue info-card. Sits inline with the
-   "Your LDP command centre" text using the same mono / uppercase /
-   tracked-letter aesthetic of the eyebrow itself, so it reads as
-   one cohesive line. */
-.prog-eyebrow-sep {
-  color: var(--text3);
-  margin: 0 8px;
-  opacity: 0.6;
-}
-.prog-tour-link {
-  font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: .12em;
-  text-transform: uppercase;
-  color: var(--text3);
-  text-decoration: none;
-  cursor: pointer;
-  border-bottom: 1px dashed var(--border2);
-  padding-bottom: 1px;
-  transition: color .15s, border-color .15s;
-}
-.prog-tour-link:hover {
-  color: var(--accent);
-  border-color: var(--accent);
-}
+   Task 19.2.2: superseded by the unified .page-editorial-eyebrow-row +
+   .page-tour-link pattern below. The old .prog-eyebrow-sep / .prog-tour-link
+   rules removed — header is now a two-column flex row with the tour link
+   right-aligned, matching the "Don't see a program? Request it →" link. */
 
 /* ─── Accordion expanded-state accent treatment ────────────────────
    When a filter section is open, the header gets a subtle accent
@@ -1520,4 +1498,108 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 }
 .prog-side-acc.open .prog-side-chev {
   color: var(--accent);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   TASK 19.2.2 — Cross-page editorial header + stat row refresh
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ─── Universal editorial header (Alumni / Applications / Deadlines)
+   matches the Programs page typography: mono eyebrow + serif h1 + sans
+   subline. Top row is a two-column flex (eyebrow left, tour link right)
+   so tour links right-align matching the "Don't see a program?" link. */
+.page-editorial-header {
+  padding: 28px 32px 8px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+.page-editorial-eyebrow-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 10px;
+}
+.page-editorial-eyebrow {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--text3);
+}
+.page-editorial-h1 {
+  font-family: var(--serif);
+  font-size: 32px;
+  font-weight: 500;
+  letter-spacing: -.01em;
+  color: var(--text);
+  margin: 0 0 8px;
+  line-height: 1.15;
+}
+.page-editorial-subline {
+  font-family: var(--sans);
+  font-size: 14px;
+  color: var(--text2);
+  margin: 0 0 26px;
+}
+
+/* Unified tour link — used by Programs, Alumni, Applications, Deadlines.
+   No emoji icon (per Pranav). Right-aligned in the eyebrow row, dashed
+   underline matching the "Don't see a program? Request it →" link style. */
+.page-tour-link {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--text3);
+  text-decoration: none;
+  cursor: pointer;
+  border-bottom: 1px dashed var(--border2);
+  padding-bottom: 1px;
+  transition: color .15s, border-color .15s;
+  white-space: nowrap;
+}
+.page-tour-link:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+@media (max-width: 900px) {
+  .page-editorial-header { padding: 20px 16px 4px; }
+  .page-editorial-h1 { font-size: 26px; }
+}
+
+/* ─── Programs header reuses the new pattern (already has its own
+   eyebrow/h1/subline classes, just gets the eyebrow-row treatment). */
+.prog-header .page-editorial-eyebrow-row {
+  margin-bottom: 10px;
+}
+
+/* ─── Stat cards refresh ───────────────────────────────────────────
+   - Heavier border on all cards when unselected (more "card-like")
+   - Cards 1-4 use neutral text-color number (was green/blue/gold)
+   - Card 5 (My Pipeline) keeps amber → it's the destination card */
+.stat-card {
+  border-width: 1.5px;          /* was 1px → more presence */
+  border-color: var(--border2); /* was --border → slightly more visible */
+}
+.stat-card .cn {
+  color: var(--text);           /* neutral text color for cards 1-4 */
+  font-weight: 700;
+}
+/* My Pipeline keeps its amber treatment from Task 19.2 */
+
+/* ─── AI Fit program name links ────────────────────────────────────
+   Tier-card program names become clickable when p.url exists. Same
+   underline-on-hover treatment as the Programs table row links. */
+.aifit-program-name-link {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px solid var(--border2);
+  padding-bottom: 1px;
+  transition: color .15s, border-color .15s;
+}
+.aifit-program-name-link:hover {
+  color: var(--accent);
+  border-color: var(--accent);
 }
