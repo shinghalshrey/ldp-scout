@@ -172,22 +172,47 @@ async function initAuth() {
       }
       // Task 9: after an OTP signin, decide whether to force the mandatory
       // password-setup step.
-      //   - _ldp_forceSetPassword = true  → forgot-password or password-fallback
-      //                                     or signup. Show set-password screen
-      //                                     even if has_password is already true.
-      //   - signup / new user (has_password !== true) → show it.
+      //   - _ldp_forceSetPassword = true  → forgot-password / password-fallback
+      //                                     / signup paths. Show set-password
+      //                                     screen even if has_password is
+      //                                     already true.
       //   - signin_code with has_password === true → skip to dashboard.
+      //   - anyone else without has_password → show set-password.
+      //
+      // Task 9 fix (post-deploy): the session.user object that Supabase hands
+      // to this listener after verifyOtp can have a stale user_metadata blob
+      // — has_password sometimes reads as undefined even when the auth row
+      // has has_password=true. Always re-fetch via sb.auth.getUser() in the
+      // non-force branch so the routing decision uses authoritative data.
+      // Force paths don't need the re-fetch because they ignore has_password.
       if(window._ldp_lastSigninWasOtp){
         window._ldp_lastSigninWasOtp = false;
         const force = window._ldp_forceSetPassword === true;
         window._ldp_forceSetPassword = false;
+        const ctx = _otpContext;
         if(force){
+          console.log('[auth] post-OTP routing decision:', { context: ctx, fresh_has_password: null, force: true });
           console.log('[auth] mandatory password setup shown for:', currentUser?.email);
           lpShowSetPasswordStep('after_otp', { force: true });
           return;
         }
-        if(currentUser?.user_metadata?.has_password !== true){
-          console.log('[auth] mandatory password setup shown for:', currentUser?.email);
+        // Non-force path: fetch the canonical user record to dodge the
+        // stale-user_metadata race that bit the signin_code path.
+        let freshUser = currentUser;
+        try {
+          const { data: getUserData, error: getUserErr } = await sb.auth.getUser();
+          if(getUserErr) throw getUserErr;
+          if(getUserData?.user){
+            freshUser = getUserData.user;
+            currentUser = getUserData.user;
+          }
+        } catch(e){
+          console.error('[auth] post-OTP getUser failed:', e);
+        }
+        const freshHasPassword = freshUser?.user_metadata?.has_password === true;
+        console.log('[auth] post-OTP routing decision:', { context: ctx, fresh_has_password: freshHasPassword });
+        if(!freshHasPassword){
+          console.log('[auth] mandatory password setup shown for:', freshUser?.email);
           lpShowSetPasswordStep('after_otp');
           return;
         }

@@ -232,3 +232,89 @@ Expect zero matches. (Verified at task completion.)
    `lpSignIn()` (returning users dominate). Sign Up still requires an
    explicit click; the friction is intentional, mirroring "are you
    sure you want a new account".
+
+---
+
+## Post-deploy fix — race condition in "Login using code instead?" path
+
+### Symptom
+
+After commit `151516f`, signing in as an existing user with
+`has_password=true` via the **Login using code instead?** subpath
+incorrectly showed the mandatory password-setup screen. Console
+sequence from the failing run:
+
+```
+[auth] OTP sent to: shrey.singhal@alumni.esade.edu context: signin_code
+[auth] mandatory password setup shown for: shrey.singhal@alumni.esade.edu
+[lpVerifyOTP] post-verify, has_password: true
+```
+
+The `[lpVerifyOTP] post-verify` log printing **after** the
+`mandatory password setup shown` log proved the routing decision had
+been made on stale data: by the time the verify handler reached its
+own log line, `currentUser.user_metadata.has_password` read `true`.
+
+### Root cause
+
+The post-OTP routing block lives inside the `sb.auth.onAuthStateChange`
+listener, which fires synchronously when `verifyOtp` resolves. The
+`session.user` object that Supabase hands to the listener at that
+moment is built from the freshly-minted JWT — and Supabase doesn't
+always include the latest `user_metadata` blob in that initial token.
+So when the listener read `currentUser.user_metadata.has_password`, it
+got `undefined`, the `!== true` check passed, and the listener routed
+the user into mandatory setup.
+
+A subsequent `sb.auth.getUser()` (or just letting the SDK refresh) then
+returned the canonical record with `has_password=true` — but by then
+the wrong screen was already on the user's monitor.
+
+The `force:true` paths (`forgot_password`, `password_fallback`, and
+`signup`) weren't affected because they ignore `has_password` entirely.
+
+### Fix
+
+In `onAuthStateChange`, inside the post-OTP block, the non-force branch
+now performs an explicit `await sb.auth.getUser()` and reads
+`has_password` from that authoritative response before deciding which
+screen to show. Force paths skip the re-fetch (they don't need it).
+
+Code lives at app.js ~165-215. The new diagnostic log:
+
+```js
+console.log('[auth] post-OTP routing decision:', {
+  context: _otpContext,
+  fresh_has_password: <true|false>
+});
+```
+
+fires once per OTP signin and shows exactly which branch was taken.
+
+### Test plan for the fix
+
+1. **Login using code instead? (the bug)**
+   Sign in as `shrey.singhal@alumni.esade.edu` → click **Sign In** →
+   password field appears → click **Login using code instead?** →
+   enter OTP → **must land directly on the dashboard**. No password
+   setup screen.
+   Console must show:
+   ```
+   [auth] post-OTP routing decision: { context: 'signin_code', fresh_has_password: true }
+   ```
+   and **must not** show `[auth] mandatory password setup shown for: …`.
+
+2. **Forgot password? (regression check)**
+   Same email → **Sign In** → **Forgot password?** → enter OTP →
+   **must** show the mandatory password setup screen.
+   Console must show:
+   ```
+   [auth] post-OTP routing decision: { context: 'forgot_password', fresh_has_password: null, force: true }
+   [auth] mandatory password setup shown for: shrey.singhal@alumni.esade.edu
+   ```
+
+3. **New signup (regression check)**
+   Sign up with a fresh email → enter OTP → **must** show the
+   mandatory password setup screen.
+   Console must show `fresh_has_password: false` and the mandatory
+   setup log.
