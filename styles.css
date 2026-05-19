@@ -1443,56 +1443,80 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
    ═══════════════════════════════════════════════════════════════════ */
 
 /* ─── Full-height vertical column dividers + cell alignment ────────
-   ROOT CAUSE of ragged dividers: the base .prow at styles.css:83 has
-   `padding: 13px 16px`. CSS Grid cells fit inside parent padding, so
-   vertical dividers started 13px below the row top and ended 13px above
-   the row bottom — leaving a gap at top/bottom of each row. NOT edge-to-edge.
+   Task 19.2.5: switched from CSS Grid to CSS Table for the Programs
+   table specifically. Grid was computing column widths PER ROW, so
+   different content widths in column 1 (long program names vs short
+   ones) made column boundaries shift left/right between rows. CSS
+   Table shares one column-width calculation across ALL rows — that's
+   literally its design purpose. Result: vertical dividers form
+   perfectly continuous vertical lines through the entire table.
 
-   FIX (Task 19.2.3): scoped to .prog-table-wrap, remove vertical padding
-   from .prow / .thead, and apply that padding to each cell instead. Cells
-   now span 100% of row height (between the row-separating border-bottoms).
-   Border-left on cells renders edge-to-edge.
-
-   Task 19.2.4 update: column 1 (Program/Org) stays TOP-aligned because the
-   program name is the visual anchor of the row. Columns 2-9 are VERTICALLY
-   CENTERED — their short content (Function, Sector, etc.) sits in the
-   visual middle of the cell, lining up with the visual centroid of column 1.
-   This combo reads as "aligned" better than either pure-top or pure-center. */
-.prog-table-wrap .prow,
+   Scoped to .prog-table-wrap so Deadlines table (still grid) unaffected. */
+.prog-table-wrap {
+  display: table;
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+.prog-table-wrap #prog-list {
+  display: table-row-group;
+}
 .prog-table-wrap .thead {
-  align-items: stretch;
-  padding-top: 0;
-  padding-bottom: 0;
+  display: table-row;
+  background: var(--bg3);
 }
-/* Cells become flex containers with explicit vertical padding (replaces
-   what the row's padding used to provide). */
-.prog-table-wrap .prow > *,
-.prog-table-wrap .thead > * {
-  display: flex;
-  flex-direction: column;
-  padding-top: 14px;
-  padding-bottom: 14px;
+.prog-table-wrap .prow {
+  display: table-row;
 }
-.prog-table-wrap .thead > * {
-  padding-top: 11px;
-  padding-bottom: 11px;
-  justify-content: center;
+.prog-table-wrap .prow:hover {
+  background: var(--bg3);
 }
-/* Column 1 (Program/Org) — TOP-aligned. Program name is the visual anchor
-   of the row; tags and verified badge stack below it. */
-.prog-table-wrap .prow > *:first-child {
-  justify-content: flex-start;
-}
-/* Columns 2-9 — vertically CENTERED. Their shorter content (Function, Sector,
-   App Cycle, Stage, etc.) sits in the visual middle of the cell, which feels
-   aligned across rows of varying heights. Combined with text-align:center +
-   align-items:center for horizontal centering. */
-.prog-table-wrap .prow > *:not(:first-child),
-.prog-table-wrap .thead > *:not(:first-child) {
+.prog-table-wrap .thead .th {
+  display: table-cell;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--text3);
+  font-weight: 600;
+  padding: 12px 12px;
+  border-left: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
   text-align: center;
-  align-items: center;        /* flex cross axis: center children horizontally */
-  justify-content: center;    /* flex main axis: center children vertically */
+  vertical-align: middle;
 }
+.prog-table-wrap .thead .th:first-child {
+  border-left: none;
+  text-align: left;
+}
+.prog-table-wrap .prow > * {
+  display: table-cell;
+  padding: 14px 12px;
+  border-left: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+  text-align: center;
+}
+.prog-table-wrap .prow:last-child > * {
+  border-bottom: none;
+}
+.prog-table-wrap .prow > *:first-child {
+  border-left: none;
+  text-align: left;
+  vertical-align: top;          /* program name anchors to top, tags stack below */
+}
+/* Set explicit column widths via the first row (CSS table-layout: fixed
+   honors the widths declared on the first row's cells). Applied to thead
+   so it always controls the layout. Total = 100%. */
+.prog-table-wrap .thead .th:nth-child(1) { width: 22%; }
+.prog-table-wrap .thead .th:nth-child(2) { width: 8%; }
+.prog-table-wrap .thead .th:nth-child(3) { width: 9%; }
+.prog-table-wrap .thead .th:nth-child(4) { width: 11%; }
+.prog-table-wrap .thead .th:nth-child(5) { width: 8%; }
+.prog-table-wrap .thead .th:nth-child(6) { width: 7%; }
+.prog-table-wrap .thead .th:nth-child(7) { width: 8%; }
+.prog-table-wrap .thead .th:nth-child(8) { width: 12%; }
+.prog-table-wrap .thead .th:nth-child(9) { width: 15%; }
 
 /* ─── Editorial tour link in the eyebrow ──────────────────────────
    Task 19.2.2: superseded by the unified .page-editorial-eyebrow-row +
