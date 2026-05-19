@@ -244,7 +244,8 @@
     <!-- LEFT SIDEBAR -->
     <aside class="prog-sidebar">
       <div class="prog-sidebar-card">
-        <div class="prog-side-section">
+        <!-- SEARCH — always visible, never collapses -->
+        <div class="prog-side-section prog-side-section-static">
           <div class="al-sidebar-label">Search</div>
           <input
             id="prog-search"
@@ -255,49 +256,99 @@
           />
         </div>
 
-        <div class="prog-side-section">
-          <div class="al-sidebar-label">Quick Filters</div>
-          <div class="prog-pill-stack">
-            <button id="visa-pill" class="fpill prog-quick" onclick="toggleVisaFilter(this)">✓ Visa-sponsoring only</button>
-            <button class="fpill prog-quick pipeline-toggle" onclick="togglePipelineFilter()">★ My Pipeline only</button>
+        <!-- QUICK FILTERS — collapsible -->
+        <div class="prog-side-section prog-side-acc" data-prog-section="quickfilters">
+          <button class="prog-side-head" type="button" onclick="toggleFilterSection('quickfilters')">
+            <span class="al-sidebar-label">Quick Filters</span>
+            <span class="prog-side-badge"></span>
+            <span class="prog-side-chev">▾</span>
+          </button>
+          <div class="prog-side-body">
+            <div class="prog-pill-stack">
+              <button id="visa-pill" class="fpill prog-quick" onclick="toggleVisaFilter(this)">✓ Visa-sponsoring only</button>
+            </div>
           </div>
         </div>
 
-        <div class="prog-side-section">
-          <div class="al-sidebar-label">Geography</div>
-          <div class="prog-pill-stack">
-            <button class="fpill on" data-geo="all"     onclick="setF('geo',this)">All</button>
-            <button class="fpill"    data-geo="europe"  onclick="setF('geo',this)">Europe</button>
-            <button class="fpill"    data-geo="uae"     onclick="setF('geo',this)">UAE / Gulf</button>
-            <button class="fpill"    data-geo="global"  onclick="setF('geo',this)">Global</button>
+        <!-- GEOGRAPHY — collapsible. Task 19.3 will replace with continent drill-down. -->
+        <div class="prog-side-section prog-side-acc" data-prog-section="geography">
+          <button class="prog-side-head" type="button" onclick="toggleFilterSection('geography')">
+            <span class="al-sidebar-label">Geography</span>
+            <span class="prog-side-badge"></span>
+            <span class="prog-side-chev">▾</span>
+          </button>
+          <div class="prog-side-body">
+            <div class="prog-pill-stack">
+              <button class="fpill on" data-geo="all"     onclick="setF('geo',this)">All</button>
+              <button class="fpill"    data-geo="europe"  onclick="setF('geo',this)">Europe</button>
+              <button class="fpill"    data-geo="uae"     onclick="setF('geo',this)">UAE / Gulf</button>
+              <button class="fpill"    data-geo="global"  onclick="setF('geo',this)">Global</button>
+            </div>
           </div>
         </div>
 
-        <div class="prog-side-section">
-          <div class="al-sidebar-label">Function</div>
-          <div class="prog-pill-stack">
-            <button class="fpill on" data-fn="all"        onclick="setF('fn',this)">All</button>
-            <button class="fpill"    data-fn="operations" onclick="setF('fn',this)">Operations</button>
-            <button class="fpill"    data-fn="finance"    onclick="setF('fn',this)">Finance</button>
-            <button class="fpill"    data-fn="strategy"   onclick="setF('fn',this)">Strategy</button>
-            <button class="fpill"    data-fn="consulting" onclick="setF('fn',this)">Consulting</button>
-            <button class="fpill"    data-fn="investing"  onclick="setF('fn',this)">Investments</button>
+        <!-- FUNCTION — collapsible -->
+        <div class="prog-side-section prog-side-acc" data-prog-section="function">
+          <button class="prog-side-head" type="button" onclick="toggleFilterSection('function')">
+            <span class="al-sidebar-label">Function</span>
+            <span class="prog-side-badge"></span>
+            <span class="prog-side-chev">▾</span>
+          </button>
+          <div class="prog-side-body">
+            <div class="prog-pill-stack">
+              <button class="fpill on" data-fn="all"        onclick="setF('fn',this)">All</button>
+              <button class="fpill"    data-fn="operations" onclick="setF('fn',this)">Operations</button>
+              <button class="fpill"    data-fn="finance"    onclick="setF('fn',this)">Finance</button>
+              <button class="fpill"    data-fn="strategy"   onclick="setF('fn',this)">Strategy</button>
+              <button class="fpill"    data-fn="consulting" onclick="setF('fn',this)">Consulting</button>
+              <button class="fpill"    data-fn="investing"  onclick="setF('fn',this)">Investments</button>
+            </div>
           </div>
         </div>
 
-        <div class="prog-side-section">
-          <div class="al-sidebar-label">Status</div>
-          <div class="prog-pill-stack">
-            <button class="fpill on" data-st="all"     onclick="setF('st',this)">All</button>
-            <button class="fpill"    data-st="open"    onclick="setF('st',this)">Open</button>
-            <button class="fpill"    data-st="rolling" onclick="setF('st',this)">Rolling</button>
-            <button class="fpill"    data-st="watch"   onclick="setF('st',this)">Watch</button>
+        <!-- SECTOR — collapsible. Task 19.2 new. Reuses ALUMNI_SECTORS values. -->
+        <div class="prog-side-section prog-side-acc" data-prog-section="sector">
+          <button class="prog-side-head" type="button" onclick="toggleFilterSection('sector')">
+            <span class="al-sidebar-label">Sector</span>
+            <span class="prog-side-badge"></span>
+            <span class="prog-side-chev">▾</span>
+          </button>
+          <div class="prog-side-body">
+            <div class="prog-pill-stack">
+              <button class="fpill on" data-sector="all"        onclick="setF('sector',this)">All</button>
+              <button class="fpill"    data-sector="tech"        onclick="setF('sector',this)">Tech &amp; Innovation</button>
+              <button class="fpill"    data-sector="finance"     onclick="setF('sector',this)">Finance</button>
+              <button class="fpill"    data-sector="consulting"  onclick="setF('sector',this)">Consulting</button>
+              <button class="fpill"    data-sector="consumer"    onclick="setF('sector',this)">Consumer &amp; Retail</button>
+              <button class="fpill"    data-sector="healthcare"  onclick="setF('sector',this)">Healthcare</button>
+              <button class="fpill"    data-sector="industrial"  onclick="setF('sector',this)">Industrial</button>
+              <button class="fpill"    data-sector="logistics"   onclick="setF('sector',this)">Logistics</button>
+              <button class="fpill"    data-sector="energy"      onclick="setF('sector',this)">Energy</button>
+              <button class="fpill"    data-sector="sovereign"   onclick="setF('sector',this)">Sovereign / Public</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- STATUS — collapsible -->
+        <div class="prog-side-section prog-side-acc" data-prog-section="status">
+          <button class="prog-side-head" type="button" onclick="toggleFilterSection('status')">
+            <span class="al-sidebar-label">App Cycle</span>
+            <span class="prog-side-badge"></span>
+            <span class="prog-side-chev">▾</span>
+          </button>
+          <div class="prog-side-body">
+            <div class="prog-pill-stack">
+              <button class="fpill on" data-st="all"     onclick="setF('st',this)">All</button>
+              <button class="fpill"    data-st="open"    onclick="setF('st',this)">Open</button>
+              <button class="fpill"    data-st="rolling" onclick="setF('st',this)">Rolling</button>
+              <button class="fpill"    data-st="watch"   onclick="setF('st',this)">Watch</button>
+            </div>
           </div>
         </div>
 
         <div class="al-pro-tip prog-tip">
           <div class="al-pro-tip-title">💡 Pro Tip</div>
-          <p>Click any row to open program details. Use the Pipeline toggle in any row to save it to your shortlist.</p>
+          <p>Click any row to open program details. Use the <strong>Stage</strong> dropdown to add a program to your pipeline at any stage.</p>
         </div>
       </div>
     </aside>
@@ -320,20 +371,20 @@
 
       <div class="prog-meta-row">
         <div id="prog-meta" class="results-meta prog-meta"></div>
-        <button class="prog-add-btn" onclick="openM('prog')">+ Add Program</button>
+        <a class="prog-request-link" href="mailto:hello@ldpscout.com?subject=Program%20request%20%E2%80%94%20LDP%20Scout" title="Email us to request a program be added to the catalog">Don't see a program? Request it →</a>
       </div>
 
       <div class="table-wrap prog-table-wrap">
         <div class="thead prog-thead">
           <div class="th sortable" data-sort-key="name"     onclick="sortBy('name')">Program / Organisation <span class="th-arrow">▼</span></div>
-          <div class="th sortable" data-sort-key="fn"       onclick="sortBy('fn')">Function · Sector <span class="th-arrow">▼</span></div>
+          <div class="th sortable" data-sort-key="fn"       onclick="sortBy('fn')">Function <span class="th-arrow">▼</span></div>
+          <div class="th sortable" data-sort-key="sector"   onclick="sortBy('sector')">Sector <span class="th-arrow">▼</span></div>
           <div class="th sortable" data-sort-key="loc"      onclick="sortBy('loc')">Location <span class="th-arrow">▼</span></div>
           <div class="th sortable" data-sort-key="deadline" onclick="sortBy('deadline')">Deadline <span class="th-arrow">▼</span></div>
-          <div class="th sortable" data-sort-key="status"   onclick="sortBy('status')">Status <span class="th-arrow">▼</span></div>
-          <div class="th sortable" data-sort-key="fit"      onclick="sortBy('fit')">Fit ✦ <span class="th-arrow">▼</span></div>
-          <div class="th">📅 Remind</div>
-          <div class="th">Pipeline</div>
-          <div class="th">Actions</div>
+          <div class="th sortable" data-sort-key="status"   onclick="sortBy('status')">App Cycle <span class="th-arrow">▼</span></div>
+          <div class="th sortable" data-sort-key="fit"      onclick="sortBy('fit')">✦ AI Fit <span class="th-arrow">▼</span></div>
+          <div class="th">Stage</div>
+          <div class="th">📅 Reminder</div>
         </div>
         <div id="prog-list" class="prog-list"></div>
       </div>
@@ -515,36 +566,12 @@
 
 </div><!-- /main -->
 
-<!-- PROGRAM MODAL -->
-<div class="overlay" id="ov-prog">
-<div class="modal">
-  <button class="mclose" onclick="closeM('prog')">×</button>
-  <div class="mtitle">Add / Edit Program</div>
-  <div class="fgrid">
-    <div class="fg full"><label>Program Name</label><input id="pi-name" placeholder="e.g. Amazon Pathways Operations Program"></div>
-    <div class="fg"><label>Organisation</label><input id="pi-org" placeholder="Amazon"></div>
-    <div class="fg"><label>Careers Page URL</label><input id="pi-url" placeholder="https://..."></div>
-    <div class="fg"><label>Geography</label>
-      <select id="pi-geo"><option value="europe">Europe</option><option value="uae">UAE / Gulf</option><option value="global">Global</option></select></div>
-    <div class="fg"><label>Location</label><input id="pi-loc" placeholder="London, UK"></div>
-    <div class="fg"><label>Function</label>
-      <select id="pi-fn"><option value="strategy">Strategy</option><option value="finance">Finance</option><option value="operations">Operations</option><option value="consulting">Consulting</option><option value="general">General Management</option><option value="investing">Investments / PE</option></select></div>
-    <div class="fg"><label>Sector</label>
-      <select id="pi-sector"><option value="tech">Technology</option><option value="finance">Financial Services</option><option value="consumer">Consumer / FMCG</option><option value="healthcare">Healthcare</option><option value="logistics">Logistics / Supply Chain</option><option value="energy">Energy</option><option value="sovereign">Sovereign / DFI</option><option value="industrial">Industrial</option><option value="other">Other</option></select></div>
-    <div class="fg"><label>Status</label>
-      <select id="pi-status"><option value="open">Open now</option><option value="rolling">Rolling</option><option value="watch">Watch — prep now</option><option value="closed">Closed</option></select></div>
-    <div class="fg"><label>Deadline Date</label><input id="pi-deadline" type="date"></div>
-    <div class="fg"><label>Deadline Note</label><input id="pi-dlnote" placeholder="e.g. Rolling — apply early"></div>
-    <div class="fg"><label>Fit Score (1–5)</label>
-      <select id="pi-fit"><option value="5">★★★★★ Perfect</option><option value="4" selected>★★★★ Strong</option><option value="3">★★★ Good</option><option value="2">★★ Partial</option><option value="1">★ Stretch</option></select></div>
-    <div class="fg full"><label>Notes</label><textarea id="pi-notes" placeholder="Key notes, next steps, alumni contacts..."></textarea></div>
-    <div class="fg"><label>Visa Sponsorship</label>
-      <select id="pi-visa"><option value="">Unknown</option><option value="yes">✓ Yes — sponsors visas</option><option value="no">No sponsorship</option></select></div>
-    <div class="fg full"><label>Tags (comma separated)</label><input id="pi-tags" placeholder="MBA, Rotational, Finance"></div>
-  </div>
-  <div class="mfoot"><button class="bcn" onclick="closeM('prog')">Cancel</button><button class="bsv" onclick="saveProg()">Save Program</button></div>
-</div>
-</div>
+<!-- PROGRAM MODAL — Task 19.2: REMOVED (Path A architecture).
+     The Programs catalog is global/read-only. The Add/Edit/Delete buttons
+     were vestigial; they wrote to localStorage only and got wiped on next
+     sign-in. To request a program addition, users now use the
+     "Don't see a program? Request it →" link on the Programs page meta row
+     which mailtos hello@ldpscout.com. -->
 
 <!-- ALUMNI MODAL -->
 <div class="overlay" id="ov-alumni">

@@ -40,10 +40,12 @@ function _esc(s){
   }[c]));
 }
 
-// Count programs in the user's active pipeline (not offer/rejected).
+// Count programs in the user's active pipeline. Pipeline = every stage except
+// rejected (which exits the pipeline). Offer COUNTS as pipeline because it's
+// the goal-state, not an exit.
 function _pipelineCount(){
   if(!Array.isArray(apps)) return 0;
-  return apps.filter(a => a.status && !['offer','rejected'].includes(a.status)).length;
+  return apps.filter(a => a.status && a.status !== 'rejected').length;
 }
 
 // Count deadlines in the next 30 days from the user's pipeline.
@@ -53,7 +55,7 @@ function _deadlinesThisMonth(){
   const horizon = new Date(today.getTime() + 30*86400000);
   return apps.filter(a => {
     if(!a.deadline) return false;
-    if(['offer','rejected'].includes(a.status)) return false;
+    if(a.status === 'rejected') return false;
     const d = new Date(a.deadline); d.setHours(0,0,0,0);
     return d >= today && d <= horizon;
   }).length;
@@ -1370,9 +1372,9 @@ function updateFitTabIndicator(){
 const TOURS = {
   programs: [
     {target:'#prog-stats',         title:'Pipeline at a glance',  body:'Snapshot of all tracked LDPs by status — open, rolling, watch-list, and closed. Updates as you filter below.'},
-    {target:'.prog-sidebar',       title:'Filter and search',     body:'Use the sidebar to cut the list down: Quick Filters (Visa, your Pipeline), Geography, Function, and Status. The Search box at the top matches program names, firms, and keywords.'},
-    {target:'.thead',              title:'Sortable columns',      body:'Click any column header to sort. The Fit column is powered by the AI Fit Scanner once you upload a résumé.'},
-    {target:'.prow:first-child',   title:'Open program details',  body:'Click any row to open full details — deadline, location, fit reasoning. The program name links straight to the official careers page.'}
+    {target:'.prog-sidebar',       title:'Filter and search',     body:'Use the sidebar to narrow the list. Expand any section: Quick Filters (Visa), Geography, Function, Sector, or App Cycle. Search matches program names, firms, and keywords. Active filters appear in the stat row above.'},
+    {target:'.thead',              title:'Sortable columns',      body:'Click any column header to sort. The AI Fit column is powered by the AI Fit Scanner once you upload a résumé.'},
+    {target:'.prow:first-child',   title:'Open program details + add to pipeline',  body:'Click any row to open full details. Use the Stage dropdown at the right to add a program to your pipeline at any stage — Shortlisted, Networking, Drafting, Applied, Interview, Offer.'}
   ],
   aifit: [
     {target:'#aifit-upload-box',  title:'Upload your résumé', body:'Drop in a PDF, DOCX, or plain-text file (max 5MB). Processed via a secure proxy — never stored, never shared.'},
@@ -2090,9 +2092,10 @@ let eId   = {prog:null,alumni:null,app:null};
 // Phase 10: filter state — each dimension is a Set of selected values.
 // Empty Set = no filter (equivalent to "All"). asc/ast remain single-value for Alumni.
 let F = {
-  geo:  new Set(),
-  fn:   new Set(),
-  st:   new Set(),
+  geo:    new Set(),
+  fn:     new Set(),
+  sector: new Set(),   // Task 19.2 — Sector filter (sidebar pills)
+  st:     new Set(),
   asc:  'all',
   ast:  'all',
   // Sort state for Programs table: column key + direction. null = default (unsorted).
@@ -2589,7 +2592,7 @@ function showPage(id){
   const tabs=document.querySelectorAll('.nav-tab');
   if(idx>=0&&tabs[idx]) tabs[idx].classList.add('active');
   
-  ({programs:renderPrograms,alumni:()=>{initAlumniSchoolDrop();renderAlumniSectorList();renderAlumniSearch();},applications:renderApplications,deadlines:renderDeadlines,aifit:loadAndRenderLastScan})[id]?.();
+  ({programs:()=>{_restoreSidebarSections();renderPrograms();},alumni:()=>{initAlumniSchoolDrop();renderAlumniSectorList();renderAlumniSearch();},applications:renderApplications,deadlines:renderDeadlines,aifit:loadAndRenderLastScan})[id]?.();
 
   // Task 19 — apply personalization for this page (header text, etc.) AFTER
   // the page's render function runs so any DOM the render function builds is
@@ -2685,12 +2688,12 @@ function fitClick(){
 }
 
 function clearAll(){
-  F.geo.clear(); F.fn.clear(); F.st.clear();
+  F.geo.clear(); F.fn.clear(); F.sector.clear(); F.st.clear();
   F.sortKey = null; F.sortDir = 'asc';
   window._fitOnly = false;
   window._visaOnly = false;
   const vp = document.getElementById('visa-pill'); if(vp) vp.classList.remove('on');
-  ['geo','fn','st'].forEach(_syncFilterPills);
+  ['geo','fn','sector','st'].forEach(_syncFilterPills);
   const ps = document.getElementById('prog-search'); if(ps) ps.value = '';
   // Also clear the shared pipeline filter — "Clear filters" should mean ALL filters off.
   // This is a SHARED state with the Deadlines page; that's the documented design.
@@ -2724,9 +2727,10 @@ function _persistFilterState(){
   try {
     const ps = document.getElementById('prog-search');
     const state = {
-      geo: [...F.geo],
-      fn:  [...F.fn],
-      st:  [...F.st],
+      geo:    [...F.geo],
+      fn:     [...F.fn],
+      sector: [...F.sector],   // Task 19.2
+      st:     [...F.st],
       sortKey: F.sortKey,
       sortDir: F.sortDir,
       fitOnly:  !!window._fitOnly,
@@ -2742,9 +2746,10 @@ function _restoreFilterState(){
     const raw = localStorage.getItem('ldps_prog_filters');
     if(!raw) return;
     const s = JSON.parse(raw);
-    F.geo = new Set(Array.isArray(s.geo) ? s.geo : []);
-    F.fn  = new Set(Array.isArray(s.fn)  ? s.fn  : []);
-    F.st  = new Set(Array.isArray(s.st)  ? s.st  : []);
+    F.geo    = new Set(Array.isArray(s.geo)    ? s.geo    : []);
+    F.fn     = new Set(Array.isArray(s.fn)     ? s.fn     : []);
+    F.sector = new Set(Array.isArray(s.sector) ? s.sector : []);   // Task 19.2
+    F.st     = new Set(Array.isArray(s.st)     ? s.st     : []);
     F.sortKey = s.sortKey || null;
     F.sortDir = (s.sortDir === 'desc') ? 'desc' : 'asc';
     window._fitOnly  = !!s.fitOnly;
@@ -2752,7 +2757,7 @@ function _restoreFilterState(){
     const ps = document.getElementById('prog-search');
     if(ps && typeof s.search === 'string') ps.value = s.search;
     const vp = document.getElementById('visa-pill'); if(vp) vp.classList.toggle('on', window._visaOnly);
-    ['geo','fn','st'].forEach(_syncFilterPills);
+    ['geo','fn','sector','st'].forEach(_syncFilterPills);
   } catch {}
 }
 
@@ -2773,14 +2778,17 @@ function renderPrograms(){
   // Task 19 — keep welcome-strip pipeline/deadline counts in sync with state.
   // No-op if the strip elements aren't present (e.g. STATE B is active).
   _refreshProgramsCounts();
+  // Task 19.2 — keep sidebar active-filter count badges in sync with F state.
+  _refreshSidebarBadges();
   const q=(document.getElementById('prog-search')||{}).value?.toLowerCase()||'';
   // Phase 10: persist search text whenever this runs (oninput → renderPrograms)
   _persistFilterState();
   let list=progs.filter(p=>{
     // Multi-select: an empty Set = no filter active = pass everything for that dimension.
-    if(F.geo.size && !F.geo.has(p.geo))    return false;
-    if(F.fn.size  && !F.fn.has(p.fn))      return false;
-    if(F.st.size  && !F.st.has(p.status))  return false;
+    if(F.geo.size    && !F.geo.has(p.geo))       return false;
+    if(F.fn.size     && !F.fn.has(p.fn))         return false;
+    if(F.sector.size && !F.sector.has(p.sector)) return false;   // Task 19.2
+    if(F.st.size     && !F.st.has(p.status))     return false;
     if(window._fitOnly && (+p.fit||0) < 4) return false;
     if(window._visaOnly && !p.visa)        return false;
     // Universal pipeline filter — shared with Deadlines page
@@ -2798,7 +2806,8 @@ function renderPrograms(){
       switch(F.sortKey){
         case 'name':     av=(a.name||'').toLowerCase(); bv=(b.name||'').toLowerCase(); break;
         case 'org':      av=(a.org||'').toLowerCase();  bv=(b.org||'').toLowerCase();  break;
-        case 'fn':       av=`${a.fn||''} ${a.sector||''}`.toLowerCase(); bv=`${b.fn||''} ${b.sector||''}`.toLowerCase(); break;
+        case 'fn':       av=(a.fn||'').toLowerCase(); bv=(b.fn||'').toLowerCase(); break;
+        case 'sector':   av=(a.sector||'').toLowerCase(); bv=(b.sector||'').toLowerCase(); break;
         case 'loc':      av=(a.loc||a.geo||'').toLowerCase(); bv=(b.loc||b.geo||'').toLowerCase(); break;
         case 'deadline':
           // Treat rolling/missing deadlines as far-future for asc, near-past for desc.
@@ -2885,50 +2894,40 @@ function renderPrograms(){
           <div class="tags">${(p.tags||[]).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}${verifiedBadge(p)}</div>
           ${detailsBlock}
         </div>
-        <div class="cell">${cap(p.fn)} · ${cap(p.sector)}</div>
+        <div class="cell">${cap(p.fn)}</div>
+        <div class="cell">${cap(p.sector)}</div>
         <div class="cell">${esc(p.loc||p.geo)}</div>
         <div class="cell mono" style="font-size:10px;line-height:1.5">${dl}</div>
         <div><span class="badge ${bc}">${bl}</span></div>
         <div>
           ${p.aiTier ? fitTier(+p.fit||3,p) : `<span onclick="showPage('aifit')" title="Scan your résumé to see your fit for this program" style="cursor:pointer;font-size:10px;color:var(--text3);border-bottom:1px dashed var(--border2)">Scan résumé</span>`}
         </div>
+        <div>${renderStageDropdown(p)}</div>
         <div>
           ${p.deadline ? `<button class="ics-btn" onclick="openICSModal(${JSON.stringify({name:p.name,org:p.org,deadline:p.deadline,type:'program'}).replace(/"/g,'&quot;')})">📅 Set</button>` : `<span style="font-size:10px;color:var(--text3)">—</span>`}
-        </div>
-        <div>
-          ${(() => {
-            // Phase 14: Pipeline column — quick-add to user's application pipeline.
-            // Default stage is 'shortlisted' (matches the AI Fit "+ Shortlist" button).
-            // If already in pipeline, show the current stage as read-only confirmation.
-            const existingApp = _findAppForProgram(p);
-            if(existingApp){
-              const stage = existingApp.status || 'shortlisted';
-              const stageLabel = stage.charAt(0).toUpperCase() + stage.slice(1);
-              return `<span class="prow-pipe-saved" title="In your pipeline (${stageLabel}). Manage on the My Applications tab.">✓ ${stageLabel}</span>`;
-            }
-            return `<button class="prow-pipe-btn" onclick="addProgramToApplications(${p.id}, 'shortlisted')" title="Save to your pipeline at the Shortlisted stage">+ Shortlist</button>`;
-          })()}
-        </div>
-        <div class="abts">
-          <button class="bsm" onclick="editP(${p.id})">Edit</button>
-          <button class="bsm del" onclick="delP(${p.id})">Del</button>
         </div>
       </div>`;
     }).join('');
 
-  // Stats — with active state
+  // Stats — Task 19.2 layout: TOTAL · ✦ AI FIT · OPEN · ROLLING · ★ MY PIPELINE
   const open=progs.filter(p=>p.status==='open').length;
   const rolling=progs.filter(p=>p.status==='rolling').length;
-  const watch=progs.filter(p=>p.status==='watch').length;
   const highFit=progs.filter(p=>(+p.fit||0)>=4).length;
   const fitActive=window._fitOnly?'sc-active':'';
-  const anyFilterActive = F.geo.size>0 || F.fn.size>0 || F.st.size>0 || window._fitOnly || window._visaOnly || q.length>0;
+  const pipelineActive=_pipelineFilter?'sc-active':'';
+  const pipelineCount = _pipelineCount();
+  const anyFilterActive = F.geo.size>0 || F.fn.size>0 || F.sector.size>0 || F.st.size>0 || window._fitOnly || window._visaOnly || _pipelineFilter || q.length>0;
 
   document.getElementById('prog-stats').innerHTML=`
     <div class="stat-card sc-total ${anyFilterActive?'sc-active':''}" onclick="clearAll()" title="Click to clear all filters">
       <div class="stat-num">${progs.length}</div>
       <div class="stat-lbl">Total Programs</div>
       <div class="stat-hint">Clear filters</div>
+    </div>
+    <div class="stat-card sc-fit ${fitActive}" onclick="fitClick()" title="Filter: High-fit programs only">
+      <div class="stat-num cgo">${highFit}</div>
+      <div class="stat-lbl">★★★★+ AI Fit</div>
+      <div class="stat-hint">Click to filter</div>
     </div>
     <div class="stat-card sc-open ${F.st.has('open')?'sc-active':''}" onclick="statClick('open')" title="Filter: Open now">
       <div class="stat-num cg">${open}</div>
@@ -2940,15 +2939,10 @@ function renderPrograms(){
       <div class="stat-lbl">Rolling</div>
       <div class="stat-hint">Click to filter</div>
     </div>
-    <div class="stat-card sc-watch ${F.st.has('watch')?'sc-active':''}" onclick="statClick('watch')" title="Filter: Watch / prep">
-      <div class="stat-num ca">${watch}</div>
-      <div class="stat-lbl">Watch / Prep</div>
-      <div class="stat-hint">Click to filter</div>
-    </div>
-    <div class="stat-card sc-fit ${fitActive}" onclick="fitClick()" title="Filter: High-fit programs only">
-      <div class="stat-num cgo">${highFit}</div>
-      <div class="stat-lbl">★★★★+ Fit</div>
-      <div class="stat-hint">Click to filter</div>
+    <div class="stat-card sc-pipeline ${pipelineActive}" onclick="togglePipelineFilter()" title="Show only programs in your pipeline">
+      <div class="stat-num c-pipe">${pipelineCount}</div>
+      <div class="stat-lbl">★ My Pipeline</div>
+      <div class="stat-hint">${_pipelineFilter ? 'Click to show all' : 'Click to filter'}</div>
     </div>`;
 
   // Phase 10: sync sort arrows on the table headers
@@ -3158,6 +3152,212 @@ async function addProgramToApplications(progId, stage){
   const stageLabel = stage.charAt(0).toUpperCase() + stage.slice(1);
   toast(`✓ ${p.org} added to Applications (${stageLabel})`);
 }
+
+// ═══════════════ TASK 19.2 — STAGE DROPDOWN ═══════════════
+// Custom dropdown on each Programs-table row. Selecting a stage:
+//   - if program isn't in the user's pipeline yet → adds it at that stage
+//   - if program IS in pipeline → updates the existing user_applications row
+//   - special "Remove from pipeline" option deletes the row
+// Modeled on the Alumni Finder school picker pattern (div + abs-positioned panel)
+// but rendered per row. Click-outside handler closes any open panel.
+
+const STAGES = [
+  {key:'shortlisted', label:'Shortlisted',  color:'var(--gold)'},
+  {key:'networking',  label:'Networking',   color:'var(--blue)'},
+  {key:'drafting',    label:'Drafting',     color:'var(--purple)'},
+  {key:'applied',     label:'Applied',      color:'var(--amber)'},
+  {key:'interview',   label:'Interview',    color:'var(--accent)'},
+  {key:'offer',       label:'Offer',        color:'var(--teal)'},
+  {key:'rejected',    label:'Rejected',     color:'var(--text3)'},
+];
+const STAGE_BY_KEY = Object.fromEntries(STAGES.map(s => [s.key, s]));
+
+// Build the dropdown trigger HTML for one row.
+function renderStageDropdown(p){
+  const existingApp = _findAppForProgram(p);
+  if(existingApp){
+    const meta = STAGE_BY_KEY[existingApp.status] || {label:'—', color:'var(--text3)'};
+    return `<button class="stage-dd stage-dd-active" type="button"
+      onclick="toggleStageDropdown(event, ${p.id})"
+      title="Change stage or remove from pipeline"
+      data-prog-id="${p.id}">
+      <span class="stage-dd-dot" style="background:${meta.color}"></span>
+      <span class="stage-dd-lbl">${meta.label}</span>
+      <span class="stage-dd-caret">▾</span>
+    </button>`;
+  }
+  return `<button class="stage-dd stage-dd-empty" type="button"
+    onclick="toggleStageDropdown(event, ${p.id})"
+    title="Add to your pipeline at any stage"
+    data-prog-id="${p.id}">
+    <span class="stage-dd-plus">+</span>
+    <span class="stage-dd-lbl">Add to pipeline</span>
+    <span class="stage-dd-caret">▾</span>
+  </button>`;
+}
+
+// Open/close the dropdown panel. Only one panel open at a time across the table.
+function toggleStageDropdown(evt, progId){
+  evt.stopPropagation();   // prevent row-level click handlers
+  const btn = evt.currentTarget;
+  const existing = document.getElementById('stage-dd-panel');
+  // If panel for this same row is already open, close it.
+  if(existing && existing.dataset.progId === String(progId)){
+    existing.remove();
+    return;
+  }
+  // Close any other open panel first.
+  if(existing) existing.remove();
+
+  const p = progs.find(x => x.id === progId);
+  if(!p) return;
+  const inPipe = !!_findAppForProgram(p);
+
+  const panel = document.createElement('div');
+  panel.id = 'stage-dd-panel';
+  panel.className = 'stage-dd-panel';
+  panel.dataset.progId = String(progId);
+  panel.innerHTML = STAGES.map(s => {
+    const isCurrent = inPipe && _findAppForProgram(p)?.status === s.key;
+    return `<div class="stage-dd-opt ${isCurrent ? 'is-current' : ''}"
+      onclick="setProgramStage(${progId}, '${s.key}')">
+      <span class="stage-dd-dot" style="background:${s.color}"></span>
+      <span>${s.label}</span>
+      ${isCurrent ? '<span class="stage-dd-check">✓</span>' : ''}
+    </div>`;
+  }).join('') + (inPipe ? `
+    <div class="stage-dd-sep"></div>
+    <div class="stage-dd-opt stage-dd-remove" onclick="setProgramStage(${progId}, '__remove')">
+      <span class="stage-dd-dot stage-dd-x">×</span>
+      <span>Remove from pipeline</span>
+    </div>` : '');
+
+  // Position: fixed (so .table-wrap's overflow:hidden doesn't clip).
+  const rect = btn.getBoundingClientRect();
+  panel.style.position = 'fixed';
+  panel.style.left = `${rect.left}px`;
+  panel.style.top  = `${rect.bottom + 4}px`;
+  panel.style.minWidth = `${Math.max(rect.width, 200)}px`;
+  document.body.appendChild(panel);
+
+  // Adjust if panel would overflow the viewport bottom edge — open upward instead.
+  const panelRect = panel.getBoundingClientRect();
+  if(panelRect.bottom > window.innerHeight - 10){
+    panel.style.top = `${Math.max(10, rect.top - panelRect.height - 4)}px`;
+  }
+}
+
+// Close on click outside, scroll, escape, or window resize.
+function _closeAllStageDropdowns(){
+  const p = document.getElementById('stage-dd-panel');
+  if(p) p.remove();
+}
+document.addEventListener('click', (e) => {
+  // Don't close if clicking inside the panel or the trigger button.
+  if(e.target.closest('#stage-dd-panel') || e.target.closest('.stage-dd')) return;
+  _closeAllStageDropdowns();
+});
+document.addEventListener('keydown', (e) => {
+  if(e.key === 'Escape') _closeAllStageDropdowns();
+});
+window.addEventListener('scroll', _closeAllStageDropdowns, true);
+window.addEventListener('resize', _closeAllStageDropdowns);
+
+// Apply a stage change for a program. Branches:
+//   newStage === '__remove'                 → delete user_applications row
+//   existingApp present, status === newStage → no-op
+//   existingApp present, status !== newStage → update row
+//   no existingApp                          → insert (reuses addProgramToApplications)
+async function setProgramStage(progId, newStage){
+  _closeAllStageDropdowns();
+  const p = progs.find(x => x.id === progId);
+  if(!p) return;
+  const existing = _findAppForProgram(p);
+
+  if(newStage === '__remove'){
+    if(!existing) return;
+    if(!confirm(`Remove "${p.org}" from your pipeline?`)) return;
+    await deleteApplicationFromDB(existing.id);
+    apps = apps.filter(a => a.id !== existing.id);
+    renderApplications();
+    renderProgressStrip();
+    renderPrograms();
+    toast(`Removed ${p.org} from your pipeline`);
+    return;
+  }
+
+  if(existing){
+    if(existing.status === newStage) return;  // no-op
+    existing.status = newStage;
+    const saved = await saveApplicationToDB(existing);
+    if(!saved){
+      toast('Could not update stage — please try again');
+      return;
+    }
+    renderApplications();
+    renderProgressStrip();
+    renderPrograms();
+    const lbl = STAGE_BY_KEY[newStage]?.label || newStage;
+    toast(`Stage updated to ${lbl}`);
+    return;
+  }
+
+  // Not yet in pipeline — add at chosen stage. Reuse existing helper.
+  await addProgramToApplications(progId, newStage);
+}
+// ═══════════════ END STAGE DROPDOWN ═══════════════
+
+// ═══════════════ TASK 19.2 — SIDEBAR ACCORDIONS ═══════════════
+// Collapsible filter sections on the Programs page sidebar. Default state:
+// all sections collapsed (Search input stays always visible). Open/closed
+// state persists per-section in localStorage so the user doesn't re-collapse
+// on every reload.
+
+function toggleFilterSection(sectionKey){
+  const el = document.querySelector(`[data-prog-section="${sectionKey}"]`);
+  if(!el) return;
+  const isOpen = el.classList.toggle('open');
+  try {
+    const raw = localStorage.getItem('ldps_prog_sidebar_v1') || '{}';
+    const state = JSON.parse(raw);
+    state[sectionKey] = isOpen;
+    localStorage.setItem('ldps_prog_sidebar_v1', JSON.stringify(state));
+  } catch {}
+}
+
+// Restore section open/closed state on init. Also stamps each section with
+// an active-filter count badge so collapsed sections still telegraph state.
+function _restoreSidebarSections(){
+  let state = {};
+  try {
+    state = JSON.parse(localStorage.getItem('ldps_prog_sidebar_v1') || '{}');
+  } catch {}
+  document.querySelectorAll('[data-prog-section]').forEach(el => {
+    const key = el.getAttribute('data-prog-section');
+    if(state[key] === true) el.classList.add('open');
+    else                    el.classList.remove('open');
+  });
+  _refreshSidebarBadges();
+}
+
+// Update the "(N)" active-filter count badge next to each section's header.
+function _refreshSidebarBadges(){
+  const map = {
+    quickfilters: () => (window._visaOnly ? 1 : 0),
+    geography:    () => F.geo.size,
+    function:     () => F.fn.size,
+    sector:       () => F.sector.size,
+    status:       () => F.st.size,
+  };
+  Object.entries(map).forEach(([key, getN]) => {
+    const badge = document.querySelector(`[data-prog-section="${key}"] .prog-side-badge`);
+    if(!badge) return;
+    const n = getN();
+    if(n > 0){ badge.textContent = `(${n})`; badge.style.display = 'inline'; }
+    else     { badge.textContent = '';      badge.style.display = 'none'; }
+  });
+}
+// ═══════════════ END SIDEBAR ACCORDIONS ═══════════════
 
 function renderAlumniSearch(){
   const container = document.getElementById('alumni-search-rows');
@@ -4582,17 +4782,9 @@ function autoFillFromProgram(name){
 }
 
 // ═══════════════ SAVE ═══════════════
-function saveProg(){
-  const p={id:eId.prog||Date.now(),name:gv('pi-name'),org:gv('pi-org'),url:gv('pi-url'),geo:gv('pi-geo'),
-    loc:gv('pi-loc'),fn:gv('pi-fn'),sector:gv('pi-sector'),status:gv('pi-status'),
-    deadline:gv('pi-deadline'),dlnote:gv('pi-dlnote'),fit:gv('pi-fit'),notes:gv('pi-notes'),
-    visa:gv('pi-visa')==='yes',
-    tags:gv('pi-tags').split(',').map(t=>t.trim()).filter(Boolean)};
-  if(!p.name){alert('Program name required.');return;}
-  if(eId.prog){const i=progs.findIndex(x=>x.id===eId.prog);i>=0?progs[i]=p:progs.push(p);}
-  else progs.push(p);
-  persist();closeM('prog');renderPrograms();toast('Program saved ✓');
-}
+// Task 19.2 — saveProg was removed (Path A architecture: programs is a
+// read-only catalog). See the stub further down. saveAlumni and saveApp
+// remain — those tables ARE user-writable.
 function saveAlumni(){
   const a={id:eId.alumni||Date.now(),name:gv('ai-name'),school:gv('ai-school'),firm:gv('ai-firm'),
     role:gv('ai-role'),li:gv('ai-li'),prog:gv('ai-prog'),loc:gv('ai-loc'),status:gv('ai-status'),notes:gv('ai-notes')};
@@ -4639,8 +4831,27 @@ async function saveApp(){
 }
 
 // ═══════════════ EDIT / DELETE ═══════════════
-function editP(id){openM('prog',progs.find(p=>p.id===id)||{});}
-function delP(id){if(confirm('Remove this program?')){progs=progs.filter(p=>p.id!==id);persist();renderPrograms();toast('Removed');}}
+// Task 19.2 — Path A architecture. The Programs catalog is global/read-only
+// (Supabase `programs` table has no INSERT/UPDATE/DELETE RLS policies for
+// users — see DB_SCHEMA.md). The Add/Edit/Delete buttons on the Programs
+// page were vestigial from a previous architecture where progs[] lived in
+// localStorage. They wrote to localStorage only and got silently wiped on
+// next sign-in by fetchProgramsFromSupabase(). The buttons have been
+// removed from the UI; these stubs catch any lingering handler references
+// (e.g. cached HTML) and explain to the user / dev what's going on.
+function saveProg(){
+  console.warn('[Task 19.2] saveProg() is a no-op — programs catalog is read-only. Email hello@ldpscout.com to request additions.');
+  toast('Programs is a curated catalog. Email hello@ldpscout.com to request a program be added.');
+  closeM('prog');
+}
+function editP(id){
+  console.warn('[Task 19.2] editP() is a no-op — programs catalog is read-only.');
+  toast('Programs catalog is read-only.');
+}
+function delP(id){
+  console.warn('[Task 19.2] delP() is a no-op — programs catalog is read-only.');
+  toast('Programs catalog is read-only.');
+}
 function editA(id){openM('alumni',alum.find(a=>a.id===id)||{});}
 function delA(id){if(confirm('Remove this contact?')){alum=alum.filter(a=>a.id!==id);persist();renderAlumni();toast('Removed');}}
 function editAp(id){openM('app',apps.find(a=>String(a.id)===String(id))||{});}

@@ -1193,3 +1193,240 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 .prog-table-wrap .thead {
   border-bottom-color: var(--border2);
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   TASK 19.2 — Programs page deeper redesign
+   Sections: accordion sidebar · 9-col table with vertical borders ·
+   amber pipeline stat card · custom stage dropdown · mailto link.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ─── Sidebar collapsible accordions ──────────────────────────── */
+.prog-side-section-static { /* Search row — never collapses */
+  margin-bottom: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+.prog-side-acc {
+  margin-bottom: 4px;
+}
+.prog-side-acc .prog-side-head {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: none;
+  padding: 10px 4px;
+  cursor: pointer;
+  color: var(--text2);
+  font-family: var(--sans);
+  text-align: left;
+  border-radius: 6px;
+  transition: background .12s;
+}
+.prog-side-acc .prog-side-head:hover { background: var(--bg3); }
+.prog-side-acc .prog-side-head .al-sidebar-label {
+  margin: 0;            /* Override the bottom-margin from al-sidebar-label */
+  flex: 1;
+  display: inline-block;
+}
+.prog-side-acc .prog-side-badge {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--accent);
+  font-weight: 600;
+  display: none;        /* JS sets to inline when count > 0 */
+}
+.prog-side-acc .prog-side-chev {
+  color: var(--text3);
+  font-size: 11px;
+  transition: transform .15s;
+  flex-shrink: 0;
+}
+.prog-side-acc.open .prog-side-chev { transform: rotate(180deg); }
+.prog-side-acc .prog-side-body {
+  display: none;
+  padding: 4px 0 12px 0;
+}
+.prog-side-acc.open .prog-side-body { display: block; }
+
+/* ─── 9-column table grid (drop combined Function·Sector, drop
+       Pipeline button column, drop Actions column; add separate Function
+       + Sector + Stage columns). Adjusted column widths to keep total
+       horizontal density reasonable. */
+.prog-table-wrap .thead {
+  grid-template-columns: 2.0fr 0.7fr 0.8fr 1.0fr 0.7fr 0.6fr 0.7fr 1.0fr 0.7fr;
+}
+.prog-table-wrap .prow {
+  grid-template-columns: 2.0fr 0.7fr 0.8fr 1.0fr 0.7fr 0.6fr 0.7fr 1.0fr 0.7fr;
+}
+
+/* ─── Vertical column borders for legibility (Pranav's "borders
+       between columns too" — too many columns is overwhelming
+       without separators). Applied via right-border on each cell
+       except the last. */
+.prog-table-wrap .prow > * + *,
+.prog-table-wrap .thead > * + * {
+  border-left: 1px solid var(--border);
+  padding-left: 12px;
+}
+.prog-table-wrap .prow > *,
+.prog-table-wrap .thead > * {
+  padding-right: 12px;
+}
+
+/* ─── Amber stat card variant — "My Pipeline" gets a distinct color
+       so users see at a glance it's THEIR data (not catalog data). */
+.stat-card.sc-pipeline {
+  border-color: rgba(200, 151, 56, 0.20);
+}
+.stat-card.sc-pipeline .c-pipe {
+  color: #c89738;     /* warm amber — distinct from forest --accent */
+  font-weight: 700;
+}
+.stat-card.sc-pipeline:hover {
+  border-color: rgba(200, 151, 56, 0.40);
+  background: rgba(200, 151, 56, 0.04);
+}
+.stat-card.sc-pipeline.sc-active {
+  border-color: #c89738;
+  background: rgba(200, 151, 56, 0.08);
+}
+
+/* ─── Custom stage dropdown ──────────────────────────────────── */
+.stage-dd {
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  padding: 5px 8px;
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  text-align: left;
+  transition: border-color .12s, background .12s;
+}
+.stage-dd:hover {
+  border-color: var(--accent);
+  background: var(--bg2);
+}
+.stage-dd-empty {
+  background: transparent;
+  color: var(--text2);
+  border-style: dashed;
+}
+.stage-dd-empty:hover {
+  background: var(--bg3);
+  border-style: solid;
+}
+.stage-dd-active {
+  /* Subtle indication that this row IS in pipeline */
+  background: var(--bg2);
+}
+.stage-dd-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.stage-dd-plus {
+  font-size: 13px;
+  color: var(--text3);
+  font-weight: 400;
+  width: 8px;
+  text-align: center;
+  flex-shrink: 0;
+}
+.stage-dd-lbl {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.stage-dd-caret {
+  color: var(--text3);
+  font-size: 9px;
+  flex-shrink: 0;
+}
+
+/* Dropdown panel (rendered at document.body level, position:fixed) */
+.stage-dd-panel {
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-radius: 10px;
+  box-shadow: var(--shadow-md), 0 4px 16px rgba(0,0,0,0.08);
+  padding: 6px;
+  z-index: 100;
+  font-family: var(--sans);
+}
+.stage-dd-opt {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  font-size: 12px;
+  color: var(--text);
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background .1s;
+}
+.stage-dd-opt:hover {
+  background: var(--bg3);
+}
+.stage-dd-opt.is-current {
+  background: var(--accent-bg);
+  color: var(--accent);
+  font-weight: 600;
+}
+.stage-dd-opt .stage-dd-check {
+  margin-left: auto;
+  color: var(--accent);
+  font-weight: 700;
+}
+.stage-dd-sep {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 6px;
+}
+.stage-dd-remove {
+  color: var(--text2);
+  font-size: 11.5px;
+}
+.stage-dd-remove:hover {
+  background: rgba(220, 38, 38, 0.06);
+  color: rgb(220, 38, 38);
+}
+.stage-dd-x {
+  background: var(--bg3);
+  color: var(--text3);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  line-height: 1;
+}
+
+/* ─── Mailto request link — replaces the +Add Program button.
+       Subtle text-link aesthetic, not a button. ─────────────── */
+.prog-request-link {
+  font-family: var(--sans);
+  font-size: 12.5px;
+  color: var(--text3);
+  text-decoration: none;
+  border-bottom: 1px dashed var(--border2);
+  padding-bottom: 1px;
+  transition: color .15s, border-color .15s;
+  white-space: nowrap;
+}
+.prog-request-link:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
