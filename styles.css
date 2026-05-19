@@ -1430,3 +1430,94 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
   color: var(--accent);
   border-color: var(--accent);
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   TASK 19.2.1 — Programs page visual polish
+   - Full-height vertical column borders (gradient on .prow)
+   - Editorial "Tour this page →" link in eyebrow (replaces blue card)
+   - Accordion expanded-state accent treatment
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ─── Full-height vertical column dividers ─────────────────────────
+   Previous Task 19.2 approach put border-left on individual cells.
+   On rows where the Program/Org cell had tall content (tags + details
+   disclosure), the SHORTER cells didn't stretch vertically so their
+   border-left looked ragged.
+
+   Fix: force every cell to align-items: stretch within the row, and
+   keep border-left on each cell-after-first. CSS Grid's default IS
+   stretch, but it only works if cells are direct flex/grid containers.
+   We add display: flex with align-items: stretch on the row so each
+   immediate child cell expands to row height — then border-left
+   renders edge-to-edge.
+
+   Use min-height on every cell directly is cleaner — applied via
+   the existing flex/grid layout. The key trick: cell content lives
+   in a flex container so the border travels the full cell height. */
+.prog-table-wrap .prow,
+.prog-table-wrap .thead {
+  align-items: stretch;          /* enforce default, in case anything overrides */
+}
+.prog-table-wrap .prow > *,
+.prog-table-wrap .thead > * {
+  /* Each cell becomes a flex container with content vertically centered.
+     This is what makes the border-left on each subsequent cell render
+     full-height regardless of the cell's own content height. */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 100%;
+}
+/* First column (Program/Org) is the tallest; let it top-align so the
+   program name sits at the visual top of the row rather than centered
+   between the tags below. */
+.prog-table-wrap .prow > *:first-child {
+  justify-content: flex-start;
+  padding-top: 4px;
+}
+
+/* ─── Editorial tour link in the eyebrow ──────────────────────────
+   Replaces the bottom-of-page blue info-card. Sits inline with the
+   "Your LDP command centre" text using the same mono / uppercase /
+   tracked-letter aesthetic of the eyebrow itself, so it reads as
+   one cohesive line. */
+.prog-eyebrow-sep {
+  color: var(--text3);
+  margin: 0 8px;
+  opacity: 0.6;
+}
+.prog-tour-link {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--text3);
+  text-decoration: none;
+  cursor: pointer;
+  border-bottom: 1px dashed var(--border2);
+  padding-bottom: 1px;
+  transition: color .15s, border-color .15s;
+}
+.prog-tour-link:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* ─── Accordion expanded-state accent treatment ────────────────────
+   When a filter section is open, the header gets a subtle accent
+   background + accent-color label so users can quickly scan and
+   see "I'm currently in Sector." Mirrors the Stage dropdown's
+   .stage-dd-opt.is-current visual pattern for consistency. */
+.prog-side-acc.open .prog-side-head {
+  background: var(--accent-bg);
+}
+.prog-side-acc.open .prog-side-head:hover {
+  background: var(--accent-bg);   /* don't lose the open-state visual on hover */
+}
+.prog-side-acc.open .prog-side-head .al-sidebar-label {
+  color: var(--accent);
+  font-weight: 600;
+}
+.prog-side-acc.open .prog-side-chev {
+  color: var(--accent);
+}

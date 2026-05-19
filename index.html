@@ -356,7 +356,11 @@
     <!-- MAIN COLUMN -->
     <main class="prog-main">
       <header class="prog-header" id="prog-header">
-        <div class="prog-eyebrow" id="prog-eyebrow"><span id="prog-eyebrow-text">Your LDP command centre</span><span class="info-card-reopen" data-hint-key="programs_v1" onclick="reopenInfoCard('programs_v1')" title="Show page tips">?</span></div>
+        <div class="prog-eyebrow" id="prog-eyebrow">
+          <span id="prog-eyebrow-text">Your LDP command centre</span>
+          <span class="prog-eyebrow-sep">·</span>
+          <a class="prog-tour-link" onclick="tourStart('programs')" title="Walk through this page">Tour this page →</a>
+        </div>
         <h1 class="prog-h1" id="prog-h1">Welcome back, <span id="prog-welcome-name">there</span>.</h1>
         <p class="prog-subline" id="prog-subline">
           <span id="prog-welcome-pipeline"></span>
@@ -388,15 +392,8 @@
         </div>
         <div id="prog-list" class="prog-list"></div>
       </div>
-
-      <!-- Phase 7 info-card kept (moved below table so the welcome strip stays clean) -->
-      <div class="info-card" data-hint-key="programs_v1" style="margin-top:24px">
-        <button class="info-card-close" onclick="dismissInfoCard('programs_v1')" aria-label="Dismiss tip">×</button>
-        <strong>Master list of verified MBA LDPs</strong><br>
-        Filter, search, and save programs to your pipeline.<br>
-        <strong style="color:var(--text)">① Filter by geo/function/status</strong> · <strong style="color:var(--text)">② Click a row to open details</strong> · <strong style="color:var(--text)">③ Click the careers-page link to apply</strong>
-        <a class="info-card-tour" onclick="tourStart('programs')">Tour this page →</a>
-      </div>
+      <!-- Task 19.2.1 — bottom blue info-card removed. The "Tour this page →"
+           link is now inline in the eyebrow at the top, in editorial typography. -->
     </main>
   </div>
 </div>

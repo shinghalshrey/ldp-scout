@@ -2865,13 +2865,9 @@ function renderPrograms(){
     :list.map(p=>{
       const [bc,bl]=sm[p.status]||['b-closed','—'];
       const dl=p.deadline?new Date(p.deadline).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):(p.dlnote||'—');
-      // Phase 16 (P2): render scraped fields with esc(); editorial typography.
-      const ptype = p.program_type ? `<span class="ptype">${esc(p.program_type)}</span>` : '';
-      const pdur  = p.duration ? `<span class="pdur">${esc(p.duration)}</span>` : '';
-      const meta  = (p.program_type || p.duration)
-        ? `<div class="pmeta">${ptype}${ptype && pdur ? ' &middot; ' : ''}${pdur}</div>` : '';
-      const desc  = p.description
-        ? `<div class="pdesc">${esc(trunc(p.description, 120))}</div>` : '';
+      // Task 19.2.1 — program meta (FULL TIME · 2 YEARS) and description
+      // were removed from the table row. They made rows visually uneven and
+      // their info is still accessible via the "+ Details" disclosure below.
       // Read-only "Details" disclosure — full scraped fields + source link.
       const hasDetails = p.description || p.eligibility || p.work_experience || p.target_degree || p.source_url;
       const detailsBlock = hasDetails ? `
@@ -2889,8 +2885,6 @@ function renderPrograms(){
         <div>
           <div class="pname">${p.url?`<a href="${esc(p.url)}" target="_blank" rel="noopener noreferrer" style="color:var(--text);text-decoration:none;border-bottom:1px solid var(--border2);padding-bottom:1px" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--text)'">${esc(p.name)}</a>`:esc(p.name)}</div>
           <div class="porg">${esc(p.org)}${p.visa?` <span style="font-size:10px;color:var(--teal);font-weight:600;margin-left:4px">✓ Visa</span>`:''}</div>
-          ${meta}
-          ${desc}
           <div class="tags">${(p.tags||[]).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}${verifiedBadge(p)}</div>
           ${detailsBlock}
         </div>
