@@ -1515,8 +1515,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 .prog-table-wrap .thead .th:nth-child(5) { width: 8%; }
 .prog-table-wrap .thead .th:nth-child(6) { width: 7%; }
 .prog-table-wrap .thead .th:nth-child(7) { width: 8%; }
-.prog-table-wrap .thead .th:nth-child(8) { width: 12%; }
-.prog-table-wrap .thead .th:nth-child(9) { width: 15%; }
+.prog-table-wrap .thead .th:nth-child(8) { width: 16%; }
+.prog-table-wrap .thead .th:nth-child(9) { width: 11%; }
 
 /* ─── Editorial tour link in the eyebrow ──────────────────────────
    Task 19.2.2: superseded by the unified .page-editorial-eyebrow-row +
