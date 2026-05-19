@@ -1064,7 +1064,15 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 }
 
 /* Sidebar */
-.prog-sidebar { position: sticky; top: 80px; }
+.prog-sidebar {
+  position: sticky;
+  top: 80px;
+  /* Task 19.1 — if sidebar content exceeds viewport, scroll internally so
+     every filter stays reachable. Without this, sticky positioning hides
+     the bottom of the card behind the viewport edge on shorter screens. */
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
+}
 .prog-sidebar-card {
   background: var(--bg2);
   border: 1px solid var(--border);
@@ -1174,4 +1182,14 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
   .prog-layout { grid-template-columns: 1fr; gap: 18px; }
   .prog-sidebar { position: static; }
   .prog-h1 { font-size: 26px; }
+}
+
+/* Task 19.1 — Programs table row dividers were too faint (rgba 0.07);
+   bump to --border2 (rgba 0.13) for legibility. Scoped to .prog-table-wrap
+   so other tables (deadlines, applications kanban) aren't affected. */
+.prog-table-wrap .prow {
+  border-bottom-color: var(--border2);
+}
+.prog-table-wrap .thead {
+  border-bottom-color: var(--border2);
 }

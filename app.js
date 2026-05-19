@@ -1370,7 +1370,7 @@ function updateFitTabIndicator(){
 const TOURS = {
   programs: [
     {target:'#prog-stats',         title:'Pipeline at a glance',  body:'Snapshot of all tracked LDPs by status — open, rolling, watch-list, and closed. Updates as you filter below.'},
-    {target:'.filter-row',         title:'Filter and search',     body:'Cut the list by geography, function, status, or type. The search box matches program names, firms, and keywords.'},
+    {target:'.prog-sidebar',       title:'Filter and search',     body:'Use the sidebar to cut the list down: Quick Filters (Visa, your Pipeline), Geography, Function, and Status. The Search box at the top matches program names, firms, and keywords.'},
     {target:'.thead',              title:'Sortable columns',      body:'Click any column header to sort. The Fit column is powered by the AI Fit Scanner once you upload a résumé.'},
     {target:'.prow:first-child',   title:'Open program details',  body:'Click any row to open full details — deadline, location, fit reasoning. The program name links straight to the official careers page.'}
   ],
