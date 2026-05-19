@@ -544,6 +544,16 @@ async function onSignIn(){
   // Phase 7: render onboarding progress strip + AI Fit attention dot
   renderProgressStrip();
   updateFitTabIndicator();
+  // Task 19.2.3: restore last-active page from localStorage. Index.html has
+  // #page-programs as the default active page, but if the user was on Deadlines
+  // before refresh, take them back there. Falls back to Programs if no saved
+  // page or the saved id is invalid.
+  try {
+    const lastPage = localStorage.getItem('ldps_last_page');
+    if(lastPage && PAGE_ORDER.includes(lastPage) && lastPage !== 'programs'){
+      showPage(lastPage);
+    }
+  } catch {}
 }
 
 function onSignOut(){
@@ -551,6 +561,8 @@ function onSignOut(){
   userProfile = null;
   resumeText = '';
   resumeLastScanAt = null;   // Phase 7
+  // Task 19.2.3: clear last-page so next signin doesn't restore previous user's tab
+  try { localStorage.removeItem('ldps_last_page'); } catch {}
   showLanding();
   // Clear UI (null-guard — these elements may not exist before sign-in)
   const kb = document.getElementById('app-kanban');
@@ -2630,6 +2642,9 @@ function showPage(id){
   const idx=PAGE_ORDER.indexOf(id);
   const tabs=document.querySelectorAll('.nav-tab');
   if(idx>=0&&tabs[idx]) tabs[idx].classList.add('active');
+
+  // Task 19.2.3: persist last-active page so refresh lands on the same tab.
+  try { localStorage.setItem('ldps_last_page', id); } catch {}
   
   ({programs:()=>{_restoreSidebarSections();renderPrograms();},alumni:()=>{initAlumniSchoolDrop();renderAlumniSectorList();renderAlumniSearch();},applications:renderApplications,deadlines:renderDeadlines,aifit:loadAndRenderLastScan})[id]?.();
 

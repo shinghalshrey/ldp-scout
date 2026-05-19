@@ -1276,21 +1276,25 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 }
 
 /* ─── Amber stat card variant — "My Pipeline" gets a distinct color
-       so users see at a glance it's THEIR data (not catalog data). */
+       so users see at a glance it's THEIR data (not catalog data).
+       Task 19.2.3: bumped border to 2px and opacity higher — the
+       previous 1.5px / 20% opacity was getting lost in the cream
+       --bg background. */
 .stat-card.sc-pipeline {
-  border-color: rgba(200, 151, 56, 0.20);
+  border-width: 2px;
+  border-color: rgba(200, 151, 56, 0.55);
 }
 .stat-card.sc-pipeline .c-pipe {
   color: #c89738;     /* warm amber — distinct from forest --accent */
   font-weight: 700;
 }
 .stat-card.sc-pipeline:hover {
-  border-color: rgba(200, 151, 56, 0.40);
+  border-color: rgba(200, 151, 56, 0.80);
   background: rgba(200, 151, 56, 0.04);
 }
 .stat-card.sc-pipeline.sc-active {
   border-color: #c89738;
-  background: rgba(200, 151, 56, 0.08);
+  background: rgba(200, 151, 56, 0.10);
 }
 
 /* ─── Custom stage dropdown ──────────────────────────────────── */
@@ -1438,37 +1442,50 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
    - Accordion expanded-state accent treatment
    ═══════════════════════════════════════════════════════════════════ */
 
-/* ─── Full-height vertical column dividers ─────────────────────────
-   ROOT CAUSE of the Task 19.2.1 failure: the base .prow rule (styles.css:83)
-   has `align-items: center`. CSS Grid's default cell behavior IS stretch,
-   but `align-items: center` on the row overrode that — every cell sat at
-   its content height. Border-left on a cell then only drew to cell-content
-   height. Tall rows with tags + descriptions made the dividers look ragged.
+/* ─── Full-height vertical column dividers + cell alignment ────────
+   ROOT CAUSE of ragged dividers: the base .prow at styles.css:83 has
+   `padding: 13px 16px`. CSS Grid cells fit inside parent padding, so
+   vertical dividers started 13px below the row top and ended 13px above
+   the row bottom — leaving a gap at top/bottom of each row. NOT edge-to-edge.
 
-   FIX: override align-items back to `stretch` on the Programs table only.
-   Now every cell expands to row height; border-left renders edge-to-edge.
-   No display:flex needed, no min-height tricks. */
+   FIX (Task 19.2.3): scoped to .prog-table-wrap, remove vertical padding
+   from .prow / .thead, and apply that padding to each cell instead. Cells
+   now span 100% of row height (between the row-separating border-bottoms).
+   Border-left on cells renders edge-to-edge.
+
+   Also: cells 2-9 align content to flex-start (top) with matched padding
+   so column 2's text starts at the same Y-position as the program name
+   in column 1. Center-vertical alignment created the illusion of column
+   misalignment when row heights varied. */
 .prog-table-wrap .prow,
 .prog-table-wrap .thead {
   align-items: stretch;
+  padding-top: 0;
+  padding-bottom: 0;
 }
-/* Restore vertical centering for cell CONTENT (not the cell box). Each cell
-   becomes a flex container so its content stays centered while the cell box
-   stretches to row height. */
+/* Cells become flex containers with explicit vertical padding (replaces
+   what the row's padding used to provide). All cells get padding-top: 14px
+   so content baseline is consistent across columns. */
 .prog-table-wrap .prow > *,
 .prog-table-wrap .thead > * {
   display: flex;
   flex-direction: column;
-  justify-content: center;
-}
-/* First column (Program/Org) is the tallest — top-align its content so the
-   program name sits at the visual top, with tags/badges below. */
-.prog-table-wrap .prow > *:first-child {
   justify-content: flex-start;
-  padding-top: 4px;
+  padding-top: 14px;
+  padding-bottom: 14px;
+}
+.prog-table-wrap .thead > * {
+  padding-top: 11px;
+  padding-bottom: 11px;
+}
+/* First column (Program/Org) keeps default flex-start. */
+.prog-table-wrap .prow > *:first-child {
+  /* inherits flex-start from above */
 }
 /* Task 19.2.2: center-align text in all columns EXCEPT the first
-   (Program/Org column stays left-aligned per Pranav's spec). */
+   (Program/Org column stays left-aligned per Pranav's spec). Vertical
+   alignment kept at flex-start (top) so cells align across rows of
+   varying heights. */
 .prog-table-wrap .prow > *:not(:first-child),
 .prog-table-wrap .thead > *:not(:first-child) {
   text-align: center;
