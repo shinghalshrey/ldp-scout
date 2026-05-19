@@ -238,63 +238,115 @@
 
 <div class="main">
 
-<!-- PROGRAMS PAGE -->
+<!-- PROGRAMS PAGE — Task 19 redesign (Lovable HTML + data-sort-key restored) -->
 <div class="page active" id="page-programs">
-  <div class="sech"><h2>Programs<span class="info-card-reopen" data-hint-key="programs_v1" onclick="reopenInfoCard('programs_v1')" title="Show page tips">?</span></h2><p>All verified MBA LDP rotational programs — filter, search, and save to your application pipeline.</p></div>
+  <div class="prog-layout">
+    <!-- LEFT SIDEBAR -->
+    <aside class="prog-sidebar">
+      <div class="prog-sidebar-card">
+        <div class="prog-side-section">
+          <div class="al-sidebar-label">Search</div>
+          <input
+            id="prog-search"
+            type="text"
+            class="prog-search-input"
+            placeholder="Programs, firms, keywords…"
+            oninput="renderPrograms()"
+          />
+        </div>
 
-  <div class="info-card" data-hint-key="programs_v1">
-    <button class="info-card-close" onclick="dismissInfoCard('programs_v1')" aria-label="Dismiss tip">×</button>
-    <strong>Master list of verified MBA LDPs</strong><br>
-    Filter, search, and save programs to your pipeline.<br>
-    <strong style="color:var(--text)">① Filter by geo/function/status</strong> · <strong style="color:var(--text)">② Click a row to open details</strong> · <strong style="color:var(--text)">③ Click the careers-page link to apply</strong>
-    <a class="info-card-tour" onclick="tourStart('programs')">Tour this page →</a>
-  </div>
+        <div class="prog-side-section">
+          <div class="al-sidebar-label">Geography</div>
+          <div class="prog-pill-stack">
+            <button class="fpill on" data-geo="all"     onclick="setF('geo',this)">All</button>
+            <button class="fpill"    data-geo="europe"  onclick="setF('geo',this)">Europe</button>
+            <button class="fpill"    data-geo="uae"     onclick="setF('geo',this)">UAE / Gulf</button>
+            <button class="fpill"    data-geo="global"  onclick="setF('geo',this)">Global</button>
+          </div>
+        </div>
 
-  <div class="stat-row" id="prog-stats"></div>
-  <div id="fit-banner-mount"></div>
-  <div class="filter-row">
-    <input class="si-input" id="prog-search" type="text" placeholder="Search programs, firms, keywords..." oninput="renderPrograms()">
-    <div class="divider"></div>
-    <span class="flabel">Geo</span>
-    <button class="fpill on" data-geo="all"    onclick="setF('geo',this)">All</button>
-    <button class="fpill"    data-geo="europe" onclick="setF('geo',this)">Europe</button>
-    <button class="fpill"    data-geo="uae"    onclick="setF('geo',this)">UAE/Gulf</button>
-    <button class="fpill"    data-geo="global" onclick="setF('geo',this)">Global</button>
-    <div class="divider"></div>
-    <span class="flabel">Function</span>
-    <button class="fpill on" data-fn="all"        onclick="setF('fn',this)">All</button>
-    <button class="fpill"    data-fn="operations" onclick="setF('fn',this)">Operations</button>
-    <button class="fpill"    data-fn="finance"    onclick="setF('fn',this)">Finance</button>
-    <button class="fpill"    data-fn="strategy"   onclick="setF('fn',this)">Strategy</button>
-    <button class="fpill"    data-fn="consulting" onclick="setF('fn',this)">Consulting</button>
-    <button class="fpill"    data-fn="investing"  onclick="setF('fn',this)">Investments</button>
-    <div class="divider"></div>
-    <span class="flabel">Status</span>
-    <button class="fpill on" data-st="all"     onclick="setF('st',this)">All</button>
-    <button class="fpill"    data-st="open"    onclick="setF('st',this)">Open</button>
-    <button class="fpill"    data-st="rolling" onclick="setF('st',this)">Rolling</button>
-    <button class="fpill"    data-st="watch"   onclick="setF('st',this)">Watch</button>
-    <div class="divider"></div>
-    <button class="fpill" id="visa-pill" onclick="toggleVisaFilter(this)">✓ Visa Only</button>
-    <div class="divider"></div>
-    <button class="fpill pipeline-toggle" onclick="togglePipelineFilter()" title="Show only programs in your application pipeline">My Pipeline</button>
-    <div class="spacer"></div>
-    <button class="add-btn" onclick="openM('prog')">+ Add Program</button>
-  </div>
-  <div class="results-meta" id="prog-meta"></div>
-  <div class="table-wrap">
-    <div class="thead">
-      <div class="th sortable" data-sort-key="name" onclick="sortBy('name')">Program / Organisation<span class="th-arrow">▼</span></div>
-      <div class="th sortable" data-sort-key="fn"   onclick="sortBy('fn')">Function · Sector<span class="th-arrow">▼</span></div>
-      <div class="th sortable" data-sort-key="loc"  onclick="sortBy('loc')">Location<span class="th-arrow">▼</span></div>
-      <div class="th sortable" data-sort-key="deadline" onclick="sortBy('deadline')">Deadline<span class="th-arrow">▼</span></div>
-      <div class="th sortable" data-sort-key="status" onclick="sortBy('status')">Status<span class="th-arrow">▼</span></div>
-      <div class="th sortable" data-sort-key="fit"  onclick="sortBy('fit')">Fit ✦<span class="th-arrow">▼</span></div>
-      <div class="th">📅 Remind</div>
-      <div class="th">Pipeline</div>
-      <div class="th">Actions</div>
-    </div>
-    <div id="prog-list"></div>
+        <div class="prog-side-section">
+          <div class="al-sidebar-label">Function</div>
+          <div class="prog-pill-stack">
+            <button class="fpill on" data-fn="all"        onclick="setF('fn',this)">All</button>
+            <button class="fpill"    data-fn="operations" onclick="setF('fn',this)">Operations</button>
+            <button class="fpill"    data-fn="finance"    onclick="setF('fn',this)">Finance</button>
+            <button class="fpill"    data-fn="strategy"   onclick="setF('fn',this)">Strategy</button>
+            <button class="fpill"    data-fn="consulting" onclick="setF('fn',this)">Consulting</button>
+            <button class="fpill"    data-fn="investing"  onclick="setF('fn',this)">Investments</button>
+          </div>
+        </div>
+
+        <div class="prog-side-section">
+          <div class="al-sidebar-label">Status</div>
+          <div class="prog-pill-stack">
+            <button class="fpill on" data-st="all"     onclick="setF('st',this)">All</button>
+            <button class="fpill"    data-st="open"    onclick="setF('st',this)">Open</button>
+            <button class="fpill"    data-st="rolling" onclick="setF('st',this)">Rolling</button>
+            <button class="fpill"    data-st="watch"   onclick="setF('st',this)">Watch</button>
+          </div>
+        </div>
+
+        <div class="prog-side-section">
+          <div class="al-sidebar-label">Quick Filters</div>
+          <div class="prog-pill-stack">
+            <button id="visa-pill" class="fpill prog-quick" onclick="toggleVisaFilter(this)">✓ Visa-sponsoring only</button>
+            <button class="fpill prog-quick pipeline-toggle" onclick="togglePipelineFilter()">★ My Pipeline only</button>
+          </div>
+        </div>
+
+        <div class="al-pro-tip prog-tip">
+          <div class="al-pro-tip-title">💡 Pro Tip</div>
+          <p>Click any row to open program details. Use the Pipeline toggle in any row to save it to your shortlist.</p>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN COLUMN -->
+    <main class="prog-main">
+      <header class="prog-header" id="prog-header">
+        <div class="prog-eyebrow" id="prog-eyebrow"><span id="prog-eyebrow-text">Your LDP command centre</span><span class="info-card-reopen" data-hint-key="programs_v1" onclick="reopenInfoCard('programs_v1')" title="Show page tips">?</span></div>
+        <h1 class="prog-h1" id="prog-h1">Welcome back, <span id="prog-welcome-name">there</span>.</h1>
+        <p class="prog-subline" id="prog-subline">
+          <span id="prog-welcome-pipeline"></span>
+          <span class="prog-dot"> · </span>
+          <span id="prog-welcome-deadlines"></span>
+        </p>
+      </header>
+
+      <div id="prog-stats" class="stat-row prog-stats"></div>
+
+      <div id="fit-banner-mount" class="prog-fit-mount"></div>
+
+      <div class="prog-meta-row">
+        <div id="prog-meta" class="results-meta prog-meta"></div>
+        <button class="prog-add-btn" onclick="openM('prog')">+ Add Program</button>
+      </div>
+
+      <div class="table-wrap prog-table-wrap">
+        <div class="thead prog-thead">
+          <div class="th sortable" data-sort-key="name"     onclick="sortBy('name')">Program / Organisation <span class="th-arrow">▼</span></div>
+          <div class="th sortable" data-sort-key="fn"       onclick="sortBy('fn')">Function · Sector <span class="th-arrow">▼</span></div>
+          <div class="th sortable" data-sort-key="loc"      onclick="sortBy('loc')">Location <span class="th-arrow">▼</span></div>
+          <div class="th sortable" data-sort-key="deadline" onclick="sortBy('deadline')">Deadline <span class="th-arrow">▼</span></div>
+          <div class="th sortable" data-sort-key="status"   onclick="sortBy('status')">Status <span class="th-arrow">▼</span></div>
+          <div class="th sortable" data-sort-key="fit"      onclick="sortBy('fit')">Fit ✦ <span class="th-arrow">▼</span></div>
+          <div class="th">📅 Remind</div>
+          <div class="th">Pipeline</div>
+          <div class="th">Actions</div>
+        </div>
+        <div id="prog-list" class="prog-list"></div>
+      </div>
+
+      <!-- Phase 7 info-card kept (moved below table so the welcome strip stays clean) -->
+      <div class="info-card" data-hint-key="programs_v1" style="margin-top:24px">
+        <button class="info-card-close" onclick="dismissInfoCard('programs_v1')" aria-label="Dismiss tip">×</button>
+        <strong>Master list of verified MBA LDPs</strong><br>
+        Filter, search, and save programs to your pipeline.<br>
+        <strong style="color:var(--text)">① Filter by geo/function/status</strong> · <strong style="color:var(--text)">② Click a row to open details</strong> · <strong style="color:var(--text)">③ Click the careers-page link to apply</strong>
+        <a class="info-card-tour" onclick="tourStart('programs')">Tour this page →</a>
+      </div>
+    </main>
   </div>
 </div>
 
@@ -626,7 +678,7 @@
 <!-- PHASE 16 (P3): PROFILE MODAL — unified name + school + password edit. -->
 <div class="ics-modal-overlay" id="profile-modal-overlay">
   <div class="ics-modal" style="max-width:460px">
-    <h3>Your profile</h3>
+    <h3 id="profile-modal-title">Your profile</h3>
     <div class="ics-modal-sub">Update your name, school, and password. Leave the password fields blank to keep your existing one.</div>
 
     <div style="margin-bottom:14px">

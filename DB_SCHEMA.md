@@ -12,7 +12,7 @@ Supabase Postgres. All app tables live in `public` schema. RLS is enabled on eve
 
 ### `public.user_profiles`
 
-User profile data, one row per user. Driven by Profile modal (Task 4).
+User profile data, one row per user. Driven by Profile modal.
 
 **RLS policies:**
 - `own_profile_select` (SELECT) — `auth.uid() = user_id`
@@ -20,6 +20,8 @@ User profile data, one row per user. Driven by Profile modal (Task 4).
 - `own_profile_update` (UPDATE) — `auth.uid() = user_id`
 
 **Columns (per handover):** `user_id` (PK, FK to `auth.users.id`), `email`, `full_name`, `school_key`, `school_label`, `mba_year`, `target_geos` (text[]), `target_fns` (text[]), `goals_note`, `tours_completed` (jsonb), `hints_dismissed` (jsonb).
+
+**`full_name` is mandatory** going forward (Task 19). Onboarding will not allow proceeding without it. Existing rows with NULL `full_name` will be backfilled by prompting on next sign-in.
 
 No DELETE policy — by design (users can't delete their profile from the UI). If account-deletion is ever added, do it via a Supabase Edge Function with service role, not a client-side DELETE.
 
@@ -58,7 +60,7 @@ Single permissive policy covering SELECT/INSERT/UPDATE/DELETE. Pragmatic for Kan
 
 ### `public.user_resumes`
 
-Stored résumé content per user. Not described in handover — discovered via policy scan.
+Stored résumé content per user. Discovered via policy scan.
 
 **RLS policies:**
 - `own_resume_all` (ALL) — `auth.uid() = user_id`
@@ -71,17 +73,10 @@ Stored résumé content per user. Not described in handover — discovered via p
 
 The 393-program catalog. Public-read.
 
-**RLS policies (both SELECT, both effectively public):**
-- `Anyone can read programs`
+**RLS policies (SELECT, public):**
 - `programs are public`
 
-**🚩 Redundant duplicate.** Two policies doing the same thing. Not a bug — Postgres OR's permissive policies — but it's noise. At some point drop one:
-
-```sql
-DROP POLICY IF EXISTS "Anyone can read programs" ON public.programs;
-```
-
-Low priority. File under cleanup.
+(Duplicate `Anyone can read programs` policy was dropped in Session 4.)
 
 ---
 
@@ -112,12 +107,52 @@ Community-contributed program intelligence. Read-public, write-own.
 
 `user_metadata` flag the app reads:
 
-- `has_password` (bool) — set when user completes password setup post-OTP. Suppresses the password prompt on subsequent logins. (Added in Task 3.)
+- `has_password` (bool) — set when user completes password setup post-OTP. Suppresses the password prompt on subsequent logins. (Mandatory for new users as of Task 9.)
 
-**Issue X status (May 18, RESOLVED):** Original concern was email verification bypass via password signup. Root cause: Supabase "Confirm email" setting was OFF, allowing password-signup to auto-confirm without inbox verification. Resolution: enabled "Confirm email" toggle in Supabase dashboard. Bogus accounts (`shrey.singha123l@...`, `shrey.singhal1@...`, `jaskaransingh.thakkar@alumni.esade`, `pranav1180@gmail.edu`) deleted from `auth.users`.
+**Issue X status (RESOLVED Session 4):** Original concern was email verification bypass via password signup. Root cause: Supabase "Confirm email" setting was OFF, allowing password-signup to auto-confirm without inbox verification. Resolution: enabled "Confirm email" toggle in Supabase dashboard. Bogus accounts deleted from `auth.users`.
 
-**Defense-in-depth follow-up (Task 9):** Remove the password-signup UI path entirely. New users only sign up via OTP. Existing users with passwords (currently only `abhinav.singh@alumni.esade.edu` and `shrey.singhal@alumni.esade.edu` per `has_password = true` in metadata) keep the password sign-in option.
+**Defense-in-depth (DONE in Task 9):** Password-signup UI path removed. New users only sign up via OTP, then a mandatory password setup at the end of OTP verification.
 
+To get the current list of password-enabled users:
+```sql
+SELECT email, raw_user_meta_data->>'has_password' AS has_password, created_at
+FROM auth.users
+WHERE (raw_user_meta_data->>'has_password')::boolean = true
+ORDER BY created_at DESC;
+```
+
+---
+
+## RPC functions
+
+### `public.email_account_status(p_email text)`
+
+Added Session 4 as prerequisite for Task 9's two-button Sign Up / Sign In landing UI. Returns whether an account exists for the given email, and whether that account has a password set.
+
+```sql
+CREATE OR REPLACE FUNCTION public.email_account_status(p_email text)
+RETURNS TABLE(account_exists boolean, has_password boolean)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, auth
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    true AS account_exists,
+    COALESCE((u.raw_user_meta_data->>'has_password')::boolean, false) AS has_password
+  FROM auth.users u
+  WHERE lower(u.email) = lower(p_email)
+  LIMIT 1;
+  IF NOT FOUND THEN
+    RETURN QUERY SELECT false, false;
+  END IF;
+END;
+$$;
+GRANT EXECUTE ON FUNCTION public.email_account_status(text) TO anon, authenticated;
+```
+
+**Security note:** This RPC leaks "does this email have an account" to anyone with the anon key. Accepted as low-risk in Session 4 — the email-enumeration vector exists in any OTP flow (sending an OTP also reveals account existence via response timing or message wording).
 
 ---
 
@@ -157,6 +192,13 @@ FROM auth.users u
 LEFT JOIN public.user_scan_history h ON h.user_id = u.id
 WHERE h.id IS NULL
 ORDER BY u.created_at DESC;
+
+-- Users with no full_name (need backfill prompt)
+SELECT u.email, p.full_name, u.created_at
+FROM auth.users u
+LEFT JOIN public.user_profiles p ON p.user_id = u.id
+WHERE p.full_name IS NULL OR p.full_name = ''
+ORDER BY u.created_at DESC;
 ```
 
 ---
@@ -184,5 +226,5 @@ The schema-wide sequence GRANT covers any sequences in `public`. If you add a ne
 
 ## Known cleanup items (low priority)
 
-1. Drop duplicate `Anyone can read programs` policy on `programs` (keep `programs are public`).
-2. Document `user_resumes` row shape and write triggers — relevant to Task 5 cost optimization.
+1. Document `user_resumes` row shape and write triggers — relevant to Task 5 cost optimization.
+2. Backfill `full_name` for the 10 existing `user_profiles` rows (Task 19 onboarding flow will prompt on next sign-in if NULL).

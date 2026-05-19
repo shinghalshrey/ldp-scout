@@ -19,6 +19,188 @@ const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
 let currentUser = null;
 let userProfile = null;
 
+// ═══════════════ TASK 19 — PERSONALIZATION HELPERS ═══════════════
+// All page headers + topbar + profile modal read userProfile.full_name
+// via getFirstName(). When full_name is empty/null, pages fall back to
+// generic (STATE B) copy. Helpers are no-ops when their target elements
+// aren't on the current DOM, so calling them from any context is safe.
+
+function getFirstName(){
+  const n = (userProfile && userProfile.full_name || '').trim();
+  if(!n) return null;
+  return n.split(/\s+/)[0];
+}
+
+// Cheap HTML-escape for any time we inject names via innerHTML. The name comes
+// from the user's own profile so risk is low, but a stray '<' would break the
+// page; escape defensively.
+function _esc(s){
+  return String(s ?? '').replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[c]));
+}
+
+// Count programs in the user's active pipeline (not offer/rejected).
+function _pipelineCount(){
+  if(!Array.isArray(apps)) return 0;
+  return apps.filter(a => a.status && !['offer','rejected'].includes(a.status)).length;
+}
+
+// Count deadlines in the next 30 days from the user's pipeline.
+function _deadlinesThisMonth(){
+  if(!Array.isArray(apps)) return 0;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const horizon = new Date(today.getTime() + 30*86400000);
+  return apps.filter(a => {
+    if(!a.deadline) return false;
+    if(['offer','rejected'].includes(a.status)) return false;
+    const d = new Date(a.deadline); d.setHours(0,0,0,0);
+    return d >= today && d <= horizon;
+  }).length;
+}
+
+// Refresh the Programs-page welcome-strip count spans. Safe to call any time;
+// no-ops if the elements aren't present. Called from renderPrograms() and
+// from applyPagePersonalization() so the strip stays in sync as pipeline
+// state mutates (shortlist toggles, deadline edits, etc.).
+function _refreshProgramsCounts(){
+  const firstName = getFirstName();
+  if(!firstName) return; // STATE B has no count spans to fill
+  const pipeEl = document.getElementById('prog-welcome-pipeline');
+  const dlEl   = document.getElementById('prog-welcome-deadlines');
+  if(!pipeEl || !dlEl) return;
+  const pipe = _pipelineCount();
+  const dls  = _deadlinesThisMonth();
+  if(pipe === 0 && dls === 0){
+    // Empty-pipeline fallback — collapse to a single nudge string.
+    pipeEl.textContent = 'Start building your pipeline below';
+    dlEl.textContent = '';
+  } else {
+    pipeEl.textContent = pipe === 1
+      ? '1 program in your pipeline'
+      : `${pipe} programs in your pipeline`;
+    dlEl.textContent = dls === 0
+      ? 'No deadlines this month'
+      : (dls === 1 ? '1 deadline this month' : `${dls} deadlines this month`);
+  }
+}
+
+// Apply the personalized header for a given page id. Called from showPage()
+// after the page becomes active, and after saveUserProfile() so newly-saved
+// names propagate immediately. Idempotent; safe to call repeatedly.
+function applyPagePersonalization(pageId){
+  const firstName = getFirstName();
+  const nameEsc = firstName ? _esc(firstName) : null;
+
+  // ─── PROGRAMS PAGE ─────────────────────────────────────────────
+  if(pageId === 'programs'){
+    const eyebrow = document.getElementById('prog-eyebrow-text');
+    const h1      = document.getElementById('prog-h1');
+    const subline = document.getElementById('prog-subline');
+    if(eyebrow && h1 && subline){
+      if(firstName){
+        // STATE A — personalized
+        eyebrow.textContent = 'Your LDP command centre';
+        h1.innerHTML = `Welcome back, <span id="prog-welcome-name">${nameEsc}</span>.`;
+        // Rebuild subline structure so the count spans exist for _refreshProgramsCounts
+        subline.innerHTML =
+          '<span id="prog-welcome-pipeline"></span>' +
+          '<span class="prog-dot"> · </span>' +
+          '<span id="prog-welcome-deadlines"></span>';
+        _refreshProgramsCounts();
+      } else {
+        // STATE B — fallback, count-agnostic (per Task 20 — no static numbers
+        // that would leak into OG previews / pre-JS crawlers)
+        eyebrow.textContent = 'All programs';
+        h1.textContent = 'Verified MBA LDP programs.';
+        subline.textContent = 'Filter, search, and save to your pipeline.';
+      }
+    }
+  }
+
+  // ─── ALUMNI FINDER ─────────────────────────────────────────────
+  if(pageId === 'alumni'){
+    const h2 = document.querySelector('#page-alumni .sech h2');
+    const sub = document.querySelector('#page-alumni .sech p');
+    if(h2){
+      // Preserve the trailing info-card-reopen "?" if present (Alumni h2 has it inline)
+      const reopen = h2.querySelector('.info-card-reopen');
+      h2.textContent = firstName ? `Alumni Finder, ${firstName}` : 'Alumni Finder';
+      if(reopen) h2.appendChild(reopen);
+    }
+    if(sub){
+      sub.textContent = firstName
+        ? `Find alumni at your target programs, ${firstName} — build the right LinkedIn searches before applications open.`
+        : 'Build the right LinkedIn searches and connection messages to reach the right people inside target programs — before applications open.';
+    }
+  }
+
+  // ─── APPLICATIONS PAGE ─────────────────────────────────────────
+  // h2 personalized here; #app-sub stays inside renderApplications() because
+  // it carries live pipeline counts that change with every render.
+  if(pageId === 'applications'){
+    const h2 = document.querySelector('#page-applications .sech h2');
+    if(h2){
+      const reopen = h2.querySelector('.info-card-reopen');
+      h2.textContent = firstName ? `${firstName}'s pipeline` : 'My Applications';
+      if(reopen) h2.appendChild(reopen);
+    }
+  }
+
+  // ─── DEADLINES PAGE ────────────────────────────────────────────
+  if(pageId === 'deadlines'){
+    const h2 = document.querySelector('#page-deadlines .sech h2');
+    const sub = document.querySelector('#page-deadlines .sech p');
+    if(h2){
+      const reopen = h2.querySelector('.info-card-reopen');
+      h2.textContent = firstName ? `${firstName}, your upcoming deadlines` : 'Upcoming Deadlines';
+      if(reopen) h2.appendChild(reopen);
+    }
+    if(sub){
+      const dls = firstName ? _deadlinesThisMonth() : 0;
+      if(firstName && dls > 0){
+        sub.textContent = `${dls === 1 ? '1 program in your pipeline has a deadline' : `${dls} of your pipeline programs have deadlines`} in the next 30 days. Plan the sprint.`;
+      } else {
+        sub.textContent = 'Plan your application sprint: 90-day horizon, urgency buckets, and one-click calendar export.';
+      }
+    }
+  }
+
+  // ─── AI FIT SCAN (pre-scan view only) ──────────────────────────
+  // Post-scan summary is personalized inside renderAIResults() because that
+  // view is template-rendered every time and a one-shot would be wiped.
+  if(pageId === 'aifit'){
+    const preTitle = document.querySelector('#aifit-view-pre .aifit-title');
+    const preSub   = document.querySelector('#aifit-view-pre .aifit-subtitle');
+    if(preTitle){
+      preTitle.textContent = firstName
+        ? `Ready when you are, ${firstName}.`
+        : 'Match your resume to top MBA Leadership Development Programs';
+    }
+    if(preSub){
+      const scansLeft = (typeof _scanCount === 'number' && typeof SCAN_QUOTA_CLIENT === 'number')
+        ? Math.max(0, SCAN_QUOTA_CLIENT - _scanCount)
+        : null;
+      if(firstName && scansLeft !== null){
+        preSub.textContent = `${scansLeft} of ${SCAN_QUOTA_CLIENT} scans remaining. Get a tier-ranked fit analysis in seconds.`;
+      } else {
+        preSub.textContent = 'Get a tier-ranked fit analysis and gap assessment based on your professional background in seconds.';
+      }
+    }
+  }
+}
+
+// Refresh personalization on whichever page is currently active. Called
+// from saveUserProfile() so a freshly-set name (post-onboarding or profile
+// modal save) propagates without requiring a page nav.
+function _refreshActivePagePersonalization(){
+  const active = document.querySelector('.page.active');
+  if(!active) return;
+  const id = (active.id || '').replace(/^page-/, '');
+  if(id) applyPagePersonalization(id);
+}
+// ═══════════════ END PERSONALIZATION HELPERS ═══════════════
+
 // ─── .edu validation ─────────────────────────────────────────────
 // Allow standard .edu TLDs plus school-specific domains used by major MBA programs.
 // Phase 15: removed EDU_DOMAIN_PATTERNS (the .edu / .ac.uk regex fallback)
@@ -342,6 +524,11 @@ async function onSignIn(){
   await loadUserProfile();
   await loadUserApplications();
   await loadUserResume();
+  // Task 19 — userProfile is now populated; refresh topbar and the active
+  // page's header (sign-in path doesn't go through showPage(), which would
+  // otherwise drive personalization).
+  updateAuthUI();
+  _refreshActivePagePersonalization();
   // Phase 12: refresh programs from Supabase (falls back to localStorage/DP[] if it fails)
   await fetchProgramsFromSupabase();
   renderPrograms();
@@ -425,7 +612,13 @@ function updateAuthUI() {
   const profileBtn = document.getElementById('acct-profile-btn');
   if (currentUser) {
     if (btn) btn.textContent = 'Sign Out';
-    if (userInfo) userInfo.textContent = currentUser.email;
+    // Task 19 — show firstName in topbar when available; fall back to email
+    // for users who haven't completed onboarding yet (full_name still NULL).
+    if (userInfo) {
+      const fn = getFirstName();
+      const schoolBit = (userProfile && userProfile.school_label) ? ` · ${userProfile.school_label}` : '';
+      userInfo.textContent = fn ? `${fn}${schoolBit}` : currentUser.email;
+    }
     // Phase 16 (P3): Profile button replaces the standalone Set/Change password
     // button — the unified profile modal covers name, school, and password.
     if (profileBtn) profileBtn.style.display = 'inline-block';
@@ -1017,6 +1210,10 @@ async function saveUserProfile(updates){
     await loadUserProfile();
     // Phase 7: profile state may have changed — re-render onboarding progress
     renderProgressStrip();
+    // Task 19 — profile mutation may have changed full_name; refresh topbar
+    // and the currently-active page's header without requiring a page nav.
+    updateAuthUI();
+    _refreshActivePagePersonalization();
   } catch(e){
     console.error('saveUserProfile failed:', e);
     toast('Could not save profile — check connection.');
@@ -1108,7 +1305,7 @@ function renderFitBanner(){
   if(days === null){
     mount.innerHTML = `<div class="fit-prompt-banner stale" onclick="showPage('aifit')" title="Run your first AI fit scan">
       <div class="fpb-icon">✦</div>
-      <div class="fpb-text"><strong>Your résumé is on file — but you haven't scanned it yet.</strong> Run an AI fit scan to populate tier rankings across all 48 programs.</div>
+      <div class="fpb-text"><strong>Your résumé is on file — but you haven't scanned it yet.</strong> Run an AI fit scan to populate tier rankings across all tracked programs.</div>
       <div class="fpb-cta">Run Scan →</div>
     </div>`;
     return;
@@ -1172,7 +1369,7 @@ function updateFitTabIndicator(){
 
 const TOURS = {
   programs: [
-    {target:'#prog-stats',         title:'Pipeline at a glance',  body:'Snapshot of all 48 LDPs by status — open, rolling, watch-list, and closed. Updates as you filter below.'},
+    {target:'#prog-stats',         title:'Pipeline at a glance',  body:'Snapshot of all tracked LDPs by status — open, rolling, watch-list, and closed. Updates as you filter below.'},
     {target:'.filter-row',         title:'Filter and search',     body:'Cut the list by geography, function, status, or type. The search box matches program names, firms, and keywords.'},
     {target:'.thead',              title:'Sortable columns',      body:'Click any column header to sort. The Fit column is powered by the AI Fit Scanner once you upload a résumé.'},
     {target:'.prow:first-child',   title:'Open program details',  body:'Click any row to open full details — deadline, location, fit reasoning. The program name links straight to the official careers page.'}
@@ -1712,13 +1909,49 @@ function onbGoto(step){
     const bar = document.getElementById('onb-bar-'+i);
     if(bar) bar.classList.toggle('on', step > i);
   }
-  // Adjust button labels for final step
+  // Task 19 — mandatory full_name on step 1:
+  //   - hide the Skip button (name can't be skipped)
+  //   - disable Next until input.value.trim().length >= 1
+  //   - wire oninput so the disable state updates live
   const nextBtn = document.getElementById('onb-next-btn');
+  const skipBtn = document.getElementById('onb-skip-btn');
+  if(step === 1){
+    if(skipBtn) skipBtn.style.display = 'none';
+    const nameEl = document.getElementById('onb-name');
+    if(nameEl){
+      // Property-assignment so repeated step-1 visits don't double-bind
+      nameEl.oninput = _onbValidateName;
+    }
+    _onbValidateName(); // sync button state on entry
+  } else {
+    if(skipBtn) skipBtn.style.display = '';
+    // Existing behavior for steps 2/3 — skip stays visible, next button
+    // label/state handled below
+  }
+  // Adjust button labels + state for steps 2/3 (step 1 handled above)
   if(nextBtn){
     nextBtn.textContent = (step === 3) ? '✦ Scan my résumé' : 'Next →';
-    nextBtn.disabled = (step === 3 && !_onbResumeFile);
-    nextBtn.style.opacity = nextBtn.disabled ? '0.5' : '1';
+    if(step === 2){
+      nextBtn.disabled = false;
+      nextBtn.style.opacity = '1';
+    } else if(step === 3){
+      nextBtn.disabled = !_onbResumeFile;
+      nextBtn.style.opacity = nextBtn.disabled ? '0.5' : '1';
+    }
+    // step === 1 disable state is managed by _onbValidateName()
   }
+}
+
+// Task 19 — keep the onboarding Next button disabled until a non-empty
+// (trimmed) name is entered on step 1.
+function _onbValidateName(){
+  if(_onbStep !== 1) return;
+  const nameEl = document.getElementById('onb-name');
+  const nextBtn = document.getElementById('onb-next-btn');
+  if(!nameEl || !nextBtn) return;
+  const ok = (nameEl.value || '').trim().length >= 1;
+  nextBtn.disabled = !ok;
+  nextBtn.style.opacity = ok ? '1' : '0.5';
 }
 
 async function onbNext(){
@@ -2186,6 +2419,12 @@ function openProfileModal(){
   if(!currentUser) return;
   const ov = document.getElementById('profile-modal-overlay');
   if(!ov) return;
+  // Task 19 — personalize modal title
+  const title = document.getElementById('profile-modal-title');
+  if(title){
+    const fn = getFirstName();
+    title.textContent = fn ? `${fn}, edit your details` : 'Your profile';
+  }
   // Prefill from the in-memory userProfile (loaded by loadUserProfile on signin).
   const nameEl = document.getElementById('profile-name');
   const schoolEl = document.getElementById('profile-school-input');
@@ -2351,6 +2590,12 @@ function showPage(id){
   if(idx>=0&&tabs[idx]) tabs[idx].classList.add('active');
   
   ({programs:renderPrograms,alumni:()=>{initAlumniSchoolDrop();renderAlumniSectorList();renderAlumniSearch();},applications:renderApplications,deadlines:renderDeadlines,aifit:loadAndRenderLastScan})[id]?.();
+
+  // Task 19 — apply personalization for this page (header text, etc.) AFTER
+  // the page's render function runs so any DOM the render function builds is
+  // ready to be targeted. Render functions handle their own dynamic bits;
+  // this just sets the static welcome strip.
+  applyPagePersonalization(id);
 
   // Phase 4 / Phase 14: first-visit auto-tour wiring.
   // - aifit page → dwell timer (10s with no upload → tour). Special-cased because
@@ -2525,6 +2770,9 @@ function renderPrograms(){
   _syncPipelineToggleUI();   // keep the Programs pill in lockstep with shared state
   // Phase 7: smart banner reflects resume + scan freshness
   renderFitBanner();
+  // Task 19 — keep welcome-strip pipeline/deadline counts in sync with state.
+  // No-op if the strip elements aren't present (e.g. STATE B is active).
+  _refreshProgramsCounts();
   const q=(document.getElementById('prog-search')||{}).value?.toLowerCase()||'';
   // Phase 10: persist search text whenever this runs (oninput → renderPrograms)
   _persistFilterState();
@@ -3167,7 +3415,14 @@ function renderApplications(){
   const q=(document.getElementById('app-search')||{}).value?.toLowerCase()||'';
   const fa=apps.filter(a=>!q||a.name.toLowerCase().includes(q)||(a.org||'').toLowerCase().includes(q));
   const act=apps.filter(a=>!['offer','rejected'].includes(a.status)).length;
-  document.getElementById('app-sub').textContent=`${act} active · ${apps.length} total tracked`;
+  // Task 19 — personalize sub when full_name is set
+  const _firstName = getFirstName();
+  const _appSub = document.getElementById('app-sub');
+  if(_appSub){
+    _appSub.textContent = _firstName
+      ? `${_firstName} · ${act} active · ${apps.length} total tracked`
+      : `${act} active · ${apps.length} total tracked`;
+  }
 
   // Phase 9: first-time empty state — no applications at all yet
   if(apps.length === 0){
@@ -3181,7 +3436,7 @@ function renderApplications(){
           Drag cards as you progress: Shortlisted → Networking → Drafting → Applied → Interview → Offer.
         </div>
         <button class="empty-state-cta" onclick="openM('app')">+ Log your first application</button>
-        <div><button class="empty-state-secondary" onclick="showPage('programs')">Browse the 48 programs first →</button></div>
+        <div><button class="empty-state-secondary" onclick="showPage('programs')">Browse all programs first →</button></div>
       </div>`;
     return;
   }
@@ -4041,6 +4296,13 @@ function renderAIResults(result, meta){
       <span style="font-size:14px">⚠️</span>
       <span>Your résumé has been updated since this scan — re-scan for fresh results.</span>
     </div>`;
+  }
+
+  // Task 19 — personalized intro line above the summary strip
+  const _aiFirstName = getFirstName();
+  if(_aiFirstName){
+    const _topBest = tierCounts.BEST_FIT + tierCounts.STRONG_FIT;
+    html += `<div class="aifit-personal-intro" style="font-family:var(--serif);font-size:22px;color:var(--text);margin-bottom:14px;line-height:1.3">${_esc(_aiFirstName)}, here ${_topBest === 1 ? 'is' : 'are'} your top ${_topBest || totalScanned} ${_topBest > 0 ? 'matches' : 'results'} across ${totalScanned} programs.</div>`;
   }
 
   // Summary strip

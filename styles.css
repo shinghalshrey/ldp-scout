@@ -1041,3 +1041,137 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 .freshness-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 3px rgba(29,106,69,0.15);animation:pulse-dot 2.5s ease-in-out infinite}
 @keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:0.5}}
 @media (max-width:768px){.freshness-badge{display:none}}
+
+/* ════════════════════════════════════════════════════════════════
+   TASK 19 — Programs page redesign (sticky sidebar + welcome strip)
+   Lovable-generated HTML lives in #page-programs in index.html.
+   CSS below is the slimmed version after review:
+     - column-grid / gap / padding overrides on .prog-thead REMOVED
+       (would have misaligned thead with .prow data rows)
+     - .prog-table-wrap rule REMOVED (redundant with .table-wrap)
+     - .prog-thead .th-arrow opacity REMOVED (kept restrained
+       hover-fade-in behavior from existing .th.sortable rules)
+     - .prog-thead .th now ONLY adds font-family: var(--mono)
+   ════════════════════════════════════════════════════════════════ */
+#page-programs { padding: 28px 32px 64px; }
+.prog-layout {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 22px;
+  align-items: start;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Sidebar */
+.prog-sidebar { position: sticky; top: 80px; }
+.prog-sidebar-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px;
+  box-shadow: var(--shadow);
+}
+.prog-side-section { margin-bottom: 22px; }
+.prog-side-section:last-of-type { margin-bottom: 16px; }
+.prog-search-input {
+  width: 100%;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-family: var(--sans);
+  font-size: 13px;
+  color: var(--text);
+  outline: none;
+  transition: border-color .15s;
+  box-sizing: border-box;
+}
+.prog-search-input:focus { border-color: var(--accent); }
+.prog-search-input::placeholder { color: var(--text3); }
+.prog-pill-stack { display: flex; flex-direction: column; gap: 6px; }
+.prog-pill-stack .fpill {
+  text-align: left;
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 12px;
+  border-radius: 999px;
+}
+.prog-pill-stack .fpill.prog-quick { font-size: 11.5px; }
+
+/* Pro tip */
+.prog-tip { margin-top: 4px; }
+.prog-tip p { margin: 0; font-size: 11.5px; line-height: 1.5; color: var(--text2); }
+
+/* Main column */
+.prog-main { min-width: 0; position: relative; }
+.prog-header { margin-bottom: 26px; }
+.prog-eyebrow {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--text3);
+  margin-bottom: 10px;
+}
+.prog-h1 {
+  font-family: var(--serif);
+  font-size: 32px;
+  font-weight: 500;
+  letter-spacing: -.01em;
+  color: var(--text);
+  margin: 0 0 8px;
+  line-height: 1.15;
+}
+.prog-h1 #prog-welcome-name { color: var(--accent); font-style: italic; }
+.prog-subline {
+  font-family: var(--sans);
+  font-size: 14px;
+  color: var(--text2);
+  margin: 0;
+}
+.prog-subline .prog-dot { color: var(--text3); margin: 0 4px; }
+/* Hide the dot when either span is empty (count not yet loaded / fallback) */
+.prog-subline span:empty + .prog-dot,
+.prog-subline .prog-dot:has(+ span:empty) { display: none; }
+
+/* Stat strip + fit banner mounts */
+.prog-stats:empty { margin: 0; }
+.prog-fit-mount:empty { margin: 0; }
+.prog-fit-mount:not(:empty) { margin: 0 0 22px; }
+
+/* Meta row */
+.prog-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 6px 0 14px;
+}
+.prog-add-btn {
+  background: transparent;
+  border: 1px solid var(--border2);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 12.5px;
+  font-weight: 500;
+  padding: 8px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all .15s;
+  white-space: nowrap;
+}
+.prog-add-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* Table — only NEW value-add is mono headers; column grid/padding cascades
+   from existing .thead rule (line ~74 in this file) so headers stay aligned
+   with .prow data rows (which use the same 9-column template). */
+.prog-thead .th { font-family: var(--mono); }
+
+/* Responsive */
+@media (max-width: 900px) {
+  #page-programs { padding: 20px 16px 48px; }
+  .prog-layout { grid-template-columns: 1fr; gap: 18px; }
+  .prog-sidebar { position: static; }
+  .prog-h1 { font-size: 26px; }
+}

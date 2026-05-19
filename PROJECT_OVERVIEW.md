@@ -12,15 +12,15 @@
 
 | Layer | Tech | Notes |
 |---|---|---|
-| Frontend | Vanilla JS, single-page (no framework) | `app.js` ~4,400 lines, `index.html`, `styles.css`, `data.js` (programs DB seed) |
+| Frontend | Vanilla JS, single-page (no framework) | `app.js` ~4,500 lines, `index.html`, `styles.css`, `data.js` (programs DB seed) |
 | Auth | Supabase Auth — email OTP (8-digit) + optional password | Anon key inline in `app.js:14`; real security from RLS |
-| Database | Supabase Postgres | Tables: `user_profiles`, `user_scan_history`. Schema: `DB_SCHEMA.md` |
+| Database | Supabase Postgres | 7 tables in `public` schema, all RLS-enabled. Full schema: `DB_SCHEMA.md` |
 | AI proxy | Vercel serverless function (`ldp-proxy/api/scan.js`) | Verifies Supabase JWT (ES256 via JWKS, HS256 legacy), enforces quota, forwards to Anthropic |
 | AI models | Anthropic Claude — Opus 4.6 (tier classification), Sonnet 4.5 (gap analysis), Haiku 4.5 (reserve) | Whitelisted in `scan.js` `ALLOWED_MODELS` |
 | Email | Supabase built-in (sender: `noreply@ldpscout.com`) | No Resend integration currently. If/when added, document here. |
 | Domain | Cloudflare (purchase + DNS) | Vercel hosts the actual sites |
 | Frontend hosting | Vercel (auto-deploy on git push to main) | Repo: `ldp-scout` |
-| Proxy hosting | Vercel (manual deploy) | Folder: `ldp-proxy` — **not a git repo** |
+| Proxy hosting | Vercel (manual deploy) | Private GitHub repo: `shinghalshrey/ldp-proxy`. **Auto-deploy is intentionally NOT connected** — manual deploy only. |
 
 **Frontend libs (loaded from CDN in `index.html`):**
 - `@supabase/supabase-js@2`
@@ -41,8 +41,10 @@ C:\Users\shrey\Desktop\LDP-Scout-Master\
 │   ├── data.js
 │   ├── CHANGES_TASK*.md     # per-task plain-English explainers
 │   ├── SMOKE_TESTS.md
+│   ├── PROJECT_OVERVIEW.md
+│   ├── DB_SCHEMA.md
 │   └── LDP_audit_scoresheet.xlsx
-└── ldp-proxy\               # proxy — NOT a git repo, deploys manually
+└── ldp-proxy\               # proxy — private GitHub repo, manual Vercel deploy
     └── api\scan.js
 ```
 
@@ -71,33 +73,23 @@ npx vercel --prod
 
 ## Auth flow (canonical, post-Session 4)
 
-**First-time visitor:** OTP only. Email → Send Code → 8-digit code → land in app. Post-OTP, optional "Set a password" step lets them set one (writes `user_metadata.has_password = true`).
+**Two-button landing UI.** Email field with both **Sign Up** and **Sign In** buttons side by side.
 
-**Returning user with password:** Lands on signin page showing BOTH options with equal prominence — "Sign in with code" and "Sign in with password". User picks either.
+**Sign Up path (new users):** Email → domain whitelist check → `email_account_status` RPC confirms no existing account → OTP sent → 8-digit code → **mandatory** password setup (no skip) → mandatory full-name capture during onboarding → into app.
 
-**Returning user without password:** OTP only (same as first-time, but they're already in the DB).
+**Sign In path, existing user with password:** Password field shown by default. "Login using code instead?" and "Forgot password?" available as text links beneath.
 
-**Password-signup (entering a new email on the password form):** NOT ALLOWED. Should redirect to OTP flow with a message like "We'll send a verification code first."
+**Sign In path, existing user without password:** OTP flow (no password setup at end — they already exist).
 
-**Supabase setting:** "Confirm email" toggle is **ON** (verified May 18, 2026). With OTP flow, this is fine — the OTP code IS the confirmation, no clickable link involved, so email-safety scanners don't preconsume it.
+**Forgot password:** Uses `force:true` to mandate password setup post-OTP regardless of `has_password` flag.
+
+**Race condition fix (Task 9):** "Login using code instead?" path awaits fresh `sb.auth.getUser()` before deciding whether to show password setup step. Without this, stale auth state caused the setup step to render for users who already had passwords.
+
+**Password-signup (entering a new email on the password form):** Not reachable from the UI. Sign Up button only accepts emails with no existing account; Sign In button only accepts emails that already have one.
+
+**Supabase setting:** "Confirm email" toggle is **ON** (verified May 18, 2026). With OTP flow this is fine — the OTP code IS the confirmation, no clickable link involved, so email-safety scanners don't preconsume it.
 
 **Session persistence:** Supabase sessions live in localStorage for ~30 days. In incognito, sessions are wiped when ALL incognito windows are closed, not when individual windows close.
-
-## Known UI bugs (May 18 2026)
-
-1. **Profile button does nothing when clicked.** Modal HTML + functions exist (`openProfileModal`, `saveProfileChanges` in `app.js:2096+`). Diagnostic needed — likely a button wiring or render bug, not a missing feature.
-
-2. **"Pranav" string in user-facing error** (`app.js:695`). Developer name leaked into a user message about Supabase confirm-email. Fix when removing the password-signup path (Task 9).
-
-3. **Password-signup path bypasses domain whitelist.** Allows accounts at non-whitelisted domains (e.g., `pranav1180@gmail.edu` was created). Fixes itself when password-signup is removed (Task 9).
-
-## Known UI bugs (May 18 2026)
-
-1. **Profile button does nothing when clicked.** Modal HTML + functions exist (`openProfileModal`, `saveProfileChanges` in `app.js:2096+`). Diagnostic needed — likely a button wiring or render bug, not a missing feature.
-
-2. **"Pranav" string in user-facing error** (`app.js:695`). Developer name leaked into a user message about Supabase confirm-email. Fix when removing the password-signup path (Task 9).
-
-3. **Password-signup path bypasses domain whitelist.** Allows accounts at non-whitelisted domains (e.g., `pranav1180@gmail.edu` was created). Fixes itself when password-signup is removed (Task 9).
 
 ---
 
@@ -124,6 +116,6 @@ npx vercel --prod
 
 These don't break anything but will confuse future-you or future-Claude:
 
-1. **`SMOKE_TESTS.md` Test 1** says "6-digit code" — actual flow uses **8-digit** (see `app.js:422`, `:454`, `:475`).
-2. **`scan.js` line ~25 comment** mentions "Opus 4.7" but `ALLOWED_MODELS` whitelists `claude-opus-4-6`. Either bump the whitelist or fix the comment. (Worth deciding before Task 5 cost work — Opus 4.7 vs 4.6 is a real cost/quality tradeoff.)
-3. **Handover framing of Issue X** says "Whitelist accepts any address at a valid domain." That's not a bug — that's how email whitelists work. The real Issue X question is whether Supabase delivered an OTP to a typo address and someone actually received it. The 2-min incognito test is to verify this, not to test the whitelist.
+1. **`scan.js` line ~25 comment** mentions "Opus 4.7" but `ALLOWED_MODELS` whitelists `claude-opus-4-6`. Either bump the whitelist or fix the comment. (Worth deciding before Task 5 cost work — Opus 4.7 vs 4.6 is a real cost/quality tradeoff.)
+
+2. **`DB_SCHEMA.md`** lists only two users with `has_password = true` (Session 3 snapshot). Re-query before referencing this number — it grows with every Task 9 password-setup completion.
