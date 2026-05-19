@@ -17,6 +17,33 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <script src="https://unpkg.com/mammoth@1.6.0/mammoth.browser.min.js"></script>
 <link rel="stylesheet" href="styles.css">
+<script>
+  // Task 19.2.4 — set the active page from localStorage BEFORE first paint.
+  // Without this, the browser renders #page-programs first (because we used
+  // to hardcode class="page active" on it). On a signed-in user whose last
+  // page was Deadlines, that meant Programs flashed for 2s before showPage
+  // kicked in. Now: if Supabase session token exists in localStorage, jump
+  // straight to the saved page. No flash.
+  (function(){
+    try {
+      const sessionKey = Object.keys(localStorage).find(function(k){
+        return k.indexOf('sb-') === 0 && k.indexOf('-auth-token') > 0;
+      });
+      // Decide which page to activate. Default to 'programs' for signed-in
+      // users with no saved page. For signed-out users, no page is active —
+      // the landing overlay covers the body anyway.
+      let pageId = 'programs';
+      if(sessionKey){
+        const saved = localStorage.getItem('ldps_last_page');
+        if(saved) pageId = saved;
+      }
+      document.addEventListener('DOMContentLoaded', function(){
+        const el = document.getElementById('page-' + pageId);
+        if(el) el.classList.add('active');
+      });
+    } catch(e){ /* silent — default to programs as fallback */ }
+  })();
+</script>
 </head>
 <body>
 
@@ -238,8 +265,11 @@
 
 <div class="main">
 
-<!-- PROGRAMS PAGE — Task 19 redesign (Lovable HTML + data-sort-key restored) -->
-<div class="page active" id="page-programs">
+<!-- PROGRAMS PAGE — Task 19 redesign (Lovable HTML + data-sort-key restored)
+     Note: 'active' class is no longer hardcoded here. The boot script in
+     <head> sets it from localStorage.ldps_last_page before paint, preventing
+     the flicker where Programs flashed before the saved page loaded. -->
+<div class="page" id="page-programs">
   <div class="prog-layout">
     <!-- LEFT SIDEBAR -->
     <aside class="prog-sidebar">

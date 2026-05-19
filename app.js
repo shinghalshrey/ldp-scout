@@ -544,16 +544,20 @@ async function onSignIn(){
   // Phase 7: render onboarding progress strip + AI Fit attention dot
   renderProgressStrip();
   updateFitTabIndicator();
-  // Task 19.2.3: restore last-active page from localStorage. Index.html has
-  // #page-programs as the default active page, but if the user was on Deadlines
-  // before refresh, take them back there. Falls back to Programs if no saved
-  // page or the saved id is invalid.
+  // Task 19.2.3/.4: restore last-active page from localStorage. The HTML
+  // boot script in <head> already set the correct .active class so the
+  // RIGHT page is visible from the first paint — this just triggers the
+  // page's render function (which couldn't run until data was loaded).
   try {
-    const lastPage = localStorage.getItem('ldps_last_page');
-    if(lastPage && PAGE_ORDER.includes(lastPage) && lastPage !== 'programs'){
+    const lastPage = localStorage.getItem('ldps_last_page') || 'programs';
+    if(PAGE_ORDER.includes(lastPage)){
       showPage(lastPage);
+    } else {
+      showPage('programs');
     }
-  } catch {}
+  } catch {
+    showPage('programs');
+  }
 }
 
 function onSignOut(){
