@@ -3016,33 +3016,160 @@ function renderPrograms(){
     }
   });
 
-  // Mobile card view (uses same filtered+sorted list as the desktop table)
-  const cards = document.getElementById('prog-cards');
-  const table = document.getElementById('prog-table');
-  if (cards) {
-    if (window.innerWidth <= 768) {
-      table.style.display = 'none';
-      cards.style.display = 'flex';
-      cards.innerHTML = list.map(p => `
-        <div class="prog-card">
-          <div class="prog-card-title">${p.name}</div>
-          <div class="prog-card-org">${p.org}${p.visa?' <span style="color:var(--accent);font-size:11px;">✓ Visa</span>':''}</div>
-          <div class="prog-card-meta">
-            <span>📍 ${p.loc}</span>
-            <span>⏰ ${p.dlnote||p.deadline||'Rolling'}</span>
-          </div>
-          <div class="prog-card-tags">${(p.tags||[]).map(t=>`<span class="tag">${t}</span>`).join('')}</div>
-          <div class="prog-card-actions">
-            <button onclick="window.open('${p.url}','_blank')">Apply →</button>
-            <button onclick="openM('prog',${p.id})">Edit</button>
-          </div>
-        </div>`).join('');
-    } else {
-      table.style.display = '';
-      cards.style.display = 'none';
-    }
+  // Task 21.1: render mobile card view (uses same filtered+sorted list as table).
+  // The dead prog-cards block that referenced nonexistent #prog-cards/#prog-table
+  // IDs has been removed. New mobile cards live in #prog-mobile-list and are
+  // hidden via CSS on desktop. Mobile pagination resets to 50 visible per
+  // render call (caller is responsible for tracking "Load more" clicks).
+  if (typeof renderProgramsMobile === 'function') {
+    renderProgramsMobile(list);
   }
 
+}
+
+// ═══════════════ MOBILE CARD VIEW (Task 21.1) ═══════════════
+// Renders the same filtered+sorted list as the desktop table, but as cards
+// suitable for <=720px screens. Lazy-loads 50 cards at a time with a
+// "Load more" button. CSS hides the table and shows this list at <=720px.
+//
+// Cards include: program name (linked when p.url), org, status pill, location,
+// deadline, AI Fit tier (if scanned), function/sector/lang/visa chips,
+// verifiedBadge() output, Stage dropdown, and a 📅 reminder icon (only when
+// the program has a fixed deadline — rolling/watch programs hide the icon).
+
+let _mobilePageSize = 50;
+let _mobileVisible = 50;  // current count of visible cards
+let _mobileLastListLen = 0;  // tracks when filter/sort changes to reset pagination
+
+function _initials(s){
+  return (s||'').split(/[\s&\-/]+/).filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase().slice(0,2) || '?';
+}
+
+function _statusPillMobile(p){
+  const s = (p.status||'').toLowerCase();
+  if(s === 'open')    return '<span class="pmc-status pmc-s-open">Open</span>';
+  if(s === 'rolling') return '<span class="pmc-status pmc-s-roll">Rolling</span>';
+  if(s === 'watch')   return '<span class="pmc-status pmc-s-watch">Watch</span>';
+  return '';
+}
+
+function _aiTierMobile(p){
+  if(!p.aiTier) return '';
+  const labels = {
+    best:       ['✦ Best Fit',   'pmc-tier-best'],
+    strong:     ['✦ Strong',     'pmc-tier-strong'],
+    achievable: ['✦ Achievable', 'pmc-tier-achievable'],
+    longshot:   ['✦ Long Shot',  'pmc-tier-longshot'],
+    watch:      ['✦ Watch',      'pmc-tier-watch'],
+  };
+  const [lbl, cls] = labels[p.aiTier] || ['', ''];
+  if(!lbl) return '';
+  return `<div class="pmc-aifit ${cls}">${lbl}</div>`;
+}
+
+function _deadlineLineMobile(p){
+  if(p.deadline){
+    const d = new Date(p.deadline);
+    if(!isNaN(d.getTime())){
+      const fmt = d.toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'});
+      return `<span class="pmc-meta-item"><span class="pmc-icon">⏰</span>${esc(fmt)}</span>`;
+    }
+  }
+  if(p.dlnote){
+    return `<span class="pmc-meta-item"><span class="pmc-icon">⏰</span>${esc(p.dlnote)}</span>`;
+  }
+  return '<span class="pmc-meta-item"><span class="pmc-icon">⏰</span>Rolling</span>';
+}
+
+function _mobileCardHTML(p){
+  const inactive = p.is_active_cycle === false;
+  const nameHtml = p.url
+    ? `<a href="${esc(p.url)}" target="_blank" rel="noopener noreferrer">${esc(p.name)}</a>`
+    : esc(p.name);
+
+  // Reminder icon — only show when there's an actual deadline date to fire on
+  const reminderBtn = (p.deadline && !inactive)
+    ? `<button class="pmc-cal" type="button" title="Add deadline reminder to calendar"
+        onclick="openICSModalForProgram(${p.id})">📅</button>`
+    : '';
+
+  // Language chip — only if language_required is populated
+  const langChip = (Array.isArray(p.language_required) && p.language_required.length)
+    ? `<span class="pmc-chip pmc-lang">${esc(p.language_required.join(', '))}</span>`
+    : '';
+
+  return `
+    <div class="pmc-card${inactive ? ' pmc-dim' : ''}" data-pid="${p.id}">
+      <div class="pmc-head">
+        <div class="pmc-logo">${esc(_initials(p.org))}</div>
+        <div class="pmc-title-wrap">
+          <div class="pmc-title">${nameHtml}</div>
+          <div class="pmc-org">${esc(p.org||'')}</div>
+        </div>
+        ${_statusPillMobile(p)}
+      </div>
+      <div class="pmc-meta">
+        ${p.loc ? `<span class="pmc-meta-item"><span class="pmc-icon">📍</span>${esc(p.loc)}</span>` : ''}
+        ${_deadlineLineMobile(p)}
+      </div>
+      ${_aiTierMobile(p)}
+      <div class="pmc-chips">
+        ${p.fn ? `<span class="pmc-chip">${esc(p.fn)}</span>` : ''}
+        ${p.sector ? `<span class="pmc-chip">${esc(p.sector)}</span>` : ''}
+        ${langChip}
+        ${p.visa ? '<span class="pmc-chip pmc-visa">✓ Visa</span>' : ''}
+      </div>
+      <div class="pmc-verif">${verifiedBadge(p)}</div>
+      <div class="pmc-actions">
+        <div class="pmc-stage-wrap">${renderStageDropdown(p)}</div>
+        ${reminderBtn}
+      </div>
+    </div>
+  `;
+}
+
+function renderProgramsMobile(list){
+  const el = document.getElementById('prog-mobile-list');
+  if(!el) return;
+  if(!Array.isArray(list)) return;
+
+  // Reset pagination when the filtered list itself changes meaningfully
+  if(list.length !== _mobileLastListLen){
+    _mobileVisible = _mobilePageSize;
+    _mobileLastListLen = list.length;
+  }
+
+  const total = list.length;
+  const visibleCount = Math.min(_mobileVisible, total);
+  const slice = list.slice(0, visibleCount);
+
+  const header = `<div class="pmc-count">${total} program${total === 1 ? '' : 's'} · ${visibleCount} shown</div>`;
+  const cards = slice.map(_mobileCardHTML).join('');
+  const more = (visibleCount < total)
+    ? `<button class="pmc-loadmore" type="button" onclick="loadMoreMobile()">Load more (${total - visibleCount} remaining)</button>`
+    : '';
+
+  el.innerHTML = header + cards + more;
+}
+
+function loadMoreMobile(){
+  _mobileVisible += _mobilePageSize;
+  // Re-run the standard render path; it filters+sorts then calls renderProgramsMobile
+  renderPrograms();
+}
+
+// Tiny wrapper so card onclick handlers don't have to encode JSON in an HTML
+// attribute (escaping nightmare). Looks up the program by id and shapes the
+// item the existing openICSModal() expects.
+function openICSModalForProgram(progId){
+  const p = progs.find(x => x.id === progId);
+  if(!p || !p.deadline) return;
+  openICSModal({
+    name: p.name,
+    org: p.org,
+    deadline: p.deadline,
+    type: 'program'
+  });
 }
 
 // ═══════════════ ALUMNI TAB — SCHOOL DROPDOWN + TABLE ═══════════════

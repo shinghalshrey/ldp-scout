@@ -1180,43 +1180,14 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 .prog-thead .th { font-family: var(--mono); }
 
 /* Responsive */
+/* Default (>720px): mobile card list is hidden, desktop table shows. */
+.prog-mobile-list { display: none; }
+
 @media (max-width: 900px) {
   #page-programs { padding: 20px 16px 48px; }
   .prog-layout { grid-template-columns: 1fr; gap: 18px; }
   .prog-sidebar { position: static; }
   .prog-h1 { font-size: 26px; }
-
-  /* Task 21 — Mobile fallback for the 9-column Programs table.
-     Wrap the CSS-table in a horizontally scrollable container; sticky first column. */
-  .prog-table-wrap{
-    display: block;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    position: relative;
-  }
-  .prog-table-wrap > *{ display: table; min-width: 880px; width: 880px; }
-  .prog-table-wrap .thead{ display: table-row; }
-  .prog-table-wrap .prow{ display: table-row; }
-  .prog-table-wrap .thead .th,
-  .prog-table-wrap .prow > *{
-    display: table-cell;
-    font-size: 12px;
-    padding-left: 10px;
-    padding-right: 10px;
-  }
-  /* Sticky first column (Program/Org) so the program name stays visible while
-     the user swipes horizontally to see the rest of the row. */
-  .prog-table-wrap .thead .th:first-child,
-  .prog-table-wrap .prow > *:first-child{
-    position: sticky;
-    left: 0;
-    background: var(--bg);
-    z-index: 2;
-    box-shadow: 2px 0 4px -2px rgba(0,0,0,0.08);
-    min-width: 200px;
-    max-width: 200px;
-  }
-  .prog-table-wrap .prow:hover > *:first-child{ background: var(--bg2); }
 
   /* Stat row: 5 cards across crushes on phone. Wrap to 2 per line. */
   .stat-row{
@@ -1231,10 +1202,211 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
   .stat-card .ca{ font-size: 20px; }
 }
 
-@media (max-width: 480px){
-  .stat-row{ grid-template-columns: 1fr 1fr; gap: 6px; }
-  .stat-card{ padding: 8px 10px; }
-  .main{ padding: 12px 8px; }
+/* ───────────────────────────────────────────────────────────────────
+   TASK 21.1 — Mobile card view for Programs page (<=720px).
+   iPad and above (>720px) keep the full desktop table layout.
+   Phones get a stacked card list, paginated 50 at a time.
+   ─────────────────────────────────────────────────────────────────── */
+@media (max-width: 720px) {
+  /* Swap: hide the desktop table, show the mobile card list. */
+  .prog-table-wrap { display: none; }
+  .prog-mobile-list {
+    display: block;
+    margin-top: 8px;
+  }
+
+  /* Count line above cards */
+  .pmc-count {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    color: var(--text3);
+    margin: 4px 2px 10px;
+    text-transform: uppercase;
+  }
+
+  /* Card shell */
+  .pmc-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 12px;
+    box-shadow: var(--shadow);
+  }
+  .pmc-card.pmc-dim { opacity: 0.55; }
+
+  /* Header row: logo + title/org + status pill */
+  .pmc-head {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    margin-bottom: 10px;
+  }
+  .pmc-logo {
+    width: 38px;
+    height: 38px;
+    border-radius: 9px;
+    background: var(--bg3, var(--bg));
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text2);
+    flex-shrink: 0;
+    letter-spacing: 0.02em;
+  }
+  .pmc-title-wrap {
+    flex: 1;
+    min-width: 0;  /* allows long titles to truncate properly */
+  }
+  .pmc-title {
+    font-size: 14.5px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.3;
+    word-wrap: break-word;
+  }
+  .pmc-title a {
+    color: var(--text);
+    text-decoration: none;
+    border-bottom: 1px dotted var(--border2);
+  }
+  .pmc-title a:hover { color: var(--accent); border-bottom-color: var(--accent); }
+  .pmc-org {
+    font-size: 12px;
+    color: var(--text2);
+    margin-top: 2px;
+  }
+  /* Status pill (Open / Rolling / Watch) */
+  .pmc-status {
+    flex-shrink: 0;
+    font-size: 9.5px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 11px;
+    white-space: nowrap;
+    border: 1px solid;
+  }
+  .pmc-s-open  { background: var(--accent-bg); color: var(--accent); border-color: rgba(29,106,69,.2); }
+  .pmc-s-roll  { background: var(--accent-bg); color: var(--accent); border-color: rgba(29,106,69,.2); }
+  .pmc-s-watch { background: var(--amber-bg);  color: var(--amber);  border-color: rgba(138,94,0,.2); }
+
+  /* Meta row: location + deadline */
+  .pmc-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 14px;
+    font-size: 12px;
+    color: var(--text2);
+    margin-bottom: 10px;
+  }
+  .pmc-meta-item { display: inline-flex; align-items: center; gap: 4px; }
+  .pmc-icon { font-size: 13px; opacity: 0.7; }
+
+  /* AI Fit tier badge (only renders if p.aiTier is populated) */
+  .pmc-aifit {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    border: 1px solid;
+  }
+  .pmc-tier-best       { background: var(--accent-bg); color: var(--accent); border-color: rgba(29,106,69,.25); }
+  .pmc-tier-strong     { background: var(--blue-bg);   color: var(--blue);   border-color: rgba(26,79,168,.25); }
+  .pmc-tier-achievable { background: var(--amber-bg);  color: var(--amber);  border-color: rgba(138,94,0,.25); }
+  .pmc-tier-longshot   { background: var(--bg);        color: var(--text2);  border-color: var(--border); }
+  .pmc-tier-watch      { background: var(--bg);        color: var(--text3);  border-color: var(--border); }
+
+  /* Chips row (function, sector, language, visa) */
+  .pmc-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 11px;
+  }
+  .pmc-chip {
+    font-size: 11px;
+    padding: 3px 9px;
+    border-radius: 6px;
+    background: var(--bg3, var(--bg));
+    color: var(--text2);
+    border: 1px solid var(--border);
+  }
+  .pmc-chip.pmc-visa { background: var(--accent-bg); color: var(--accent); border-color: rgba(29,106,69,.2); }
+  .pmc-chip.pmc-lang { background: var(--blue-bg);   color: var(--blue);   border-color: rgba(26,79,168,.2); }
+
+  /* Verification badge line (uses existing .verified-badge styling). */
+  .pmc-verif { margin-bottom: 10px; min-height: 16px; }
+  .pmc-verif:empty { display: none; }
+
+  /* Actions row: Stage dropdown + calendar reminder button */
+  .pmc-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .pmc-stage-wrap { flex: 1; min-width: 0; }
+  .pmc-stage-wrap .stage-dd {
+    width: 100%;
+    justify-content: flex-start;
+  }
+  .pmc-cal {
+    flex-shrink: 0;
+    width: 40px;
+    height: 36px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    border-radius: 8px;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--text2);
+  }
+  .pmc-cal:hover { background: var(--bg2); color: var(--text); border-color: var(--border2); }
+
+  /* "Load more" button at bottom of list */
+  .pmc-loadmore {
+    display: block;
+    width: 100%;
+    margin: 8px 0 24px;
+    padding: 12px;
+    background: var(--bg2);
+    border: 1px dashed var(--border2);
+    border-radius: 10px;
+    color: var(--accent);
+    font-size: 13px;
+    font-weight: 500;
+    font-family: var(--sans);
+    cursor: pointer;
+  }
+  .pmc-loadmore:hover { background: var(--accent-bg); border-style: solid; }
+
+  /* On phones, the stage dropdown panel is anchored absolutely; constrain it
+     to the viewport so it doesn't overflow off-screen. */
+  #stage-dd-panel {
+    left: 12px !important;
+    right: 12px !important;
+    width: auto !important;
+    max-width: none !important;
+  }
+}
+
+/* Extra-tight on small phones */
+@media (max-width: 480px) {
+  .stat-row { grid-template-columns: 1fr 1fr; gap: 6px; }
+  .stat-card { padding: 8px 10px; }
+  .main { padding: 12px 8px; }
+  .pmc-card { padding: 12px; }
+  .pmc-title { font-size: 13.5px; }
 }
 
 /* Task 19.1 — Programs table row dividers were too faint (rgba 0.07);
