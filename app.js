@@ -450,7 +450,7 @@ async function fetchProgramsFromSupabase() {
 
     const { data, error } = await sb
       .from('programs')
-      .select('id, company, program_name, industry, function, location, geo, status, deadline, dlnote, visa, url, tags, notes, program_type, duration, description, eligibility, work_experience, target_degree, source_url')
+      .select('id, company, program_name, industry, function, location, geo, status, deadline, dlnote, visa, url, tags, notes, program_type, duration, description, eligibility, work_experience, target_degree, source_url, last_verified_at, is_active_cycle, locations, language_required')
       .order('id', { ascending: true });
 
     if (error) {
@@ -487,6 +487,11 @@ async function fetchProgramsFromSupabase() {
       work_experience: row.work_experience || '',
       target_degree:   row.target_degree   || '',
       source_url:      row.source_url      || '',
+      // Task 21: catalog verification + truthful badge
+      last_verified_at: row.last_verified_at || null,
+      is_active_cycle:  row.is_active_cycle === false ? false : true,  // default true unless explicit false
+      locations:        Array.isArray(row.locations) ? row.locations : [],
+      language_required: Array.isArray(row.language_required) ? row.language_required : [],
     }));
 
     // Refresh the localStorage cache so future page-loads have a fresh fallback
@@ -2819,13 +2824,26 @@ function _restoreFilterState(){
   } catch {}
 }
 
-// Verified badge helper
-const VERIFIED_DATE = 'May 2026';
+// Verified badge helper — Task 21: truthful per-row badge driven by last_verified_at + is_active_cycle
 function verifiedBadge(p){
-  // All built-in programs are verified May 2026; user-added have no verified date
-  if(p.id && p.id <= 42 && p.id >= 1){
-    return `<span class="verified-badge vb-fresh" title="Data verified ${VERIFIED_DATE} — sourced from official careers pages">✓ Verified ${VERIFIED_DATE}</span>`;
+  // Inactive cycle takes priority — show paused badge regardless of verification freshness
+  if(p.is_active_cycle === false){
+    return `<span class="verified-badge vb-paused" title="Application cycle paused or program not currently accepting applications">⏸ Cycle paused</span>`;
   }
+  // Fresh verification: last_verified_at within last 90 days → green Verified badge
+  if(p.last_verified_at){
+    const verifiedAt = new Date(p.last_verified_at);
+    if(!isNaN(verifiedAt.getTime())){
+      const ageDays = (Date.now() - verifiedAt.getTime()) / (1000 * 60 * 60 * 24);
+      const monthYear = verifiedAt.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+      if(ageDays <= 90){
+        return `<span class="verified-badge vb-fresh" title="Data verified ${monthYear} — sourced from official careers pages">✓ Verified ${monthYear}</span>`;
+      }
+      // Stale verification (90+ days old) — grey badge instead of pretending it's fresh
+      return `<span class="verified-badge vb-stale" title="Last verified ${monthYear} — may be out of date">○ Last checked ${monthYear}</span>`;
+    }
+  }
+  // No verification stamp → no badge (silent rather than misleading)
   return '';
 }
 
@@ -4939,11 +4957,8 @@ window.addEventListener('resize', () => {
 });
 
 // ─── Init ────────────────────────────────────────────────────────
-// Populate freshness badge (topbar + landing)
-const _freshEl = document.getElementById('freshness-date');
-if(_freshEl) _freshEl.textContent = DATA_LAST_VERIFIED_LABEL;
-const _lpStamp = document.getElementById('lp-verified-stamp');
-if(_lpStamp) _lpStamp.textContent = `Programs verified ${DATA_LAST_VERIFIED_LABEL}`;
+// Task 21: landing-page "Programs verified May 2026" stamp removed.
+// Per-row verification badge in renderPrograms() is the truthful version now.
 const _lpProgs = document.getElementById('lp-stat-progs');
 if(_lpProgs) _lpProgs.textContent = progs.length;
 const _lpMock = document.getElementById('lp-mock-count');

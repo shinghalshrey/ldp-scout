@@ -689,11 +689,14 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 .ali-section-hd{font-family:var(--serif);font-size:16px;font-weight:400;margin-bottom:12px;margin-top:4px;color:var(--text)}
 .ali-section-sub{font-size:11px;color:var(--text3);margin-top:2px;margin-bottom:14px}
 
-/* VERIFIED BADGE */
+/* VERIFIED BADGE — Task 21 refresh: per-row truthful states */
 .verified-badge{display:inline-flex;align-items:center;gap:4px;font-size:9px;padding:2px 7px;border-radius:10px;font-weight:600;letter-spacing:.03em;border:1px solid;white-space:nowrap}
 .vb-fresh{background:var(--accent-bg);color:var(--accent);border-color:rgba(29,106,69,.2)}
 .vb-recent{background:var(--blue-bg);color:var(--blue);border-color:rgba(26,79,168,.2)}
-.vb-stale{background:var(--amber-bg);color:var(--amber);border-color:rgba(138,94,0,.2)}
+/* vb-paused: amber — for is_active_cycle = false (cycle paused / expired) */
+.vb-paused{background:var(--amber-bg);color:var(--amber);border-color:rgba(138,94,0,.2)}
+/* vb-stale: grey — for last_verified_at > 90 days old */
+.vb-stale{background:var(--bg);color:var(--text2);border-color:var(--border)}
 
 /* GAP ANALYSIS */
 .gap-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;margin-bottom:20px}
@@ -1182,6 +1185,56 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
   .prog-layout { grid-template-columns: 1fr; gap: 18px; }
   .prog-sidebar { position: static; }
   .prog-h1 { font-size: 26px; }
+
+  /* Task 21 — Mobile fallback for the 9-column Programs table.
+     Wrap the CSS-table in a horizontally scrollable container; sticky first column. */
+  .prog-table-wrap{
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    position: relative;
+  }
+  .prog-table-wrap > *{ display: table; min-width: 880px; width: 880px; }
+  .prog-table-wrap .thead{ display: table-row; }
+  .prog-table-wrap .prow{ display: table-row; }
+  .prog-table-wrap .thead .th,
+  .prog-table-wrap .prow > *{
+    display: table-cell;
+    font-size: 12px;
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+  /* Sticky first column (Program/Org) so the program name stays visible while
+     the user swipes horizontally to see the rest of the row. */
+  .prog-table-wrap .thead .th:first-child,
+  .prog-table-wrap .prow > *:first-child{
+    position: sticky;
+    left: 0;
+    background: var(--bg);
+    z-index: 2;
+    box-shadow: 2px 0 4px -2px rgba(0,0,0,0.08);
+    min-width: 200px;
+    max-width: 200px;
+  }
+  .prog-table-wrap .prow:hover > *:first-child{ background: var(--bg2); }
+
+  /* Stat row: 5 cards across crushes on phone. Wrap to 2 per line. */
+  .stat-row{
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+  .stat-card{ padding: 10px 12px; }
+  .stat-card .cn,
+  .stat-card .cg,
+  .stat-card .cb,
+  .stat-card .cgo,
+  .stat-card .ca{ font-size: 20px; }
+}
+
+@media (max-width: 480px){
+  .stat-row{ grid-template-columns: 1fr 1fr; gap: 6px; }
+  .stat-card{ padding: 8px 10px; }
+  .main{ padding: 12px 8px; }
 }
 
 /* Task 19.1 — Programs table row dividers were too faint (rgba 0.07);
