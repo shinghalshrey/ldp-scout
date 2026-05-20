@@ -2744,6 +2744,16 @@ function toggleVisaFilter(btn){
   renderPrograms();
 }
 
+// Task 21.2 — Verified-only quick filter. Mirrors the visa-only pattern.
+// When ON, hides any program where last_verified_at IS NULL — i.e. legacy
+// catalog rows we haven't manually re-confirmed against an official source.
+function toggleVerifiedFilter(btn){
+  window._verifiedOnly = !window._verifiedOnly;
+  btn.classList.toggle('on', window._verifiedOnly);
+  _persistFilterState();
+  renderPrograms();
+}
+
 function fitClick(){
   window._fitOnly = !window._fitOnly;
   _persistFilterState();
@@ -2755,7 +2765,9 @@ function clearAll(){
   F.sortKey = null; F.sortDir = 'asc';
   window._fitOnly = false;
   window._visaOnly = false;
+  window._verifiedOnly = false;
   const vp = document.getElementById('visa-pill'); if(vp) vp.classList.remove('on');
+  const verp = document.getElementById('verified-pill'); if(verp) verp.classList.remove('on');
   ['geo','fn','sector','st'].forEach(_syncFilterPills);
   const ps = document.getElementById('prog-search'); if(ps) ps.value = '';
   // Also clear the shared pipeline filter — "Clear filters" should mean ALL filters off.
@@ -2798,6 +2810,7 @@ function _persistFilterState(){
       sortDir: F.sortDir,
       fitOnly:  !!window._fitOnly,
       visaOnly: !!window._visaOnly,
+      verifiedOnly: !!window._verifiedOnly,
       search:  ps ? ps.value : ''
     };
     localStorage.setItem('ldps_prog_filters', JSON.stringify(state));
@@ -2817,9 +2830,11 @@ function _restoreFilterState(){
     F.sortDir = (s.sortDir === 'desc') ? 'desc' : 'asc';
     window._fitOnly  = !!s.fitOnly;
     window._visaOnly = !!s.visaOnly;
+    window._verifiedOnly = !!s.verifiedOnly;
     const ps = document.getElementById('prog-search');
     if(ps && typeof s.search === 'string') ps.value = s.search;
     const vp = document.getElementById('visa-pill'); if(vp) vp.classList.toggle('on', window._visaOnly);
+    const verp = document.getElementById('verified-pill'); if(verp) verp.classList.toggle('on', window._verifiedOnly);
     ['geo','fn','sector','st'].forEach(_syncFilterPills);
   } catch {}
 }
@@ -2867,6 +2882,7 @@ function renderPrograms(){
     if(F.st.size     && !F.st.has(p.status))     return false;
     if(window._fitOnly && (+p.fit||0) < 4) return false;
     if(window._visaOnly && !p.visa)        return false;
+    if(window._verifiedOnly && !p.last_verified_at) return false;  // Task 21.2
     // Universal pipeline filter — shared with Deadlines page
     if(_pipelineFilter && !_findAppForProgram(p)) return false;
     if(q && !p.name.toLowerCase().includes(q) && !p.org.toLowerCase().includes(q) && !(p.notes||'').toLowerCase().includes(q)) return false;
@@ -2974,7 +2990,7 @@ function renderPrograms(){
   const fitActive=window._fitOnly?'sc-active':'';
   const pipelineActive=_pipelineFilter?'sc-active':'';
   const pipelineCount = _pipelineCount();
-  const anyFilterActive = F.geo.size>0 || F.fn.size>0 || F.sector.size>0 || F.st.size>0 || window._fitOnly || window._visaOnly || _pipelineFilter || q.length>0;
+  const anyFilterActive = F.geo.size>0 || F.fn.size>0 || F.sector.size>0 || F.st.size>0 || window._fitOnly || window._visaOnly || window._verifiedOnly || _pipelineFilter || q.length>0;
 
   document.getElementById('prog-stats').innerHTML=`
     <div class="stat-card sc-total ${anyFilterActive?'sc-active':''}" onclick="clearAll()" title="Click to clear all filters">
@@ -3528,7 +3544,7 @@ function _restoreSidebarSections(){
 // Update the "(N)" active-filter count badge next to each section's header.
 function _refreshSidebarBadges(){
   const map = {
-    quickfilters: () => (window._visaOnly ? 1 : 0),
+    quickfilters: () => (window._visaOnly ? 1 : 0) + (window._verifiedOnly ? 1 : 0),
     geography:    () => F.geo.size,
     function:     () => F.fn.size,
     sector:       () => F.sector.size,
@@ -5096,6 +5112,7 @@ document.getElementById('landing-overlay').classList.add('open');
 
 window._fitOnly=false;
 window._visaOnly=false;
+window._verifiedOnly=false;
 
 // Populate alumni modal school select from full list
 const aiSchoolSel = document.getElementById('ai-school');
