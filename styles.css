@@ -15,6 +15,14 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;font-size:14px}
 
+/* Form controls don't inherit font-family from body by default in any browser
+   — they fall back to a built-in system font (typically the OS UI font).
+   Without this reset, every <input>/<textarea>/<select>/<button> without an
+   explicit font-family declaration renders in a different typeface than the
+   rest of the page. Explicit font-family declarations on individual elements
+   (e.g. .mtitle uses serif, .stat-num uses mono) still win. */
+input, textarea, select, button { font-family: inherit; }
+
 /* TOPBAR */
 .topbar{display:flex;align-items:center;justify-content:space-between;padding:0 28px;height:56px;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;background:rgba(247,246,242,0.96);backdrop-filter:blur(10px)}
 .brand{display:flex;align-items:center;gap:10px}

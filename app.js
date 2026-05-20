@@ -3716,7 +3716,6 @@ function openConnectMessage(ctx){
             <textarea id="connect-msg-${i}" style="width:100%;min-height:96px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:10px;font-size:12px;font-family:var(--sans);color:var(--text);line-height:1.55;resize:vertical;outline:none">${msg}</textarea>
             <div style="display:flex;gap:8px;margin-top:8px">
               <button onclick="copyConnectMsg(${i})" class="li-btn" style="font-size:11px;padding:6px 14px;cursor:pointer">📋 Copy to clipboard</button>
-              <button onclick="openLinkedInSchoolSearch('${(ctx.org||'').replace(/'/g,"\\'")}')" class="gbtn" style="font-size:11px;padding:6px 14px;cursor:pointer">Open LinkedIn search ↗</button>
             </div>
           </div>`;
         }).join('')}
