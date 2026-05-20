@@ -1208,10 +1208,14 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
    Phones get a stacked card list, paginated 50 at a time.
    ─────────────────────────────────────────────────────────────────── */
 @media (max-width: 720px) {
-  /* Swap: hide the desktop table, show the mobile card list. */
-  .prog-table-wrap { display: none; }
+  /* Swap: hide the desktop table, show the mobile card list.
+     !important here is intentional — there's a later .prog-table-wrap rule
+     in this file (line ~1680) that declares display:table, which would
+     otherwise win the cascade despite our media query because rules outside
+     a media query and inside one have equal specificity; later wins. */
+  .prog-table-wrap { display: none !important; }
   .prog-mobile-list {
-    display: block;
+    display: block !important;
     margin-top: 8px;
   }
 
