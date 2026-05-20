@@ -47,14 +47,31 @@ Row count (May 18): 3.
 
 ### `public.user_applications`
 
-Kanban / shortlist data — referenced by SMOKE_TESTS Test 2. Each row = one program a user has shortlisted/tracked.
+Kanban / shortlist data — one row per program a user has shortlisted or tracked.
 
 **RLS policies:**
 - `own_apps_all` (ALL) — `auth.uid() = user_id`
 
 Single permissive policy covering SELECT/INSERT/UPDATE/DELETE. Pragmatic for Kanban (users need to add, move, and remove cards).
 
-**Columns (inferred, not directly verified — confirm in Supabase Studio before Task 4/5):** `id`, `user_id`, `program_id` (matches `data.js` IDs), `status` (`shortlisted`/`networking`/`applied`/etc.), `created_at`, `updated_at`.
+**Columns (verified from `saveApplicationToDB` in `app.js:1615-1629`):**
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | int (PK) | Auto |
+| `user_id` | uuid | FK to `auth.users.id` |
+| `program_id` | int or null | Matches `programs.id`. Null for ad-hoc applications not in the catalog. |
+| `name` | text | Snapshot of program name at time of save (resists catalog renames) |
+| `org` | text or null | Snapshot of company at time of save |
+| `geo` | text or null | |
+| `status` | text | Pipeline stage: shortlisted / networking / drafting / applied / interview / offer / rejected. Default `'networking'`. |
+| `applied_on` | date or null | |
+| `deadline` | date or null | |
+| `next_step` | text or null | |
+| `contact` | text or null | |
+| `notes` | text or null | |
+| `created_at` | timestamptz | Auto |
+| `updated_at` | timestamptz | Auto (assumed; verify in Supabase Studio if a trigger updates it) |
 
 ---
 
@@ -71,13 +88,52 @@ Stored résumé content per user. Discovered via policy scan.
 
 ### `public.programs`
 
-The 393-program catalog. Public-read.
+The 393-program catalog. Public-read. **No write policies — catalog is curated server-side only** (Path A, Task 19.2).
 
-**RLS policies (SELECT, public):**
-- `programs are public`
+**RLS policies:**
+- `programs are public` (SELECT, public)
 
 (Duplicate `Anyone can read programs` policy was dropped in Session 4.)
 
+**Columns (verified from `app.js:453` SELECT):**
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | int (PK) | Stable identifier, referenced from `user_applications.program_id` |
+| `program_name` | text | Renders as `name` in client (`p.name`) |
+| `company` | text | Renders as `org` in client |
+| `industry` | text | Renders as `sector` in client. Single-value today; widening to `sectors text[]` queued. |
+| `function` | text | JS-reserved word — code uses bracket access `row['function']`. Single-value today; widening to `functions text[]` queued. |
+| `location` | text | Free-text, often comma- or `·`-separated multi-location |
+| `geo` | text | "europe" / "global" / "uae" — being replaced by `continents text[]` in Task 19.3 |
+| `status` | text | "open" / "rolling" / "watch" — application cycle status |
+| `deadline` | date or null | |
+| `dlnote` | text | Free-text deadline context, e.g. "Opens Sep–Oct annually" |
+| `visa` | bool | Visa sponsorship offered |
+| `url` | text | Apply / program homepage URL — the click-through link rendered in the UI |
+| `tags` | text[] | Free-tagging |
+| `notes` | text | Long-form notes for the row |
+| `program_type` | text | "Full Time" / "Internship" / "" — Phase 16 P2 scraped field |
+| `duration` | text | Free-text duration ("2 years", "24–30 months") — Phase 16 P2 |
+| `description` | text | Phase 16 P2 |
+| `eligibility` | text | Phase 16 P2 |
+| `work_experience` | text | Phase 16 P2 |
+| `target_degree` | text | Phase 16 P2 |
+| `source_url` | text | Provenance — where the row was originally scraped from. Stored, not rendered. |
+
+**Queued additions** (catalog curation task, May 20 2026):
+- `last_verified_at` (timestamptz) — drives the "Verified" badge; only set on rows actually checked
+- `language_required` (text[]) — material filter for European programs (German B2, Local language, etc.)
+- `is_active_cycle` (bool default true) — preserves discontinued program history without deleting rows
+- See PROJECT_OVERVIEW.md for full Wave 2 field list.
+
+To list current columns from the live DB (sanity check before any migration):
+```sql
+SELECT column_name, data_type, is_nullable
+FROM information_schema.columns
+WHERE table_schema = 'public' AND table_name = 'programs'
+ORDER BY ordinal_position;
+```
 ---
 
 ### `public.program_job_descriptions`
