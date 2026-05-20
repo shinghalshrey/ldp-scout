@@ -1328,6 +1328,40 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
   .pmc-tier-longshot   { background: var(--bg);        color: var(--text2);  border-color: var(--border); }
   .pmc-tier-watch      { background: var(--bg);        color: var(--text3);  border-color: var(--border); }
 
+  /* No-tier CTA: shown when this program isn't in the user's scan results */
+  .pmc-aifit-cta {
+    display: inline-block;
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    background: var(--bg);
+    color: var(--text3);
+    border: 1px dashed var(--border2);
+    cursor: pointer;
+    transition: color .15s, border-color .15s;
+  }
+  .pmc-aifit-cta:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+    border-style: solid;
+  }
+
+  /* TOPBAR FIX: nav-tabs were overflowing off-screen on phones because the
+     container has display:flex with no overflow handling. Make it horizontally
+     scrollable + hide the LDP/Scout text (kept the L logo). */
+  .brand-name { display: none !important; }
+  .nav-tabs {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: 100%;
+  }
+  .nav-tabs::-webkit-scrollbar { display: none; }
+  .nav-tab { flex-shrink: 0; }
+
   /* Chips row (function, sector, language, visa) */
   .pmc-chips {
     display: flex;

@@ -3070,17 +3070,20 @@ function _statusPillMobile(p){
 }
 
 function _aiTierMobile(p){
-  if(!p.aiTier) return '';
-  const labels = {
-    best:       ['✦ Best Fit',   'pmc-tier-best'],
-    strong:     ['✦ Strong',     'pmc-tier-strong'],
-    achievable: ['✦ Achievable', 'pmc-tier-achievable'],
-    longshot:   ['✦ Long Shot',  'pmc-tier-longshot'],
-    watch:      ['✦ Watch',      'pmc-tier-watch'],
-  };
-  const [lbl, cls] = labels[p.aiTier] || ['', ''];
-  if(!lbl) return '';
-  return `<div class="pmc-aifit ${cls}">${lbl}</div>`;
+  if(p.aiTier){
+    const labels = {
+      best:       ['✦ Best Fit',   'pmc-tier-best'],
+      strong:     ['✦ Strong',     'pmc-tier-strong'],
+      achievable: ['✦ Achievable', 'pmc-tier-achievable'],
+      longshot:   ['✦ Long Shot',  'pmc-tier-longshot'],
+      watch:      ['✦ Watch',      'pmc-tier-watch'],
+    };
+    const [lbl, cls] = labels[p.aiTier] || ['', ''];
+    if(lbl) return `<div class="pmc-aifit ${cls}">${lbl}</div>`;
+  }
+  // No personalized tier for this program — show a CTA to the AI Fit page
+  // (mirrors the desktop "Scan résumé" placeholder behavior at app.js:2961).
+  return `<div class="pmc-aifit-cta" onclick="showPage('aifit')" title="Scan your résumé to see your fit for this program">✦ Scan résumé to see your fit</div>`;
 }
 
 function _deadlineLineMobile(p){
