@@ -1349,7 +1349,9 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 
   /* TOPBAR FIX: nav-tabs were overflowing off-screen on phones because the
      container has display:flex with no overflow handling. Make it horizontally
-     scrollable + hide the LDP/Scout text (kept the L logo). */
+     scrollable + hide the LDP/Scout text (kept the L logo). The mask-image
+     fade on the right edge is a visual cue that more content exists beyond
+     the visible area — a well-established pattern for swipeable rails. */
   .brand-name { display: none !important; }
   .nav-tabs {
     overflow-x: auto !important;
@@ -1358,9 +1360,72 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
     flex: 1 1 auto;
     min-width: 0;
     max-width: 100%;
+    mask-image: linear-gradient(to right, black 0, black calc(100% - 18px), transparent 100%);
+    -webkit-mask-image: linear-gradient(to right, black 0, black calc(100% - 18px), transparent 100%);
   }
   .nav-tabs::-webkit-scrollbar { display: none; }
   .nav-tab { flex-shrink: 0; }
+
+  /* Sign Out button on the right of the topbar was wrapping to two lines
+     because the inline styles don't pin white-space. */
+  #auth-btn { white-space: nowrap; }
+
+  /* PROGRAMS PAGE REORDER: on mobile, show the welcome + stats FIRST, then
+     the filter sidebar below. Gives the user context before tools. CSS
+     `order` works because .prog-layout is display:grid (set by the existing
+     900px rule) and grid items respect `order`. */
+  .prog-main    { order: 1; }
+  .prog-sidebar { order: 2; }
+
+  /* APPLICATIONS PAGE MOBILE REDESIGN: the 7-column kanban is unusable on a
+     phone. Industry pattern (Linear/Notion/Asana mobile) is to flatten the
+     columns into vertical sections — one per stage, with count in the header
+     and cards stacked below. Empty stages stay visible (with "—" placeholder)
+     so the user sees gaps in their pipeline. Tap-to-edit still works since
+     each card has its existing onclick → editAp handler. */
+  .kanban {
+    display: block !important;
+    padding: 0 !important;
+    gap: 0;
+  }
+  .kanban .kcol {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    margin-bottom: 16px;
+    padding: 14px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+  }
+  .kanban .kcol .khd {
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .kanban .kcol .kct {
+    font-size: 11px;
+    color: var(--text3);
+    background: var(--bg3);
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-weight: 500;
+  }
+  .kanban .kcol .apcard {
+    width: 100%;
+    margin-bottom: 8px;
+    /* mobile cards don't need drag affordance; the cursor was 'grab' */
+    cursor: pointer;
+  }
+  .kanban .kcol .apcard:last-of-type { margin-bottom: 0; }
+  /* Hide drag-drop hint on mobile — drag isn't viable with touch, the user
+     edits via tap. */
+  .kanban .kcol .kcol-drop-hint { display: none !important; }
 
   /* Chips row (function, sector, language, visa) */
   .pmc-chips {

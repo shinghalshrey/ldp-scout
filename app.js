@@ -3071,12 +3071,16 @@ function _statusPillMobile(p){
 
 function _aiTierMobile(p){
   if(p.aiTier){
+    // Tier values stored on p.aiTier are uppercase enum strings: BEST_FIT,
+    // STRONG_FIT, ACHIEVABLE, LONG_SHOT, NOT_FIT (set by syncAIResultsToPrograms
+    // at app.js:4639). Earlier this map used lowercase keys, so every lookup
+    // failed and every card fell through to the "Scan résumé" CTA.
     const labels = {
-      best:       ['✦ Best Fit',   'pmc-tier-best'],
-      strong:     ['✦ Strong',     'pmc-tier-strong'],
-      achievable: ['✦ Achievable', 'pmc-tier-achievable'],
-      longshot:   ['✦ Long Shot',  'pmc-tier-longshot'],
-      watch:      ['✦ Watch',      'pmc-tier-watch'],
+      BEST_FIT:   ['✦ Best Fit',   'pmc-tier-best'],
+      STRONG_FIT: ['✦ Strong',     'pmc-tier-strong'],
+      ACHIEVABLE: ['✦ Achievable', 'pmc-tier-achievable'],
+      LONG_SHOT:  ['✦ Long Shot',  'pmc-tier-longshot'],
+      NOT_FIT:    ['✦ Not a Fit',  'pmc-tier-watch'],
     };
     const [lbl, cls] = labels[p.aiTier] || ['', ''];
     if(lbl) return `<div class="pmc-aifit ${cls}">${lbl}</div>`;
