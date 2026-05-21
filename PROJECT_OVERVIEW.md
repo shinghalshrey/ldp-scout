@@ -1,12 +1,20 @@
 # LDP Scout — Project Overview
 
-**One-line:** Résumé-to-MBA-Leadership-Development-Program matcher. Upload a résumé, get AI-scored fit for ~393 LDP programs across Europe and beyond, with alumni discovery, deadline tracking, and a shortlist Kanban.
+**One-line:** Résumé-to-MBA-Leadership-Development-Program matcher. Upload a résumé, get AI-scored fit across the LDP catalog, with alumni discovery, deadline tracking, and a shortlist/pipeline Kanban.
 
 **Live:** https://ldpscout.com (also https://www.ldpscout.com)
 
 **Audience:** Current MBA students and alumni at whitelisted schools (INSEAD, IESE, IE, Bocconi, IMD, LBS, Oxford Saïd, Cambridge Judge, ESADE, HEC, ESCP, EDHEC, RSM, etc. — full list in `app.js` `EDU_DOMAIN_WHITELIST`).
 
-**Status (May 20, 2026):** ESADE careers launch prep in progress. Public rollout targeted for Monday.
+**Status (May 21, 2026):** ESADE careers launch prep. Demo to ESADE careers office targeted Monday May 25. Catalog at 422 rows, all verified. Tasks 22–26 **live** (quota→1, mobile two-row nav, AI Fit overflow fix, deadlines mobile cards, SEO/meta + favicon/OG + lazy résumé parsers). One hotfix on top of Task 26 — `defer` was missing from `data.js` / `app.js` after `supabase-js` was deferred, which broke the live site for a few minutes until the fix shipped as commit `9760b88`. Next build: Applications overlay + user-added programs (Task 27, spec locked, not launch-blocking).
+
+---
+
+## Catalog headline numbers (keep these straight)
+
+- **`programs` table: 422 rows** — 415 `is_active_cycle = true`, 7 `is_active_cycle = false` (Nike EHQ, Admiral, Estée Lauder ×2, Scopely, AbbVie FDP, Zuellig).
+- **Every row has `last_verified_at` set.**
+- The "**393 programs scanned**" string seen in older screenshots is a *stale scan result* from May 20, when the catalog was 393. The catalog has since grown to 422. A fresh scan will read "across 422 programs." Run one before the demo so the headline isn't stale.
 
 ---
 
@@ -14,21 +22,19 @@
 
 | Layer | Tech | Notes |
 |---|---|---|
-| Frontend | Vanilla JS, single-page (no framework) | `app.js` ~4,960 lines, `index.html`, `styles.css`, `data.js` (programs DB seed) |
-| Auth | Supabase Auth — email OTP (8-digit) + optional password | Anon key inline in `app.js:14`; real security from RLS |
-| Database | Supabase Postgres | 7 tables in `public` schema, all RLS-enabled. Full schema: `DB_SCHEMA.md` |
+| Frontend | Vanilla JS, single-page (no framework) | `app.js` (~5,140 lines), `index.html`, `styles.css` (~1,985 lines), `data.js` (seed) |
+| Auth | Supabase Auth — email OTP (8-digit) + optional password | Anon key inline in `app.js`; real security from RLS |
+| Database | Supabase Postgres | 7 tables in `public`, all RLS-enabled. Full schema: `DB_SCHEMA.md`. **Free tier — NO BACKUPS.** |
 | AI proxy | Vercel serverless function (`ldp-proxy/api/scan.js`) | Verifies Supabase JWT (ES256 via JWKS, HS256 legacy), enforces quota, forwards to Anthropic |
 | AI models | Anthropic Claude — Opus 4.6 (tier classification), Sonnet 4.5 (gap analysis), Haiku 4.5 (reserve) | Whitelisted in `scan.js` `ALLOWED_MODELS` |
-| Email | Supabase built-in (sender: `noreply@ldpscout.com`) | mailto: `hello@ldpscout.com` for program requests — verify MX routing before launch |
-| Domain | Cloudflare (purchase + DNS) | Vercel hosts the actual sites |
-| Frontend hosting | Vercel (auto-deploy on git push to main) | Repo: `ldp-scout` |
-| Proxy hosting | Vercel (manual deploy) | Private GitHub repo: `shinghalshrey/ldp-proxy`. Auto-deploy intentionally NOT connected — manual deploy only. |
+| Email | Supabase built-in (sender `noreply@ldpscout.com`) | `mailto:hello@ldpscout.com` for program requests — verify MX routing before launch |
+| Domain | Cloudflare (purchase + DNS only — proxy/CDN currently OFF) | Apex `A` records point to GitHub Pages IPs `185.199.108–111.153`. Proxy is on Vercel. |
+| Frontend hosting | **GitHub Pages** (auto-deploy on `git push` to `main`) | Repo: `shinghalshrey/ldp-scout` (public). Workflow `pages build and deployment` runs `build → report-build-status → deploy`, typically 1–2 min total. Live status: `github.com/shinghalshrey/ldp-scout/actions`. |
+| Proxy hosting | Vercel (manual deploy via `npx vercel --prod`) | Private GitHub repo `shinghalshrey/ldp-proxy`. Auto-deploy from GitHub intentionally NOT connected. Scope: `shrey's projects` (Hobby tier). |
 
-**Frontend libs (loaded from CDN in `index.html`):**
-- `@supabase/supabase-js@2`
-- `pdf.js@2.16.105` — résumé PDF parsing
-- `mammoth@1.6.0` — résumé .docx parsing
-- Google Fonts: Fraunces (editorial serif), DM Mono, Outfit
+**Frontend libs (CDN in `index.html`):** `@supabase/supabase-js@2`, `pdf.js@2.16.105` (résumé PDF parse), `mammoth@1.6.0` (résumé .docx parse), Google Fonts (Fraunces, DM Mono, Outfit).
+
+> Perf note (Task 26, done): `pdf.js` and `mammoth` are now lazy-loaded via `ensureResumeParsers()` on first résumé parse, not in `<head>`. `supabase-js` carries `defer`, and `data.js`/`app.js` carry `defer` too (this last bit was the post-26 hotfix — without it, app.js executed before supabase loaded and threw `ReferenceError: supabase is not defined` on line 18, which killed the landing overlay and showed an empty Programs page to every visitor). Net effect: ~2 MB off the landing-page initial load (the mobile LCP fix).
 
 ---
 
@@ -36,17 +42,17 @@
 
 ```
 C:\Users\shrey\Desktop\LDP-Scout-Master\
-├── ldp-scout\               # frontend — git repo, deploys via push
+├── ldp-scout\               # frontend — public git repo, GitHub Pages auto-deploys on push
 │   ├── app.js
 │   ├── index.html
 │   ├── styles.css
 │   ├── data.js
-│   ├── CHANGES_TASK*.md     # per-task plain-English explainers
+│   ├── vercel.json          # dead code on GitHub Pages — see "vercel.json gotcha" below
+│   ├── CHANGES_TASK*.md
 │   ├── SMOKE_TESTS.md
 │   ├── PROJECT_OVERVIEW.md
-│   ├── DB_SCHEMA.md
-│   └── LDP_audit_scoresheet.xlsx
-└── ldp-proxy\               # proxy — private GitHub repo, manual Vercel deploy
+│   └── DB_SCHEMA.md
+└── ldp-proxy\               # proxy — private git repo, manual Vercel deploy
     └── api\scan.js
 ```
 
@@ -54,139 +60,150 @@ C:\Users\shrey\Desktop\LDP-Scout-Master\
 
 ## Deploy commands
 
-**Frontend:**
+**Frontend (`git push` → GitHub Pages auto-build, ~1–2 min):**
 ```powershell
 cd C:\Users\shrey\Desktop\LDP-Scout-Master\ldp-scout
-git add -A && git commit -m "..." && git push
-# Vercel auto-builds on push to main
+git add -A
+git commit -m "..."
+git push
 ```
+Watch the deploy at `https://github.com/shinghalshrey/ldp-scout/actions`. The run is named `pages build and deployment`. It goes yellow (running) → green check (`pages-build-deployment` job → `deploy` step shows `https://ldpscout.com/`). If it goes red, click into the failed job for the log.
 
-**Proxy (the one that bites you):**
+**Proxy (the one that bites you — fresh PowerShell, NOT inside Claude Code):**
 ```powershell
-# Fresh PowerShell window — NOT inside a Claude Code session.
 cd C:\Users\shrey\Desktop\LDP-Scout-Master\ldp-proxy
 npx vercel --prod
 ```
+`npx vercel` is interactive; running it inside a Claude Code session swallows the prompts and the deploy hangs or fails silently. Always a fresh terminal. Deploy is ~10s; the alias `https://ldp-proxy.vercel.app` is updated automatically.
 
-Why this matters: `npx vercel` deploys interactively. Running it inside a Claude Code session swallows the prompts and the deploy hangs or fails silently. Always use a fresh terminal.
+### vercel.json gotcha
+
+`ldp-scout/vercel.json` was added in Task 26 to set long-cache headers on favicons/OG image and must-revalidate on `app.js`/`styles.css`/`data.js`. **It does nothing**, because the frontend is on GitHub Pages, not Vercel. GitHub Pages serves all assets with its own default `Cache-Control: max-age=600` (10 min) and does not honour `vercel.json`. Consequences:
+
+- The PageSpeed "use efficient cache lifetimes" warning will NOT clear from Task 26 alone.
+- Favicons / `og-image.png` are NOT cached for a year — they're cached for 10 min like everything else.
+- `app.js`/`styles.css`/`data.js` get 10-min cache instead of always-revalidate. After a push, users on a 10-min-old page may see stale JS until the cache TTL expires. **Hard refresh (Ctrl+Shift+R) fixes it immediately; this is what to tell anyone reporting "didn't see my fix."**
+
+Paths if we actually want cache control (post-launch):
+1. **Cloudflare proxy ON** — flip the apex DNS record from grey-cloud (DNS-only) to orange-cloud (proxied), then add a Page Rule for `*ldpscout.com/*.png` etc. to override `Cache-Control`. Lowest-effort, no DNS change.
+2. **Move the frontend to Vercel** — DNS change to point apex at Vercel; `vercel.json` would then take effect as written.
+3. **Live with default GHP caching** — fine for launch; revisit if cache lifetimes show up as a real complaint.
+
+Leave `vercel.json` in the repo for now — harmless, and it's correct if we ever take path 2.
+
+---
+
+## Working approach (canonical)
+
+- **This chat (Claude.ai)** — planning, triage, debugging, schema work, and **drafting clean prompts to paste into Claude Code**. This chat does *not* write production code directly.
+- **Claude Code (CLI)** — writes the code. One Claude Code session per task. Don't parallelize tasks touching the same file.
+- **Triage before building.** New issue mid-session → propose a 2-min diagnostic (incognito test, SQL query, DevTools/network check) before any code.
+- **Test write AND read paths** before declaring a task done (the Task 1 lesson).
+- **Every commit gets a `CHANGES_TASKn.md`** plain-English explainer.
+- **Deploy gotcha:** proxy from a fresh PowerShell, not from inside Claude Code.
+- **Long chats degrade.** ~25–30 turns → open a fresh chat with canonical files pinned.
 
 ---
 
 ## Auth flow (canonical)
 
-Two-button landing UI. Email field with both Sign Up and Sign In buttons side by side.
+Two-button landing UI: email field with Sign Up and Sign In side by side.
 
-**Sign Up path (new users):** Email → domain whitelist check → `email_account_status` RPC confirms no existing account → OTP sent → 8-digit code → mandatory password setup (no skip) → mandatory full-name capture during onboarding → into app.
-
-**Sign In path, existing user with password:** Password field shown by default. "Login using code instead?" and "Forgot password?" available as text links beneath.
-
-**Sign In path, existing user without password:** OTP flow (no password setup at end).
-
-**Forgot password:** Uses `force:true` to mandate password setup post-OTP regardless of `has_password` flag.
-
-**Mandatory full_name (Task 19):** Onboarding step 1 disables the Next button until `value.trim().length >= 1` and hides the Skip button.
-
-**Supabase setting:** "Confirm email" toggle is ON. With OTP flow this is fine — the OTP code IS the confirmation.
-
-**Session persistence:** Supabase sessions live in localStorage for ~30 days. In incognito, sessions wipe when ALL incognito windows close.
+- **Sign Up (new):** Email → domain whitelist → `email_account_status` RPC confirms no existing account → 8-digit OTP → mandatory password setup (no skip) → mandatory full-name capture → app.
+- **Sign In, existing w/ password:** password field default; "Login using code instead?" + "Forgot password?" links beneath.
+- **Sign In, existing w/o password:** OTP flow (no password setup at end).
+- **Forgot password:** `force:true` mandates password setup post-OTP regardless of `has_password`.
+- **Mandatory full_name (Task 19):** onboarding step 1 disables Next until `value.trim().length >= 1`, hides Skip.
+- **Supabase "Confirm email" toggle ON** — fine with OTP (the code IS the confirmation).
+- **Session persistence:** ~30 days in localStorage. Incognito wipes when all incognito windows close.
 
 ---
 
-## Personalization (Task 19, applied across product)
+## Personalization (Task 19)
 
-Single helper: `getFirstName()` reads `userProfile.full_name`, trims, splits, returns the first token. All personalization downstream keys off this.
-
-Where it shows:
-- **Topbar:** firstName · school_label (fallback to email if `full_name` is NULL)
-- **Programs page:** "Welcome back, *FirstName*." h1 + live "{N} programs in your pipeline · {M} deadlines this month" subline. STATE B fallback: count-agnostic copy (per Task 20 — no static numbers that leak into OG previews).
-- **Alumni Finder, Applications, Deadlines, AI Fit (pre + post-scan):** h1/subtitle personalized
-- **Profile modal:** "*FirstName*, edit your details" title
-
-Refresh paths: `showPage()` calls `applyPagePersonalization(id)`. `saveUserProfile()` calls `_refreshActivePagePersonalization() + updateAuthUI()` so name changes propagate without a page nav.
+Single helper `getFirstName()` reads `userProfile.full_name`, trims/splits, returns first token. Topbar (firstName · school_label, email fallback if full_name NULL), Programs h1 + pipeline subline, Alumni/Applications/Deadlines/AI Fit h1s, Profile modal title. Refresh: `showPage()`→`applyPagePersonalization(id)`; `saveUserProfile()`→`_refreshActivePagePersonalization()` + `updateAuthUI()`.
 
 ---
 
-## Programs catalog architecture (Path A, Task 19.2)
+## Programs catalog architecture (Path A)
 
-**The `programs` table is read-only from the client.** No INSERT/UPDATE/DELETE RLS policies. Users cannot mutate the catalog.
+**`programs` is read-only from the client** — no INSERT/UPDATE/DELETE RLS. The old + Add/Edit/Delete buttons are gone; `saveProg()/editP()/delP()` are `console.warn` stubs. Users track off-catalog programs via `mailto:hello@ldpscout.com` (Programs meta row) or the writable Applications page.
 
-The old `+ Add Program / Edit / Delete` buttons were vestigial from a pre-Supabase architecture. As of Task 19.2 they're gone from the UI. `saveProg()`, `editP()`, `delP()` are stubs with `console.warn`.
-
-Users wanting to track a program not in the catalog:
-- Email `hello@ldpscout.com` to request addition (mailto link in the Programs meta row), OR
-- Log it manually on the Applications page (per-user table, IS writable)
-
-Future option (Path B, not implemented): A `user_programs` table with RLS scoped to `auth.uid()` that unions with the global catalog for display.
+Future option (Path B, not built): a `user_programs` table RLS-scoped to `auth.uid()` unioned with the global catalog.
 
 ---
 
 ## Pipeline semantic
 
-Pipeline = shortlisted + networking + drafting + applied + interview + offer.
-NOT pipeline = rejected (exited).
-
-Offer is the goal-state of being in pipeline, not an exit. `_pipelineCount()` and `_deadlinesThisMonth()` use `status !== 'rejected'`.
+Pipeline = shortlisted + networking + drafting + applied + interview + offer. NOT pipeline = rejected (exited). Offer is the goal-state, not an exit. `_pipelineCount()` and `_deadlinesThisMonth()` use `status !== 'rejected'`.
 
 ---
 
 ## Quota & cost model
 
-- **Free quota:** 3 completed scans per user, lifetime. Enforced server-side in `scan.js` by counting rows in `user_scan_history` for that user via PostgREST `count=exact`. Fail-closed (503) if the quota query errors.
-- **Quota row written by frontend** after both tier + gap calls succeed. So the check on call N+1 blocks the next scan, not the current one.
-- **Cost target:** $0.10/scan (Task 5). Current is higher.
-- `MAX_TOKENS_CAP = 32000` in proxy.
-
-**Launch consideration:** 3 scans/user is generous for individual use. If ESADE careers shares the link with a class of 90 students who all run a scan, that's $20-30 in one day. Decide before launch whether to drop to 1-2 scans for public launch and bump for known users.
-
----
-
-## Programs page UI (post-Task 19.2.5)
-
-**Layout:** Two-column. 240px sticky left sidebar (accordion sections) + main column.
-
-**Sidebar sections** (collapsible accordions, state persists in `ldps_prog_sidebar_v1`):
-1. Search (always visible)
-2. Quick Filters — Visa-sponsoring only
-3. Geography — Europe / UAE / Global (Task 19.3 will replace with continent drill-down)
-4. Function — Operations / Finance / Strategy / Consulting / Investments
-5. Sector (Task 19.2) — 9 sectors from `ALUMNI_SECTORS` taxonomy
-6. App Cycle (renamed from Status) — Open / Rolling / Watch
-7. Pro Tip card
-
-Each section header shows `(N)` badge when filters are active. Expanded section gets accent-bg highlight.
-
-**Stat row** (5 cards): TOTAL · ✦ AI FIT · OPEN NOW · ROLLING · ★ MY PIPELINE.
-- Cards 1-4: uniform neutral number color (`--text`), 1.5px border at `--border2`
-- Card 5: amber number (`#c89738`), 2px border at higher opacity — visually the "destination" card
-
-**Table** (9 columns, CSS Table layout for shared column widths across rows): Program/Org · Function · Sector · Location · Deadline · App Cycle · ✦ AI Fit · Stage (dropdown) · Reminder. Column widths: 22 / 8 / 9 / 11 / 8 / 7 / 8 / 16 / 11 %. Vertical column borders form continuous lines down the table.
-
-**Stage dropdown** (Task 19.2): per row, shows current pipeline stage OR "+ Add to pipeline" empty state. Click opens custom panel with 7 stage options (Shortlisted → Rejected) + "Remove from pipeline" if applicable. Writes through `saveApplicationToDB` / `deleteApplicationFromDB`.
-
-**Tour link** sits right-aligned in editorial eyebrow row: "TOUR THIS PAGE →" (mono, uppercase, dashed underline). Same pattern across Alumni / Applications / Deadlines pages.
-
-Removed (post-Task 19.2): Pipeline button column, Actions (Edit/Del) column, +Add Program button, "+ Details" disclosure on each row. Replaced by Stage dropdown + mailto link in the meta row + name-as-link in row.
+- **Free quota: 1 completed scan per user, lifetime** (Task 22, **live as of May 21** — proxy deployed via `npx vercel --prod`, frontend on GitHub Pages). Enforced server-side in `scan.js` (`SCAN_QUOTA = 1`) by counting `user_scan_history` rows via PostgREST `count=exact`; fail-closed (503) on query error. Frontend mirror `SCAN_QUOTA_CLIENT = 1` in `app.js` is display-only. **Reminder: a frontend `git push` alone won't change quota enforcement — the proxy must be re-deployed manually any time `SCAN_QUOTA` changes.**
+- **Quota row written by the frontend** after both tier + gap calls succeed, so the check on call N+1 blocks the *next* scan.
+- **Cost target: $0.10/scan (set in Task 5 — predates the CHANGES_TASKn.md convention, so no CHANGES doc exists for it).** Cost optimization was **not** Task 19 or 20 (Task 19 = Programs redesign + personalization; Task 20 = removing the hardcoded program count from static HTML).
+- **Current cost is above target.** Levers, in order of impact: (1) `MAX_TOKENS_CAP = 32000` in proxy — this was bumped up from 6000 and is the most likely driver; (2) quota (now dropping to 1); (3) per-scan payload — system prompt + program list sent to the model; (4) model choice per pass (Opus 4.6 for tier is the premium line item). Actual per-scan cost is only visible in the Anthropic console — confirm there before quoting anyone a number.
+- **Cohort math:** at 1 scan/user, 90 ESADE students = up to 90 scans on launch day, not 270.
 
 ---
 
-## Page-load behavior (Task 19.2.4)
+## Mobile layout (≤720px is the hard layout switch)
 
-`<head>` boot script synchronously reads `localStorage.ldps_last_page` on every load. If a Supabase session is present in localStorage, the saved page (or 'programs' as default) is marked `active` before first paint. No more flicker where Programs flashes before the user's last-viewed page loads.
+Breakpoint **720px** (NOT 768). iPad portrait (768px) stays desktop. Softer `@media 768px`/`900px` blocks handle font/spacing tweaks only.
 
-`showPage()` writes the current page to localStorage on every call. `onSignOut()` clears it so the next user starts fresh on Programs.
+- **Programs:** stacked cards (`renderProgramsMobile` / `_mobileCardHTML`), not the table. Welcome + 5 stat cards appear ABOVE the filter sidebar (`order` on grid children). AI Fit tier badge per card, or dashed "✦ Scan résumé" CTA if unscanned (`_aiTierMobile`, **UPPERCASE tier keys** — see gotchas).
+- **Applications:** 7 vertical stacked sections (one per stage), full-width cards, tap to edit (no drag).
+- **Topbar (Task 23, committed):** on ≤720px the topbar wraps to **two rows** — row 1 brand + Profile/Sign Out, row 2 the nav tabs full-width, evenly spaced, **not scrollable, no wrap**. Tabs keep full labels for desktop but show shortened ones on mobile via a `data-short` attribute + `::after { content: attr(data-short) }` (real text stays in the DOM for screen readers). The old scrollable-rail + mask-fade rules were removed.
+- Form controls inherit Outfit via global `input,textarea,select,button { font-family: inherit; }` near top of `styles.css` — do not remove.
 
 ---
 
-## Working approach
+## Critical technical gotchas
 
-- **This chat (Claude.ai)** — planning, triage, debugging, schema work, prompt drafting, **and direct code edits** (Pranav doesn't run Claude Code for these tasks).
-- **Claude Code (CLI)** — reserved for heavy DB work (e.g. Task 19.3 SQL migration).
-- **Pranav executes the git push from PowerShell.**
-- **Triage before building.** New issue mid-session → 2-min diagnostic first.
-- **Test write AND read paths** before declaring done.
-- **Every commit gets a CHANGES_TASKn.md** explainer.
-- **Long chats degrade.** When chat hits ~25-30 turns, open a fresh one with canonical files pinned.
-- **Deploy gotcha:** proxy from PowerShell, not from inside Claude Code.
+1. **`progs[].aiTier` is UPPERCASE enum:** `BEST_FIT`, `STRONG_FIT`, `ACHIEVABLE`, `LONG_SHOT`, `NOT_FIT`. Set by `syncAIResultsToPrograms()`. Readers `fitTier()` (desktop) and `_aiTierMobile()` (mobile) must use uppercase keys. Lowercase keys silently miss every lookup.
+2. **CSS cascade in `styles.css`:** rules outside `@media` and inside one have equal specificity → later wins. Before claiming a layout fix, `grep -n '\.selector' styles.css` for ALL rules on it across the whole file. (This bit Task 21.1: a late `.prog-table-wrap{display:table}` beat the mobile `display:none` until `!important` was added.)
+3. **Horizontal overflow clamp:** there's still no *global* clamp on `html`/`body`. Task 24 fixed the known AI Fit offender (`.aifit-summary-left/right` wrap on mobile; buttons full-width) and added `#page-aifit { overflow-x: hidden }` as a per-page net. If a new page scrolls sideways on mobile, the diagnostic is: `[...document.querySelectorAll('*')].filter(e => e.offsetWidth > document.documentElement.clientWidth)` in DevTools at 375px. Do NOT put `overflow-x:hidden` on body — it breaks the sticky AI Fit summary strip.
+4. **Résumé parsers are lazy-loaded (Task 26):** pdf.js + mammoth are no longer in `<head>`. `ensureResumeParsers()` injects them on demand the first time a résumé is parsed (app.js ~4275). They're ~2 MB combined and not needed on the landing page. Don't move them back to `<head>` — that re-breaks mobile LCP.
+5. **Form controls don't inherit font-family** — kept in Outfit only by the global reset above.
+6. **`programs.id` sequence** — reset with `setval(pg_get_serial_sequence('programs','id'), (SELECT MAX(id) FROM programs))` after explicit-id inserts. Currently past 422.
+7. **iOS Calendar 2-alarm limit:** `downloadICS(item,'multi')` writes 3 VALARMs (-P30D/-P7D/-P1D) but iOS preview shows only the 2 closest; 30-day alarm may not survive import. Unverified — if dropped, generate 3 separate events.
+8. **Test deploys in private browsing.** Frontend: GitHub Pages build is 1–2 min — confirm green on the Actions tab, then load in incognito (no SW/cache). Proxy: Vercel is ~10s — confirm green on `vercel.com/shrey-s-projects1/ldp-proxy` and either hit `/api/scan` directly or run an in-app scan. If a change isn't live in incognito after a green build, the deploy genuinely failed — not caching. (Edge case for the 10-min GHP cache window on `app.js`/`styles.css`/`data.js`: hard refresh forces revalidation.)
+
+---
+
+## Applications → Deadlines → Calendar data flow
+
+- **"Log Application" modal** (`openM('app',…)` / `editAp` / `saveApp`) writes to **`public.user_applications`** via `saveApplicationToDB()` — INSERT or UPDATE keyed on `(id, user_id)`.
+- **Columns:** `user_id, program_id (nullable), name, org, geo, status, applied_on, deadline, next_step, contact, notes`.
+- **Privacy:** RLS `own_apps_all` (ALL) — `auth.uid() = user_id`. **Per-user private. Not visible to other users.** (Contrast: `program_intel` is read-public — never store private data there.)
+- **Deadlines linkage** (`buildDeadlineItems()`): a logged application is matched to a catalog program by `program_id` OR case-insensitive name match. If matched, the deadline shown/exported comes from the **program** record (`p.deadline`), not the app's own `deadline` field. If unmatched (free-standing), the app's own `deadline` is used as a `type:'application'` item.
+- **Known design gaps (now addressed by Task 27, spec locked):** (a) a user's custom deadline typed in the modal is currently **ignored** when the app matches a program — Task 27's `resolveProgramView` makes the user's deadline win everywhere; (b) name-only matches are fragile — Task 27 always sets `program_id` when picking from the catalog search. Free-standing rows (`program_id = null`) become user-added private programs unioned into the Programs page. See the Task 27 spec under Queued.
+- **Calendar export:** Deadlines page → "Set reminder" (single) / "Export my pipeline to calendar" (`exportMyPipelineDeadlines`) → ICS. So modal-entered deadlines do reach calendar export, subject to the matching caveat above.
+
+---
+
+## Page-load behavior
+
+`<head>` boot script reads `localStorage.ldps_last_page` before first paint; if a Supabase session exists, the saved page (default 'programs') is marked active pre-paint — no Programs flash. `showPage()` writes current page to localStorage; `onSignOut()` clears it.
+
+---
+
+## SEO / performance baseline (PageSpeed, May 21 2026)
+
+| | Mobile | Desktop |
+|---|---|---|
+| Performance | 69 | 97 |
+| Accessibility | 93 | 93 |
+| Best Practices | 100 | 100 |
+| SEO | 80 | 80 |
+
+**Status after Task 26 (committed, awaiting push + re-test):**
+- **SEO:** added meta description, canonical, Open Graph (with `og-image.png`), Twitter card, favicon links (SVG + ico + png set + apple-touch + webmanifest), `theme-color`, and a WebApplication JSON-LD block. Expect SEO to move from 80 toward ~90+ after deploy. "Links are not crawlable" will likely persist (onclick SPA nav) and is acceptable for an auth-gated app.
+- **Perf:** removed the 3 bogus `Cache-Control`/`Pragma`/`Expires` http-equiv metas; lazy-loaded pdf.js + mammoth (`ensureResumeParsers()`), `defer` on supabase-js (and on `data.js`/`app.js` post-hotfix). This targets the ~3.65s mobile render-block and the ~2 MB unused-JS payload. Re-run PageSpeed after push to confirm mobile LCP drops from 5.0s. **Note:** Task 26 also added `vercel.json` cache-header rules — those don't apply because the frontend is on GitHub Pages, not Vercel (see "vercel.json gotcha" in the Deploy section). The "use efficient cache lifetimes" PageSpeed flag will therefore persist until Cloudflare proxy + Page Rules are set up.
+- **Still open (post-launch):** Fraunces font request pulls many weights/italics — trim to used weights to shrink the font payload (find exact contributors via Network tab sorted by size). Minify CSS/JS + unused-CSS are small wins that need a build step — skip (breaks the no-build workflow).
+- **A11y (post-launch):** insufficient color contrast; headings not in sequential order.
 
 ---
 
@@ -194,57 +211,108 @@ Removed (post-Task 19.2): Pipeline button column, Actions (Edit/Del) column, +Ad
 
 | Task | One-line | Files | Date |
 |---|---|---|---|
-| 19.2.5 (nudge) | Stage column 12% → 16%, Reminder 15% → 11% so "+ Add to pipeline" renders fully | styles.css | May 19 |
-| 19.2.5 | Programs table: CSS Grid → CSS Table for truly continuous vertical column dividers | styles.css | May 19 |
-| 19.2.4 | No-flicker boot (read last-page from localStorage before paint) + column alignment v3 | app.js, index.html, styles.css | May 19 |
-| 19.2.3 | Column alignment (top-align col 1) + edge-to-edge dividers (move padding to cells) + Pipeline border 2px @ 55% + last-page persistence | app.js, styles.css | May 19 |
-| 19.2.2 | Cross-page editorial header + table polish + AI Fit hydration bug fix + clickable AI Fit results | app.js, index.html, styles.css | May 19 |
-| 19.2.1 | Row meta/desc cleanup, full-height column borders (failed), editorial tour link, accordion accent state | app.js, index.html, styles.css | May 19 |
-| 19.2 | Programs page architecture overhaul: Path A read-only catalog, Stage dropdown, accordion sidebar, Sector filter, amber Pipeline stat card, pipeline semantic fix | app.js, index.html, styles.css | May 19 |
-| 19.1 | Sidebar reorder (Quick Filters to top), table row dividers, tour step 2 target fix | app.js, index.html, styles.css | May 19 |
-| 19 | Programs page redesign (Lovable two-column layout), personalization across 5 pages + topbar + profile modal, mandatory full_name on onboarding step 1, "48" sweep | app.js, index.html, styles.css | May 19 |
-| 20 | Remove hardcoded program count from static HTML (OG preview was scraping stale "48") | index.html | May 18 |
-| 9 | Landing page two-button auth (Sign Up / Sign In) + mandatory post-OTP password setup + race-condition fix | app.js, index.html, styles.css | May 18 |
+| 26-hotfix | Add `defer` to `data.js` + `app.js` so they execute after `supabase-js` (which Task 26 had deferred). Without this, app.js ran first and threw `ReferenceError: supabase is not defined` on line 18 — landing overlay never appeared, signed-out visitors saw an empty Programs page. Commit `9760b88`. | index.html | May 21 |
+| 26 | SEO head (description, OG+og-image, Twitter, favicon set, canonical, JSON-LD, theme-color), removed bogus cache metas, `vercel.json` cache headers *(dead code on GitHub Pages — see Deploy section)*, lazy résumé parsers + defer supabase | index.html, app.js, vercel.json, assets | May 21 |
+| 25 | Deadlines rows → stacked mobile cards, one CTA at bottom | styles.css | May 21 |
+| 24 | Kill horizontal scroll on AI Fit Scan page (mobile) — summary strip wraps, buttons full-width, `#page-aifit` overflow clamp | styles.css | May 21 |
+| 23 | Static two-row mobile nav (no horizontal scroll), shortened labels via `data-short` | index.html, styles.css | May 21 |
+| 22 | Drop free scan quota 3 → 1 (frontend mirror + proxy `SCAN_QUOTA` + quota log line) | app.js, scan.js | May 21 |
+| (post-21.4) | Remove LinkedIn search button from draft modal; global font-family inherit for form controls | app.js, styles.css | May 20 |
+| 21.4 | Fix AI Fit tier label keys (uppercase) + 5 mobile UI fixes (sign-out nowrap, nav fade, programs order, applications vertical kanban) | app.js, styles.css | May 20 |
+| 21.3 | AI Fit fallback chip on mobile cards + scrollable nav tabs + brand-name hide on phone | app.js, styles.css | May 20 |
+| 21.1 | Mobile card view for Programs + `!important` cascade fix + verified-only filter + reminder flow | app.js, styles.css | May 19–20 |
+| 21 | Truthful per-row Verified badge + mobile fallback for Programs table | app.js, styles.css | May 19 |
+| 19.2.x | Programs page architecture overhaul → editorial header, CSS Table dividers, AI Fit hydration fix, no-flicker boot, Stage column widths | app.js, index.html, styles.css | May 19 |
+| 19.1 | Sidebar reorder, table dividers, tour fix | app.js, index.html, styles.css | May 19 |
+| 19 | Programs redesign + personalization across pages + mandatory full_name | app.js, index.html, styles.css | May 19 |
+| 20 | Remove hardcoded program count from static HTML (stale OG previews) | index.html | May 18 |
+| 9 | Two-button landing auth + mandatory post-OTP password + race fix | app.js, index.html, styles.css | May 18 |
+| 5 | AI scan cost model — $0.10/scan target, model whitelist, quota (no CHANGES doc) | scan.js | earlier |
 
 ---
 
-## Queued
+## Queued / in-flight tasks
 
-### Task 19.3 — Geography continents with multi-continent support
-- Add `continents` TEXT[] array column to `programs` table
-- Manual curation across all 393 rows (CSV exported, sitting in chat history): tag each with relevant continents
-- Filter logic: OR-match (`p.continents.some(c => F.geo.has(c))`)
-- Frontend: 6 continent pills (Europe / Asia / North America / South America / Africa / Australia). No "Global" pill — span-multiple-continents handled by the array.
-- Taxonomy locked: UAE → Asia, Russia → Europe, Turkey → Europe, Egypt → Africa.
-- **Not launch-blocking. Defer.**
+| # | Task | Notes | Launch-blocking |
+|---|---|---|---|
+| 27 | **Applications overlay + user-added programs** (spec locked — see below) | app.js + index.html, no DB migration | No — post-launch, high value |
+| — | Geography continents `TEXT[]` (Task 19.3) | DB migration + 422-row curation | No — defer |
+| — | Scrape ~36 working URLs for description/eligibility/min_yoe/duration | data quality for AI Fit | No |
+| — | iOS 3-reminder verification | manual test | No |
+| — | A11y: contrast + heading order; trim Fraunces font weights | from PageSpeed | No |
 
-### Mobile experience (LIKELY NEEDED BEFORE LAUNCH)
-The Programs table now uses `display: table` with `table-layout: fixed` and 9 columns. At 380px viewport (typical phone), the table will horizontal-scroll or crush cells. The dead mobile-card-view code at `app.js:2730` was supposed to handle this but was never wired up. Verify on a phone before Monday rollout.
+### Task 27 spec — Applications overlay + user-added programs (decisions locked May 21)
+
+**Goal:** make `user_applications` a per-user overlay on the read-only catalog, and let users add their own private programs as the replacement for the `mailto:hello@` request flow.
+
+**Decisions (locked):**
+1. **Overlay precedence:** for any tracked program, `deadline = app.deadline ?? program.deadline`; stage/status/applied_on/next_step/contact/notes are user-only; catalog facts (function, sector, geo, location, language_required, is_active_cycle, tier) are NOT user-overridable. A single `resolveProgramView(p)` merges the user's `apps[]` overlay onto each catalog program, called by every render path. Override applies **everywhere**, including the Programs table.
+2. **User-added programs** = `user_applications` rows with `program_id = null`. **Union them into the Programs page** (scoped to login), badged "**Added by you**" — badge must be prominent enough to distinguish user adds from catalog rows. Missing catalog fields render as "—".
+3. **No dedup/merge:** if an admin later adds the same program to the catalog, BOTH rows stay (user's + catalog's); the badge disambiguates; user can delete their own.
+4. **Stage on add:** reuse the existing 7-stage dropdown; default a fresh add to **Shortlisted**, full dropdown available.
+5. **AI Fit:** user-added programs are **excluded from the scan and labelled "not scored."** No manual per-program scan at launch (would burn the single quota).
+6. **Calendar:** ICS export reads the resolved deadline → the `.ics` carries the user's edited/entered date. A previously-undated program that the user gives a deadline becomes Deadlines-listed and ICS-exportable.
+7. **Privacy:** all of the above is the user's private overlay; RLS `own_apps_all` guarantees it never touches the shared catalog or other users.
+8. **Modal/UX:** rename the modal field "Program / Role" → "**Program**"; the field becomes a searchable dropdown over the **full catalog** + an "+ Add new program" action; **replace the Programs-page "Don't see a program? Request it" mailto with the same Log Application button.**
+
+**Admin upside:** user adds become a demand backlog — query `user_applications WHERE program_id IS NULL` (Supabase dashboard / service role, not client) to see most-requested programs and promote popular ones into the catalog.
 
 ---
 
-## Launch-readiness checklist (Monday rollout)
+## Launch-readiness checklist (Monday)
 
-1. **Mobile experience** — verify on a phone, especially the Programs table. May need card-view fallback at <900px.
-2. **First-time user flow** — cold sign-up with a fresh email on a whitelisted domain. Walk the whole flow.
-3. **mailto:hello@ldpscout.com** routing — verify the email actually arrives somewhere you read. Cloudflare MX records.
-4. **AI scan quota policy** — current 3 lifetime/user. If ESADE shares with a cohort of 90, cost on day 1 ≈ $25. Decide before launch.
-5. **Domain whitelist** — confirm `@esade.edu`, `@alumni.esade.edu`, `@student.esade.edu`, etc. Check `EDU_DOMAIN_WHITELIST` in app.js.
-6. **Page tour copy** — walk through each page's tour to make sure copy reflects current state.
-7. **Supabase Confirm Email setting** — verify still ON.
+1. **Tasks 22–26 + hotfix shipped** (May 21). Frontend pushed, GitHub Pages green; proxy deployed via `npx vercel --prod`. No further deploy work for the demo unless Task 27 lands first.
+2. **Re-deploy the proxy** only if `SCAN_QUOTA` or any `scan.js` line changes between now and Monday: `cd ldp-proxy; npx vercel --prod` from a fresh PowerShell. A git push does NOT deploy the proxy.
+3. **Verify asset files committed** — `git ls-files *.png *.svg *.ico *.webmanifest` includes `og-image.png` and `site.webmanifest`. (Confirmed May 21.)
+4. **Run a fresh scan** on a test account so the demo shows "across 422 programs," not 393. Both Pranav's and Shrey's accounts are at quota=1 already; create or use a clean whitelisted test account.
+5. **Mobile** — verify Tasks 23/24/25 in incognito on a real phone (two-row nav, no AI Fit sideways scroll, deadlines cards).
+6. **Re-run PageSpeed** — confirm mobile LCP dropped (target: 5.0s → ~2s) and SEO moved off 80. "Use efficient cache lifetimes" will remain (vercel.json doesn't apply on GHP — see Deploy section).
+7. **Validate share preview** — opengraph.xyz / LinkedIn Post Inspector shows the green OG card; favicon shows in tab.
+8. **Domain whitelist** — confirm `@esade.edu`, `@alumni.esade.edu`, `@student.esade.edu` in `EDU_DOMAIN_WHITELIST`.
+9. **`mailto:hello@ldpscout.com`** — verify it lands somewhere you read (Cloudflare MX). (Being phased out by Task 27, but still live until then.)
+10. **First-time cold sign-up** with a fresh whitelisted email — walk the whole flow.
+11. **Confirm `www → apex` is a single 301** (PageSpeed showed www redirecting); canonical/OG point to `https://ldpscout.com/`.
+12. **Supabase "Confirm email"** still ON.
 
 ---
 
-## Known stale/cleanup items (low priority)
+## Known stale/cleanup items (low priority, post-Monday)
 
-1. **Mobile card view dead code** — `app.js:2730-ish` references `#prog-cards` and `#prog-table` IDs that don't exist in `index.html`. Pre-existing dead code. Will need real implementation for mobile rollout.
+1. `scan.js` ~line 25 comment mentions "Opus 4.7" but `ALLOWED_MODELS` whitelists `claude-opus-4-6`. Fix the comment, not the whitelist (Opus 4.6 is intended per Task 5).
+2. `openLinkedInSchoolSearch()` (~app.js:3747) — unreferenced after the draft-modal cleanup. Safe to delete.
+3. `reopenInfoCard()` — dead since Task 19.2.2.
+4. Dead `.prog-cards`/`.prog-card-*` CSS in the `@media 768px` block (~styles.css:953) references DOM IDs that no longer exist (superseded by Task 21.1 `.pmc-*`).
+5. A couple of non-user-facing "48" comments remain in source.
+6. "+ Shortlist" buttons in Alumni Finder / AI Fit still use the old single-stage path; Stage dropdown would be more consistent cross-page.
 
-2. scan.js line ~25 comment mentions "Opus 4.7" but ALLOWED_MODELS whitelists claude-opus-4-6. Fix on next scan.js touch — change the comment, not the whitelist (Opus 4.6 is the intended model per Task 5 cost-model decisions)
+---
 
-3. **`reopenInfoCard()` is dead code** as of Task 19.2.2 — no DOM elements with class `info-card-reopen` exist anywhere anymore.
+## Key function locations in app.js (approximate)
 
-4. **Two "48"-mention comments** remain in source (non-user-facing).
+| Function | ~Line | Purpose |
+|---|---|---|
+| `fetchProgramsFromSupabase` | 480 | Pulls 422 rows into `progs[]` |
+| `loadUserApplications` | 1594 | Loads `user_applications` into `apps[]` |
+| `saveApplicationToDB` | 1620 | INSERT/UPDATE `user_applications` |
+| `deleteApplicationFromDB` | 1660 | DELETE `user_applications` |
+| `SCAN_QUOTA_CLIENT` | 1760 | Frontend quota mirror (display only) |
+| `hydrateAITierFromHistory` | ~1779 | Restores `p.aiTier` from saved scan |
+| `loadAndRenderLastScan` | ~1809 | Loads last scan into AI Fit UI |
+| `renderPrograms` | ~2900 | Programs table render (desktop) |
+| `fitTier(score,p)` | ~2914 | Desktop tier badge (uppercase keys) |
+| `_aiTierMobile(p)` | ~3070 | Mobile AI Fit chip (uppercase keys) |
+| `renderProgramsMobile(list)` | ~3147 | Mobile card render (≤720px) |
+| `_mobileCardHTML(p)` | ~3200 | Mobile card template |
+| `saveApp` | 5006 | Modal save → saveApplicationToDB |
+| `editAp(id)` | 5067 | Open Log Application modal |
+| `renderApplications` | 3821 | Pipeline kanban render |
+| `buildDeadlineItems` | 3936 | Programs+apps → deadline items |
+| `renderDeadlines` | 4120 | Deadlines page render |
+| `_renderRow(item)` | 4045 | Deadline row template |
+| `downloadICS(item,mode)` | ~4215 | ICS export |
+| `syncAIResultsToPrograms(result)` | ~4639 | Sets `prog.aiTier` UPPERCASE |
+| `renderAIResults(result,meta)` | ~4670 | AI Fit results render (summary banner ~4717) |
 
-5. **"+ Shortlist" buttons in Alumni Finder and AI Fit pages** still use the old single-stage path. Stage dropdown would be more consistent cross-page. Defer.
+---
 
-6. 6. **Catalog calibration gaps (discovered May 20 2026).** The 393-row scraped catalog has both duplicate variants (Amazon ×11 rows, J&J ×15, BASF ×6) and gaps relative to the ESADE-careers + founder-curated lists in `List_of_LDPs.xlsx`. Tier 1 curation task is in progress: ~40 catalog rows being verified via Anthropic API + web_search, ~20 missing programs to be added by SQL INSERT after URL discovery. Until `last_verified_at` is populated, the "✓ Verified May 2026" badge in the frontend should be considered marketing copy, not a per-row truth claim.
+*Regenerated 2026-05-21 (post tasks 22–26 + post-26 defer hotfix, all live). app.js ~5,140 lines pre-22-26; line numbers approximate and will have shifted slightly after the task edits.*
