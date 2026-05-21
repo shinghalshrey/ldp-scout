@@ -1565,6 +1565,36 @@ input, textarea, select, button { font-family: inherit; }
      because the summary strip is position:sticky and a body-level overflow
      clamp can break sticky positioning on iOS Safari. */
   #page-aifit { overflow-x: hidden; }
+
+  /* Task 25: Deadlines rows → stacked cards on mobile. The base .dlitem
+     (line 326) is a horizontal flex row with fixed-min-width children
+     (.dldate 115px, .dldays 80px) that collide with the program name and
+     force one-word-per-line wrapping at 360px. Reorder children top-to-
+     bottom via flex `order` and pin a single full-width CTA at the bottom.
+     The middle name/org block is targeted by [style*="flex:1"] because
+     the markup is _renderRow's inline style (CSS-only fix, app.js stays). */
+  .dl-bucket-rows .dlitem,
+  .dlitem {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+    padding: 14px;
+    /* Restore card chrome on mobile — the .dl-bucket-rows override (line 622)
+       strips background/border/radius/shadow for the dense desktop list view,
+       but on phones each row needs its own card affordance. */
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+  .dl-bucket-rows .dlitem { border-bottom: 1px solid var(--border); }
+  .dlitem > div { min-width: 0; }
+  .dldate { order: 1; min-width: 0; font-size: 11px; }
+  .dlitem > div[style*="flex:1"] { order: 2; }
+  .dlname { font-size: 15px; }
+  .dldays { order: 3; min-width: 0; text-align: left; }
+  .dlitem-actions { order: 4; width: 100%; margin-left: 0; }
+  .dlitem-actions .ics-btn { width: 100%; justify-content: center; }
 }
 
 /* Extra-tight on small phones */
