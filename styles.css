@@ -1355,24 +1355,47 @@ input, textarea, select, button { font-family: inherit; }
     border-style: solid;
   }
 
-  /* TOPBAR FIX: nav-tabs were overflowing off-screen on phones because the
-     container has display:flex with no overflow handling. Make it horizontally
-     scrollable + hide the LDP/Scout text (kept the L logo). The mask-image
-     fade on the right edge is a visual cue that more content exists beyond
-     the visible area — a well-established pattern for swipeable rails. */
+  /* Task 23: two-row topbar on phones. Row 1 = brand + topbar-right (sign-out
+     etc.), Row 2 = all 5 nav tabs as equal-width chips with shortened labels.
+     No horizontal scroll, no two-line wrap. The full label stays in the DOM
+     (font-size:0 hides it visually but screen readers still see it); a
+     ::before pseudo-element paints the short label from data-short.
+     Why ::before and not ::after: .nav-tab.needs-attention::after (line ~668,
+     non-media) already paints the coral pulse dot. Re-using ::after for the
+     label would let .needs-attention's higher specificity win the `content`
+     property, blanking out the label on any tab with an alert. ::before keeps
+     both pseudo-elements free to do their own job. */
   .brand-name { display: none !important; }
-  .nav-tabs {
-    overflow-x: auto !important;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    flex: 1 1 auto;
-    min-width: 0;
-    max-width: 100%;
-    mask-image: linear-gradient(to right, black 0, black calc(100% - 18px), transparent 100%);
-    -webkit-mask-image: linear-gradient(to right, black 0, black calc(100% - 18px), transparent 100%);
+  .topbar {
+    flex-wrap: wrap;
+    height: auto;
+    row-gap: 6px;
+    padding: 8px 12px;
   }
-  .nav-tabs::-webkit-scrollbar { display: none; }
-  .nav-tab { flex-shrink: 0; }
+  .brand { order: 1; }
+  .topbar-right { order: 2; margin-left: auto; }
+  .nav-tabs {
+    order: 3;
+    flex-basis: 100%;
+    width: 100%;
+    overflow: visible;
+    mask-image: none;
+    -webkit-mask-image: none;
+    justify-content: space-between;
+    gap: 4px;
+  }
+  .nav-tab {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 6px 4px;
+    font-size: 0;
+    text-align: center;
+    white-space: nowrap;
+  }
+  .nav-tab::before {
+    content: attr(data-short);
+    font-size: 11px;
+  }
 
   /* Sign Out button on the right of the topbar was wrapping to two lines
      because the inline styles don't pin white-space. */
