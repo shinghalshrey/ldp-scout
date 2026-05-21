@@ -1757,7 +1757,7 @@ async function saveScanToHistory(result){
 // ═══════════════ PHASE 16 (P3): SCAN HISTORY LOAD + QUOTA ════════════
 // Client mirror of the server-side SCAN_QUOTA constant in scan.js. Used for
 // UI gating only — the proxy is the source of truth.
-const SCAN_QUOTA_CLIENT = 3;
+const SCAN_QUOTA_CLIENT = 1;
 // In-memory count of completed scans for the current user. Populated on AI Fit
 // page entry by loadAndRenderLastScan(); incremented after each successful
 // saveScanToHistory(). `null` means "not yet fetched".
@@ -1828,7 +1828,7 @@ async function loadAndRenderLastScan(){
     }
     _scanCount = countResp.count || 0;
 
-    // If they've burned through all 3 scans, show the hard block immediately —
+    // If they've burned through their quota, show the hard block immediately —
     // unless we have a previous scan to show, in which case we render that
     // (read-only) with a note about quota.
     const latestResp = await sb
