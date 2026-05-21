@@ -1532,6 +1532,39 @@ input, textarea, select, button { font-family: inherit; }
     width: auto !important;
     max-width: none !important;
   }
+
+  /* Task 24: AI Fit summary strip was causing whole-page horizontal scroll on
+     phones. .aifit-summary-left and .aifit-summary-right each measured 453px
+     at a 375px viewport — the left because of overflow-x:auto on a flex row
+     of tier chips, the right because the rescan + upload buttons sat in a
+     non-wrapping row with white-space:nowrap. Stack everything vertically,
+     let chips wrap, and let buttons span full width. */
+  .aifit-summary-strip { padding: 14px 16px; gap: 12px; }
+  .aifit-summary-left {
+    flex-wrap: wrap;
+    overflow-x: visible;
+    gap: 10px 16px;
+    width: 100%;
+    min-width: 0;
+  }
+  .aifit-summary-tiers { flex-wrap: wrap; gap: 8px 12px; }
+  .aifit-summary-right {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    gap: 8px;
+  }
+  .aifit-summary-right .aifit-upload-btn,
+  .aifit-summary-right .aifit-rescan-btn {
+    width: 100%;
+    white-space: normal;
+  }
+  .aifit-summary-date { white-space: normal; }
+
+  /* Safety net: clamp any future overflow on this page only. Not on body/html
+     because the summary strip is position:sticky and a body-level overflow
+     clamp can break sticky positioning on iOS Safari. */
+  #page-aifit { overflow-x: hidden; }
 }
 
 /* Extra-tight on small phones */
