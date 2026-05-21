@@ -3,19 +3,48 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<!-- Prevent stale HTML on mobile — forces fresh load every visit -->
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
 <title>LDP Scout — MBA Leadership Program Tracker</title>
+<meta name="description" content="LDP Scout matches your résumé to 422 verified MBA Leadership Development Programs across Europe and beyond — AI-scored fit, alumni discovery, and deadline tracking. For MBA students and alumni.">
+<link rel="canonical" href="https://ldpscout.com/">
 <!-- Build version: bumped automatically on each deploy to bust caches -->
 <meta name="build-version" content="2026-05-14-p13-ai-scan-redesign">
+
+<!-- Favicons -->
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="icon" href="/favicon-16.png" sizes="16x16" type="image/png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
+<meta name="theme-color" content="#1e6a44">
+
+<!-- Open Graph -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="LDP Scout">
+<meta property="og:title" content="LDP Scout — Match your résumé to MBA leadership programs">
+<meta property="og:description" content="AI-scored fit across 422 verified MBA Leadership Development Programs, plus alumni discovery and deadline tracking.">
+<meta property="og:url" content="https://ldpscout.com/">
+<meta property="og:image" content="https://ldpscout.com/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+
+<!-- Twitter -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="LDP Scout — Match your résumé to MBA leadership programs">
+<meta name="twitter:description" content="AI-scored fit across 422 verified MBA Leadership Development Programs, plus alumni discovery and deadline tracking.">
+<meta name="twitter:image" content="https://ldpscout.com/og-image.png">
+
+<!-- JSON-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"LDP Scout","url":"https://ldpscout.com/","applicationCategory":"BusinessApplication","description":"Résumé-to-MBA-Leadership-Development-Program matcher with AI-scored fit, alumni discovery, and deadline tracking."}
+</script>
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,300;1,9..144,400&family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
-<script src="https://unpkg.com/mammoth@1.6.0/mammoth.browser.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- pdf.js + mammoth are lazy-loaded via ensureResumeParsers() in app.js
+     when the user actually uploads a résumé. Keeping them out of <head>
+     saves ~400KB of render-blocking JS on first paint. -->
 <link rel="stylesheet" href="styles.css">
 <script>
   // Task 19.2.4 — set the active page from localStorage BEFORE first paint.

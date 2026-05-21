@@ -4263,14 +4263,35 @@ function downloadICS(item, mode='multi'){
 }
 
 // ═══════════════ AI FILE PARSING (PDF.js + Mammoth) ═══════════════
+// Task 26: pdf.js and mammoth are no longer in <head>. They're lazy-loaded
+// on first upload via ensureResumeParsers() — saves ~400KB of render-
+// blocking JS on the landing page, where 99% of visitors never upload.
+let _parsersLoaded = false;
+async function ensureResumeParsers(){
+  if(_parsersLoaded) return;
+  const load = src => new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = src; s.onload = res; s.onerror = rej;
+    document.head.appendChild(s);
+  });
+  await Promise.all([
+    load('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js'),
+    load('https://unpkg.com/mammoth@1.6.0/mammoth.browser.min.js')
+  ]);
+  _parsersLoaded = true;
+}
+
 async function extractTextFromFile(file){
   const type = file.type;
   const name = file.name.toLowerCase();
 
-  // Plain text
+  // Plain text — no parser needed, skip the lazy-load.
   if(type === 'text/plain' || name.endsWith('.txt')){
     return await file.text();
   }
+
+  // Anything else needs pdf.js or mammoth — load them now if we haven't.
+  await ensureResumeParsers();
 
   // DOCX — via mammoth.js
   if(type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || name.endsWith('.docx')){

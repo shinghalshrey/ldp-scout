@@ -1,0 +1,6 @@
+{
+  "headers": [
+    { "source": "/(.*)\\.(png|svg|ico|webmanifest)", "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }] },
+    { "source": "/(app.js|styles.css|data.js)", "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }] }
+  ]
+}
