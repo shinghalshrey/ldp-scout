@@ -3318,6 +3318,41 @@ function _findAppForProgram(p){
   );
 }
 
+// ─── Task 27A ────────────────────────────────────────────────────────────────
+// resolveProgramView(p): merge this user's application overlay onto a read-only
+// catalog program. Catalog facts (function/sector/geo/location/language/tier/
+// is_active_cycle) are NEVER overridden. The ONLY field the user's overlay wins
+// is the deadline. Pipeline state (inPipeline/appStatus) reflects the user's row.
+//
+// PRECEDENCE: deadline = app.deadline || p.deadline   ← || NOT ??.
+// The modal can save deadline === '' (empty string). With ?? an empty string is
+// "present" and would beat the catalog date, so the catalog deadline would never
+// show. With || an empty string is treated as absent and we fall back to p.deadline.
+//
+// Matching is program_id first (preferred), case-insensitive name second (legacy
+// fallback) — same rule buildDeadlineItems used before, so Deadlines matching does
+// not change; only the deadline VALUE is now the user's when they set one.
+function resolveProgramView(p){
+  if(!p) return null;
+  const pname = (p.name || '').toLowerCase().trim();
+  const app = apps.find(a =>
+    (a.program_id && a.program_id === p.id) ||
+    (a.name && pname && a.name.toLowerCase().trim() === pname)
+  ) || null;
+  const deadline = (app && app.deadline) || (p.deadline || '');
+  if(app && app.deadline){
+    console.log('[overlay] user deadline wins for program', p.id, '→', app.deadline, '(catalog was', (p.deadline||'none')+')');
+  }
+  return {
+    ...p,
+    deadline,                          // resolved: user's entered date wins when set
+    appStatus: app ? app.status : null,
+    inPipeline: !!app,
+    _app: app                          // the matched user row, or null
+  };
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 // Add a tracked program to My Applications. Stage defaults to 'networking'
 // (the Alumni Finder use case). The AI Fit Scan passes 'shortlisted' instead.
 async function addProgramToApplications(progId, stage){
@@ -3938,27 +3973,27 @@ function buildDeadlineItems(){
   const matchedAppIds = new Set();
 
   // 1. Canonical: programs (with or without a fixed deadline)
+  //    Task 27A: read each program through resolveProgramView so the user's
+  //    entered deadline wins (|| precedence). A previously-undated catalog
+  //    program the user gives a deadline now has rv.deadline set → it gains a
+  //    date here and shows on the Deadlines page with a working ICS button.
   for(const p of progs){
-    const hasDate   = !!p.deadline;
+    const rv = resolveProgramView(p);
+    const hasDate   = !!rv.deadline;
     const isRolling = !hasDate && (p.status === 'rolling' || /rolling/i.test(p.dlnote || ''));
     if(!hasDate && !isRolling) continue;   // no deadline info at all
 
-    const pname = (p.name || '').toLowerCase().trim();
-    const app = apps.find(a =>
-      (a.program_id && a.program_id === p.id) ||
-      (a.name && pname && a.name.toLowerCase().trim() === pname)
-    );
-    if(app) matchedAppIds.add(app.id);
+    if(rv._app) matchedAppIds.add(rv._app.id);
 
     items.push({
       name: p.name,
       org:  p.org || '',
-      date: hasDate ? new Date(p.deadline) : null,
-      deadline: p.deadline || '',
+      date: hasDate ? new Date(rv.deadline) : null,
+      deadline: rv.deadline,           // resolved deadline → _icsPayload carries it
       type: 'program',
       rolling: isRolling,
-      inPipeline: !!app,
-      appStatus: app ? app.status : null,
+      inPipeline: rv.inPipeline,
+      appStatus: rv.appStatus,
       dlnote: p.dlnote || ''
     });
   }
@@ -4980,6 +5015,7 @@ function openM(type,data={}){
       ).join('');
     }
     sv('aps-name',data.name||'');sv('aps-org',data.org||'');sv('aps-geo',data.geo||'');
+    sv('aps-program-id',data.program_id||'');   // Task 27A: preserve link when editing a tracked app
     sv('aps-status',data.status||'shortlisted');
     sv('aps-date',data.date||new Date().toISOString().split('T')[0]);
     sv('aps-deadline',data.deadline||'');sv('aps-next',data.next||'');
@@ -4995,9 +5031,20 @@ function gv(id){const e=document.getElementById(id);return e?e.value.trim():'';}
 // fill in any EMPTY adjacent fields (org, geo, deadline). Never overwrite fields the user has typed.
 function autoFillFromProgram(name){
   const target = (name || '').trim().toLowerCase();
-  if(!target) return;
-  const p = progs.find(x => (x.name||'').toLowerCase() === target);
-  if(!p) return;   // free-typed custom name — leave fields alone
+  // Task 27A — program_id capture. This runs on EVERY input event (oninput).
+  // Exact case-insensitive name match → store that catalog program's id in the
+  // hidden field. ANY other state (empty box, partial text, no match, or text
+  // edited after a pick so it no longer matches) → BLANK the hidden field.
+  // The clear (else → '') is load-bearing: without it a stale id from an earlier
+  // pick stays attached to a now-different name and saveApp would silently write
+  // the wrong link. Set AND clear, every event. Do not delete the blank branch.
+  const p = target ? progs.find(x => (x.name||'').toLowerCase() === target) : null;
+  const hid = document.getElementById('aps-program-id');
+  if(hid){
+    hid.value = p ? p.id : '';
+    console.log('[overlay] program_id capture →', hid.value || '(blank → user-added)', 'for input', JSON.stringify(name||''));
+  }
+  if(!p) return;   // free-typed custom name — leave the visible fields alone
   const orgEl = document.getElementById('aps-org');
   const geoEl = document.getElementById('aps-geo');
   const dlEl  = document.getElementById('aps-deadline');
@@ -5033,7 +5080,7 @@ async function saveApp(){
   const a={
     id: eId.app || null,
     _db: !!eId.app,            // true if we're editing an existing DB row
-    program_id: null,
+    program_id: gv('aps-program-id') || null,  // Task 27A: set on exact catalog match, blank → user-added
     name:gv('aps-name'), org:gv('aps-org'), geo:gv('aps-geo'),
     status:gv('aps-status'), date:gv('aps-date'), deadline:gv('aps-deadline'),
     next:gv('aps-next'), contact:gv('aps-contact'), notes:gv('aps-notes')
