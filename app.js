@@ -3346,14 +3346,11 @@ async function pickAlumniSchool(key){
   document.getElementById('alumni-school-drop').style.display = 'none';
   updateAlumniSchoolDisplay();
   renderAlumniSearch();
-  // Persist to profile so next session remembers it
-  if(currentUser && activeAlumniSchool){
-    const schoolObj = ALL_MBA_SCHOOLS.find(s=>s.key===activeAlumniSchool);
-    await saveUserProfile({
-      school_key: activeAlumniSchool,
-      school_label: schoolObj?.label || activeAlumniSchool
-    });
-  }
+  // FIX: the Alumni school picker only selects which school's alumni to SEARCH.
+  // It must NOT write to the user's profile — overwriting the home school (set at
+  // onboarding) was making the LinkedIn draft claim the user attends whatever
+  // school they were browsing. activeAlumniSchool is session-local and defaults
+  // back to the user's home school (userProfile.schools[0]) on next load.
 }
 
 // Close dropdown when clicking outside
