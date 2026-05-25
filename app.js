@@ -2956,7 +2956,8 @@ function renderPrograms(){
     ?'<div class="empty">No programs match your filters. <button onclick="clearAll()" style="background:none;border:none;color:var(--blue);cursor:pointer;text-decoration:underline">Clear all filters</button></div>'
     :list.map(p=>{
       const [bc,bl]=sm[p.status]||['b-closed','—'];
-      const dl=p.deadline?new Date(p.deadline).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):(p.dlnote||'—');
+      const rv=resolveProgramView(p);   // Task 27A.2: user's deadline wins on the Programs table + reminder too
+      const dl=rv.deadline?new Date(rv.deadline).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):(p.dlnote||'—');
       // Task 19.2.1 — program meta (FULL TIME · 2 YEARS) and description
       // were removed from the table row. They made rows visually uneven.
       // Task 19.2.2 — "+ Details" disclosure also removed. The program-name
@@ -2978,7 +2979,7 @@ function renderPrograms(){
         </div>
         <div>${renderStageDropdown(p)}</div>
         <div>
-          ${p.deadline ? `<button class="ics-btn" onclick="openICSModal(${JSON.stringify({name:p.name,org:p.org,deadline:p.deadline,type:'program'}).replace(/"/g,'&quot;')})">📅 Set</button>` : `<span style="font-size:10px;color:var(--text3)">—</span>`}
+          ${rv.deadline ? `<button class="ics-btn" onclick="openICSModalForProgram(${p.id})">📅 Set</button>` : `<span style="font-size:10px;color:var(--text3)">—</span>`}
         </div>
       </div>`;
     }).join('');
@@ -3090,9 +3091,10 @@ function _aiTierMobile(p){
   return `<div class="pmc-aifit-cta" onclick="showPage('aifit')" title="Scan your résumé to see your fit for this program">✦ Scan résumé to see your fit</div>`;
 }
 
-function _deadlineLineMobile(p){
-  if(p.deadline){
-    const d = new Date(p.deadline);
+function _deadlineLineMobile(p, resolvedDeadline){
+  const dl = resolvedDeadline || p.deadline;   // Task 27A.2: user's deadline wins
+  if(dl){
+    const d = new Date(dl);
     if(!isNaN(d.getTime())){
       const fmt = d.toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'});
       return `<span class="pmc-meta-item"><span class="pmc-icon">⏰</span>${esc(fmt)}</span>`;
@@ -3106,12 +3108,13 @@ function _deadlineLineMobile(p){
 
 function _mobileCardHTML(p){
   const inactive = p.is_active_cycle === false;
+  const rv = resolveProgramView(p);   // Task 27A.2: user's deadline wins on mobile cards + reminder
   const nameHtml = p.url
     ? `<a href="${esc(p.url)}" target="_blank" rel="noopener noreferrer">${esc(p.name)}</a>`
     : esc(p.name);
 
   // Reminder icon — only show when there's an actual deadline date to fire on
-  const reminderBtn = (p.deadline && !inactive)
+  const reminderBtn = (rv.deadline && !inactive)
     ? `<button class="pmc-cal" type="button" title="Add deadline reminder to calendar"
         onclick="openICSModalForProgram(${p.id})">📅</button>`
     : '';
@@ -3133,7 +3136,7 @@ function _mobileCardHTML(p){
       </div>
       <div class="pmc-meta">
         ${p.loc ? `<span class="pmc-meta-item"><span class="pmc-icon">📍</span>${esc(p.loc)}</span>` : ''}
-        ${_deadlineLineMobile(p)}
+        ${_deadlineLineMobile(p, rv.deadline)}
       </div>
       ${_aiTierMobile(p)}
       <div class="pmc-chips">
@@ -3186,11 +3189,13 @@ function loadMoreMobile(){
 // item the existing openICSModal() expects.
 function openICSModalForProgram(progId){
   const p = progs.find(x => x.id === progId);
-  if(!p || !p.deadline) return;
+  if(!p) return;
+  const rv = resolveProgramView(p);   // Task 27A.2: user's entered deadline wins over catalog
+  if(!rv.deadline) return;
   openICSModal({
     name: p.name,
     org: p.org,
-    deadline: p.deadline,
+    deadline: rv.deadline,
     type: 'program'
   });
 }
