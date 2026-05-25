@@ -436,7 +436,7 @@
 
       <div class="prog-meta-row">
         <div id="prog-meta" class="results-meta prog-meta"></div>
-        <a class="prog-request-link" href="mailto:hello@ldpscout.com?subject=Program%20request%20%E2%80%94%20LDP%20Scout" title="Email us to request a program be added to the catalog">Don't see a program? Request it →</a>
+        <a class="prog-request-link" href="javascript:void(0)" onclick="openM('app')" title="Add a program that isn't in the catalog to your pipeline">+ Add new program</a>
       </div>
 
       <div class="table-wrap prog-table-wrap">
@@ -514,6 +514,7 @@
       <div class="al-main-head">
         <h3>Recruiting Feed</h3>
         <span class="al-main-count" id="alumni-count">—</span>
+        <button class="fpill pipeline-toggle" onclick="togglePipelineFilter()" title="Show only programs in your pipeline">My Pipeline</button>
       </div>
       <input class="al-search-input" id="alumni-prog-search" type="text" placeholder="Search companies, programs, sectors..." oninput="renderAlumniSearch()">
       <div id="alumni-search-rows"></div>
@@ -663,7 +664,7 @@
   <button class="mclose" onclick="closeM('app')">×</button>
   <div class="mtitle">Log Application</div>
   <div class="fgrid">
-    <div class="fg full"><label>Program / Role <span style="font-size:10px;color:var(--text3);font-weight:400">(type to search tracked programs)</span></label><input id="aps-name" list="prog-suggestions" placeholder="Amazon Pathways Operations LDP" oninput="autoFillFromProgram(this.value)" autocomplete="off"><datalist id="prog-suggestions"></datalist><input type="hidden" id="aps-program-id"></div>
+    <div class="fg full"><label>Program <span style="font-size:10px;color:var(--text3);font-weight:400">(type to search tracked programs)</span></label><input id="aps-name" list="prog-suggestions" placeholder="Amazon Pathways Operations LDP" oninput="autoFillFromProgram(this.value)" autocomplete="off"><datalist id="prog-suggestions"></datalist><input type="hidden" id="aps-program-id"></div>
     <div class="fg"><label>Organisation</label><input id="aps-org" placeholder="Amazon"></div>
     <div class="fg"><label>Geography</label><input id="aps-geo" placeholder="EU / UAE"></div>
     <div class="fg"><label>Stage</label>

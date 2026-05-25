@@ -3613,6 +3613,7 @@ function _refreshSidebarBadges(){
 function renderAlumniSearch(){
   const container = document.getElementById('alumni-search-rows');
   if(!container) return;
+  _syncPipelineToggleUI();   // Task 27D: keep the alumni My-Pipeline pill in lockstep with shared state
   const q = (document.getElementById('alumni-prog-search')||{}).value?.toLowerCase()||'';
   const school = activeAlumniSchool;
   const slug = school ? SCHOOL_LI_IDS[school] : null;
@@ -3620,6 +3621,8 @@ function renderAlumniSearch(){
   const schoolShort = schoolLabel ? schoolLabel.split(' ')[0].replace(/[(),]/g,'') : null;
 
   const filtered = progs.filter(p => {
+    // Task 27D: shared "My Pipeline" filter — only programs the user has logged.
+    if(_pipelineFilter && !_findAppForProgram(p)) return false;
     // Sidebar sector filter (multi-select)
     if(_alumniSectors.size > 0 && !_alumniSectors.has(p.sector)) return false;
     // Search box filter
@@ -3966,6 +3969,7 @@ function togglePipelineFilter(){
   const active = document.querySelector('.page.active');
   if(active?.id === 'page-programs')  renderPrograms();
   if(active?.id === 'page-deadlines') renderDeadlines();
+  if(active?.id === 'page-alumni')    renderAlumniSearch();   // Task 27D
 }
 
 // Keep every .pipeline-toggle button in lockstep (called from toggle + render funcs)
