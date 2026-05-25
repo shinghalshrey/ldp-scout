@@ -2862,6 +2862,82 @@ function verifiedBadge(p){
   return '';
 }
 
+// ─── Task 27B — user-added programs on the Programs page ──────────────────────
+// An application the user typed that maps to NO catalog program (program_id null
+// AND no catalog name+org match) is "user-added". We surface these as read-only
+// rows on the Programs page. They are NEVER pushed into progs[], so the résumé
+// scan and every progs[]-based count/filter ignores them automatically.
+function _userAddedRows(){
+  return apps
+    .filter(a => !a.program_id && !progs.some(p =>
+      (p.name||'').toLowerCase().trim() === (a.name||'').toLowerCase().trim() &&
+      (p.org ||'').toLowerCase().trim() === (a.org ||'').toLowerCase().trim()
+    ))
+    .map(a => ({
+      id: 'ua-' + a.id,     // synthetic, namespaced — never collides with catalog ids
+      _userAdded: true,
+      _appId: a.id,
+      name: a.name, org: a.org || '', geo: a.geo || '',
+      status: a.status || 'shortlisted',
+      deadline: a.deadline || ''
+    }));
+}
+
+// Desktop table row for a user-added program. Mirrors the 9-column .prow grid so it
+// aligns with catalog rows, but: "★ Added by you" badge, "Not scored" fit, static
+// stage badge (no dropdown), reminder only if a deadline exists.
+function _userAddedRowHTML(p){
+  const dl = p.deadline ? new Date(p.deadline).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '—';
+  const stageLbl = (STAGE_BY_KEY[p.status]?.label) || p.status || '—';
+  return `<div class="prow">
+    <div>
+      <div class="pname">${esc(p.name)}</div>
+      <div class="porg">${esc(p.org)}</div>
+      <div class="tags"><span class="tag" style="background:var(--accent-bg);color:var(--accent);font-weight:600">★ Added by you</span></div>
+    </div>
+    <div class="cell">—</div>
+    <div class="cell">—</div>
+    <div class="cell">${esc(p.geo||'—')}</div>
+    <div class="cell mono" style="font-size:10px;line-height:1.5">${dl}</div>
+    <div><span class="badge b-closed">—</span></div>
+    <div><span style="font-size:10px;color:var(--text3)" title="User-added programs aren't résumé-scored">Not scored</span></div>
+    <div><span class="badge b-watch">${esc(stageLbl)}</span></div>
+    <div>
+      ${p.deadline ? `<button class="ics-btn" onclick="openICSModalForProgram('${p.id}')">📅 Set</button>` : `<span style="font-size:10px;color:var(--text3)">—</span>`}
+    </div>
+  </div>`;
+}
+
+// Mobile card for a user-added program.
+function _userAddedCardHTML(p){
+  const stageLbl = (STAGE_BY_KEY[p.status]?.label) || p.status || '—';
+  const reminderBtn = p.deadline
+    ? `<button class="pmc-cal" type="button" title="Add deadline reminder to calendar" onclick="openICSModalForProgram('${p.id}')">📅</button>`
+    : '';
+  return `
+    <div class="pmc-card" data-pid="${p.id}">
+      <div class="pmc-head">
+        <div class="pmc-logo">${esc(_initials(p.org))}</div>
+        <div class="pmc-title-wrap">
+          <div class="pmc-title">${esc(p.name)}</div>
+          <div class="pmc-org">${esc(p.org||'')}</div>
+        </div>
+      </div>
+      <div class="pmc-meta">
+        ${_deadlineLineMobile(p, p.deadline)}
+      </div>
+      <div class="pmc-chips">
+        <span class="pmc-chip" style="background:var(--accent-bg);color:var(--accent);font-weight:600">★ Added by you</span>
+        <span class="pmc-chip">Not scored</span>
+      </div>
+      <div class="pmc-actions">
+        <div class="pmc-stage-wrap"><span class="badge b-watch">${esc(stageLbl)}</span></div>
+        ${reminderBtn}
+      </div>
+    </div>`;
+}
+// ──────────────────────────────────────────────────────────────────────────────
+
 function renderPrograms(){
   _syncPipelineToggleUI();   // keep the Programs pill in lockstep with shared state
   // Phase 7: smart banner reflects resume + scan freshness
@@ -2952,9 +3028,19 @@ function renderPrograms(){
     }
   }
 
+  // Task 27B — prepend user-added programs. Hidden when any catalog-specific filter
+  // is active (they have no fn/sector/fit to match). Search box still filters them by
+  // name/org. Pinned to the top of the list. Meta count above intentionally reflects
+  // catalog programs only, so it stays accurate against progs.length.
+  const _anyCatalogFilter = F.geo.size||F.fn.size||F.sector.size||F.st.size||window._fitOnly||window._visaOnly||window._verifiedOnly;
+  let _uaRows = _anyCatalogFilter ? [] : _userAddedRows();
+  if(q) _uaRows = _uaRows.filter(p => p.name.toLowerCase().includes(q) || p.org.toLowerCase().includes(q));
+  if(_uaRows.length) list = [..._uaRows, ...list];
+
   document.getElementById('prog-list').innerHTML=list.length===0
     ?'<div class="empty">No programs match your filters. <button onclick="clearAll()" style="background:none;border:none;color:var(--blue);cursor:pointer;text-decoration:underline">Clear all filters</button></div>'
     :list.map(p=>{
+      if(p._userAdded) return _userAddedRowHTML(p);   // Task 27B
       const [bc,bl]=sm[p.status]||['b-closed','—'];
       const rv=resolveProgramView(p);   // Task 27A.2: user's deadline wins on the Programs table + reminder too
       const dl=rv.deadline?new Date(rv.deadline).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):(p.dlnote||'—');
@@ -3107,6 +3193,7 @@ function _deadlineLineMobile(p, resolvedDeadline){
 }
 
 function _mobileCardHTML(p){
+  if(p._userAdded) return _userAddedCardHTML(p);   // Task 27B
   const inactive = p.is_active_cycle === false;
   const rv = resolveProgramView(p);   // Task 27A.2: user's deadline wins on mobile cards + reminder
   const nameHtml = p.url
@@ -3188,6 +3275,13 @@ function loadMoreMobile(){
 // attribute (escaping nightmare). Looks up the program by id and shapes the
 // item the existing openICSModal() expects.
 function openICSModalForProgram(progId){
+  // Task 27B: user-added rows pass a synthetic 'ua-<appId>' id — resolve from the app.
+  if(typeof progId === 'string' && progId.indexOf('ua-') === 0){
+    const a = apps.find(x => String(x.id) === progId.slice(3));
+    if(!a || !a.deadline) return;
+    openICSModal({ name: a.name, org: a.org, deadline: a.deadline, type: 'program' });
+    return;
+  }
   const p = progs.find(x => x.id === progId);
   if(!p) return;
   const rv = resolveProgramView(p);   // Task 27A.2: user's entered deadline wins over catalog
@@ -3689,7 +3783,7 @@ function renderAlumniSearch(){
     // Primary: Draft Message → existing openConnectMessage modal (requires school)
     // Secondary: Add to Applications → addProgramToApplications (works with or without school)
     const draftBtn = slug
-      ? `<button class="al-btn-primary" onclick='openConnectMessage(${JSON.stringify({org:p.org, role:p.name, prog:p.name, school:schoolLabel}).replace(/'/g,"&#39;")})'>📋 Draft Message</button>`
+      ? `<button class="al-btn-primary" onclick='openConnectMessage(${JSON.stringify({org:p.org, role:p.name, prog:p.name, school:schoolLabel, schoolKey:school}).replace(/'/g,"&#39;")})'>📋 Draft Message</button>`
       : `<button class="al-btn-primary" disabled title="Pick your school in the sidebar first">📋 Draft Message</button>`;
 
     const existingApp = _findAppForProgram(p);
@@ -3732,14 +3826,25 @@ function renderAlumniSearch(){
 
 // ─── Connection request template modal ───────────────────────────
 function openConnectMessage(ctx){
-  // ctx = { org, role, prog, school }
+  // ctx = { org, role, prog, school, schoolKey }
+  // NOTE: ctx.school / ctx.schoolKey describe the ALUMNI's school (the one being
+  // searched in the dropdown), NOT the user. The user's own school is fixed from
+  // their profile (set at signup) — the draft must never claim the user attends
+  // whatever school is selected in the dropdown.
   const userName = (userProfile?.full_name) || '{Your name}';
-  const userSchool = ctx.school || '{Your school}';
+  const myKey    = (userProfile?.schools && userProfile.schools[0]) || null;
+  const mySchool = myKey ? (SCHOOL_LABELS[myKey] || myKey) : '{Your school}';
+  const sameSchool = !!(myKey && ctx.schoolKey && myKey === ctx.schoolKey);
 
-  // Build 3 message variants — different angles, all ≤300 chars for LinkedIn connect note
-  const v1 = `Hi {Their first name}, I'm ${userName}, an MBA at ${userSchool}. I'm exploring the ${ctx.prog} for next year and noticed your path into ${ctx.org}. Would you have 20 minutes for a quick call? I'd love to learn what made the difference for you. Thanks!`;
-  const v2 = `Hi {Their first name}, fellow ${userSchool} {if alumni, else: an MBA from ${userSchool}}. I'm researching ${ctx.org}'s ${ctx.role || ctx.prog} and your background looks like exactly the path I'm hoping for. Open to a 15-min call? Any insight on the application process would mean a lot.`;
-  const v3 = `Hi {Their first name}, I'm an ${userSchool} MBA preparing to apply to ${ctx.prog}. Coming from {your background — e.g. PE healthcare}, I'd value your honest take on the role fit. Could we connect for 20 minutes when convenient? Happy to work around your schedule.`;
+  // 3 variants, all ≤300 chars for a LinkedIn connect note. The user is always an
+  // MBA at THEIR school (mySchool). Variant ② only claims a shared-school bond when
+  // the alumni is genuinely from the same school; otherwise it's a cross-school ask.
+  const v1 = `Hi {Their first name}, I'm ${userName}, an MBA at ${mySchool}. I'm exploring the ${ctx.prog} for next year and noticed your path into ${ctx.org}. Would you have 20 minutes for a quick call? I'd love to learn what made the difference for you. Thanks!`;
+  const v2 = sameSchool
+    ? `Hi {Their first name}, fellow ${mySchool} alum here. I'm researching ${ctx.org}'s ${ctx.role || ctx.prog} and your background is exactly the path I'm hoping for. Open to a 15-min call? Any insight on the application process would mean a lot.`
+    : `Hi {Their first name}, I'm an MBA at ${mySchool} researching ${ctx.org}'s ${ctx.role || ctx.prog}. Your background is exactly the path I'm aiming for and I'd value an outside perspective. Open to a 15-min call? Any insight on the process would mean a lot.`;
+  const v3 = `Hi {Their first name}, I'm an ${mySchool} MBA preparing to apply to ${ctx.prog}. Coming from {your background — e.g. PE healthcare}, I'd value your honest take on the role fit. Could we connect for 20 minutes when convenient? Happy to work around your schedule.`;
+  const v2label = sameSchool ? '② Shared-school angle' : '② Cross-school angle';
 
   const trim = s => s.length > 300 ? s.substring(0, 297) + '...' : s;
   const html = `
@@ -3750,7 +3855,7 @@ function openConnectMessage(ctx){
         <div style="font-size:12px;color:var(--text2);margin:-6px 0 16px;line-height:1.6">
           LinkedIn limits connection notes to <strong>300 characters</strong>. Pick a variant, edit the {placeholders} for the specific person, then send.
         </div>
-        ${[{label:'① Curious & humble',msg:v1},{label:'② Shared-school angle',msg:v2},{label:'③ Background-led',msg:v3}].map((opt,i)=>{
+        ${[{label:'① Curious & humble',msg:v1},{label:v2label,msg:v2},{label:'③ Background-led',msg:v3}].map((opt,i)=>{
           const msg = trim(opt.msg);
           const safe = msg.replace(/'/g,"\\'").replace(/"/g,'&quot;');
           return `
