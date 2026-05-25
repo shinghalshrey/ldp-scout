@@ -3335,10 +3335,13 @@ function _findAppForProgram(p){
 function resolveProgramView(p){
   if(!p) return null;
   const pname = (p.name || '').toLowerCase().trim();
-  const app = apps.find(a =>
-    (a.program_id && a.program_id === p.id) ||
-    (a.name && pname && a.name.toLowerCase().trim() === pname)
-  ) || null;
+  // Task 27A.1: prefer the program_id-linked row; only fall back to a name
+  // match if no linked row exists. Two-step (not one .find with OR) so the
+  // result is DETERMINISTIC when duplicate same-name rows are present — the
+  // id-linked row always wins, never an arbitrary name collision.
+  const app = apps.find(a => a.program_id && a.program_id === p.id)
+           || apps.find(a => a.name && pname && a.name.toLowerCase().trim() === pname)
+           || null;
   const deadline = (app && app.deadline) || (p.deadline || '');
   if(app && app.deadline){
     console.log('[overlay] user deadline wins for program', p.id, '→', app.deadline, '(catalog was', (p.deadline||'none')+')');
@@ -5080,12 +5083,30 @@ async function saveApp(){
   const a={
     id: eId.app || null,
     _db: !!eId.app,            // true if we're editing an existing DB row
-    program_id: gv('aps-program-id') || null,  // Task 27A: set on exact catalog match, blank → user-added
+    program_id: gv('aps-program-id') ? Number(gv('aps-program-id')) : null,  // Task 27A.1: numeric FK (hidden field is a string) — keeps id-matching working before reload
     name:gv('aps-name'), org:gv('aps-org'), geo:gv('aps-geo'),
     status:gv('aps-status'), date:gv('aps-date'), deadline:gv('aps-deadline'),
     next:gv('aps-next'), contact:gv('aps-contact'), notes:gv('aps-notes')
   };
   if(!a.name){alert('Program/role name required.');return;}
+
+  // ─── Task 27A.1 — update-on-match (de-dup the "Log Application" path) ───────
+  // Before this, saveApp ALWAYS inserted when not editing, so logging the same
+  // program twice (e.g. to change its deadline) created duplicate cards. Now: if
+  // we're not already editing a specific row, and an application for this program
+  // already exists, fold this save INTO that row (update) instead of inserting.
+  // Matching reuses _findAppForProgram → program_id first (hidden field), then
+  // name+org for legacy/custom rows. A legacy row (program_id null) that matches
+  // by name gets its program_id written here too, "healing" the link.
+  if(!eId.app){
+    const dup = _findAppForProgram({id: a.program_id, name: a.name, org: a.org});
+    if(dup){
+      a.id  = dup.id;        // target the existing row → saveApplicationToDB updates it
+      a._db = dup._db;
+      console.log('[overlay] log matched existing row', dup.id, '— updating instead of inserting');
+    }
+  }
+  // ────────────────────────────────────────────────────────────────────────────
 
   // Persist to Supabase
   const newId = await saveApplicationToDB(a);
@@ -5093,13 +5114,9 @@ async function saveApp(){
   a.id = newId;
   a._db = true;
 
-  // Update in-memory cache
-  if(eId.app){
-    const i = apps.findIndex(x=>x.id===eId.app);
-    if(i>=0) apps[i] = a; else apps.unshift(a);
-  } else {
-    apps.unshift(a);
-  }
+  // Update in-memory cache: replace the matched/edited row if present, else prepend.
+  const ci = apps.findIndex(x => String(x.id) === String(a.id));
+  if(ci >= 0) apps[ci] = a; else apps.unshift(a);
   closeM('app');
   renderApplications();
   // Phase 7: apps[] now reflects the new application — re-render the progress strip
