@@ -2370,32 +2370,15 @@ function icsShowStep(n){
 }
 function icsBackToStep1(){ icsShowStep(1); }
 
-// User picks reminder mode → build deep-links and advance to step 2
+// User picks reminder mode → show step 2 with appropriate summary text
 function icsPickMode(mode){
-  _icsMode = mode;   // 'multi' = 7d+1d, 'single' = 1d only
-  if(!_icsItem) return;
-  const dl   = new Date(_icsItem.deadline);
-  const name = _icsItem.name;
-  const org  = _icsItem.org;
-
-  // Google Calendar deep-link
-  const dateStr  = dl.toISOString().split('T')[0].replace(/-/g,'');
-  const dateNext = new Date(dl.getTime() + 86400000).toISOString().split('T')[0].replace(/-/g,'');
-  const evTitle  = encodeURIComponent(`DEADLINE: ${name} (${org})`);
-  const reminder7d = mode === 'multi' ? `7-day and 1-day reminders set.` : `1-day reminder set.`;
-  const evDetails= encodeURIComponent(`Application deadline tracked via LDP Scout.\n${reminder7d}\nhttps://ldpscout.com`);
-  const gcalUrl  = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${evTitle}&dates=${dateStr}/${dateNext}&details=${evDetails}`;
-
-  // Outlook web deep-link
-  const olStart    = dl.toISOString().split('T')[0];
-  const olEnd      = new Date(dl.getTime() + 86400000).toISOString().split('T')[0];
-  const outlookUrl = `https://outlook.office.com/calendar/deeplink/compose?subject=${evTitle}&startdt=${olStart}&enddt=${olEnd}&body=${evDetails}`;
-
-  const gcalBtn    = document.getElementById('ics-gcal-btn');
-  const outlookBtn = document.getElementById('ics-outlook-btn');
-  if(gcalBtn)    gcalBtn.href    = gcalUrl;
-  if(outlookBtn) outlookBtn.href = outlookUrl;
-
+  _icsMode = mode;
+  const summary = document.getElementById('ics-reminder-summary');
+  if(summary){
+    summary.textContent = mode === 'single'
+      ? 'a reminder at 9am the day before the deadline'
+      : 'reminders at 9am 7 days before and 9am the day before the deadline';
+  }
   icsShowStep(2);
 }
 
@@ -4467,17 +4450,17 @@ function exportAllDeadlines(){
 
   const events = dated.map((it, idx) => {
     const [yr, mo, dy] = it.deadline.split('-').map(Number);
-    const dateStr = `${yr}${String(mo).padStart(2,'0')}${String(dy).padStart(2,'0')}`;
+    const dtStart = `${yr}${String(mo).padStart(2,'0')}${String(dy).padStart(2,'0')}T000000`;
     const nd = new Date(yr, mo - 1, dy + 1);
-    const dateEnd = `${nd.getFullYear()}${String(nd.getMonth()+1).padStart(2,'0')}${String(nd.getDate()).padStart(2,'0')}`;
+    const dtEnd = `${nd.getFullYear()}${String(nd.getMonth()+1).padStart(2,'0')}${String(nd.getDate()).padStart(2,'0')}T000000`;
     const uid = `ldpscout-bulk-${Date.now()}-${idx}@ldpscout.app`;
     const sumName = sanitize(it.name);
     const sumOrg  = sanitize(it.org);
     return [
       'BEGIN:VEVENT',
       `UID:${uid}`,
-      `DTSTART;VALUE=DATE:${dateStr}`,
-      `DTEND;VALUE=DATE:${dateEnd}`,
+      `DTSTART:${dtStart}`,
+      `DTEND:${dtEnd}`,
       `DTSTAMP:${now}`,
       `SUMMARY:DEADLINE: ${sumName} (${sumOrg})`,
       `DESCRIPTION:Application deadline — ${sumOrg}. Tracked via LDP Scout (ldpscout.com).`,
@@ -4547,22 +4530,30 @@ function exportPipelineCSV(){
 }
 
 function downloadICS(item, mode='multi'){
-  // Parse date parts directly from the string to avoid timezone conversion.
-  // new Date('2026-07-26') = UTC midnight, which in IST = Jul 25 18:30 — wrong.
-  // Splitting the string directly gives the correct calendar date regardless of timezone.
+  // Parse date parts from string directly — never use new Date() on a date string
+  // because JS parses YYYY-MM-DD as UTC midnight, wrong in non-UTC timezones.
   const [year, month, day] = item.deadline.split('-').map(Number);
-  const dateStr = `${year}${String(month).padStart(2,'0')}${String(day).padStart(2,'0')}`;
-  // DTEND for all-day = next calendar day (exclusive end per RFC 5545)
-  const nextDay = new Date(year, month - 1, day + 1);
-  const dateEnd = `${nextDay.getFullYear()}${String(nextDay.getMonth()+1).padStart(2,'0')}${String(nextDay.getDate()).padStart(2,'0')}`;
+  const yy = String(year);
+  const mm = String(month).padStart(2,'0');
+  const dd = String(day).padStart(2,'0');
 
-  const fmtStamp = d => d.toISOString().replace(/[-:]/g,'').split('.')[0]+'Z';
-  const uid = `ldpscout-${Date.now()}@ldpscout.app`;
-  const now = fmtStamp(new Date());
+  // Next calendar day for DTEND (RFC 5545: all-day DTEND is exclusive = day+1)
+  const nd  = new Date(year, month - 1, day + 1);
+  const yy2 = String(nd.getFullYear());
+  const mm2 = String(nd.getMonth()+1).padStart(2,'0');
+  const dd2 = String(nd.getDate()).padStart(2,'0');
 
-  // Alarm triggers — relative to DTSTART (midnight of deadline day, local time).
-  // TRIGGER:-PT15H    = 15h before midnight Jun 26 = 9am Jun 25 (day before) ✓
-  // TRIGGER:-P6DT15H  = 6 days 15h before midnight Jun 26 = 9am Jun 19 (7 days before) ✓
+  // FLOATING datetime: DTSTART:20261015T000000 (no TZID, no trailing Z).
+  // Floating = "midnight wherever the user's calendar is set."
+  // VALUE=DATE is mishandled by Outlook web (converts to UTC midnight → 5:30am IST).
+  // Floating datetime is the correct cross-platform solution for deadline reminders.
+  // TRIGGER:-PT15H on floating midnight = 9am the day before, in local time. ✓
+  // TRIGGER:-P6DT15H on floating midnight = 9am, 7 days before, in local time. ✓
+  const dtStart = `${yy}${mm}${dd}T000000`;
+  const dtEnd   = `${yy2}${mm2}${dd2}T000000`;
+  const dtStamp = new Date().toISOString().replace(/[-:]/g,'').split('.')[0]+'Z';
+  const uid     = `ldpscout-${Date.now()}@ldpscout.app`;
+
   const progName = item.name;
   const alarmLines = mode === 'single'
     ? [
@@ -4576,7 +4567,7 @@ function downloadICS(item, mode='multi'){
         'BEGIN:VALARM',
         'TRIGGER:-P6DT15H',
         'ACTION:DISPLAY',
-        `DESCRIPTION:7 days until your ${progName} deadline — time to finalise your application`,
+        `DESCRIPTION:7 days until your ${progName} deadline — time to finalise`,
         'END:VALARM',
         'BEGIN:VALARM',
         'TRIGGER:-PT15H',
@@ -4590,16 +4581,15 @@ function downloadICS(item, mode='multi'){
     'VERSION:2.0',
     'PRODID:-//LDP Scout//EN',
     'CALSCALE:GREGORIAN',
-    // No METHOD:PUBLISH — causes Outlook to treat events as meeting requests
     'BEGIN:VEVENT',
     `UID:${uid}`,
-    `DTSTART;VALUE=DATE:${dateStr}`,
-    `DTEND;VALUE=DATE:${dateEnd}`,
-    `DTSTAMP:${now}`,
+    `DTSTART:${dtStart}`,
+    `DTEND:${dtEnd}`,
+    `DTSTAMP:${dtStamp}`,
     `SUMMARY:DEADLINE: ${item.name} (${item.org})`,
     `DESCRIPTION:Application deadline — ${item.org}. Tracked via LDP Scout (ldpscout.com).`,
-    'TRANSP:TRANSPARENT',                 // show as free (not busy) — it's a deadline marker
-    'X-MICROSOFT-CDO-ALLDAYEVENT:TRUE',   // force Outlook to treat as all-day
+    'TRANSP:TRANSPARENT',
+    'X-MICROSOFT-CDO-ALLDAYEVENT:TRUE',
     'X-MICROSOFT-CDO-BUSYSTATUS:FREE',
     ...alarmLines,
     'END:VEVENT',

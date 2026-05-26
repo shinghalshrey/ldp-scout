@@ -845,33 +845,24 @@
       </div>
     </div>
 
-    <!-- STEP 2: Pick calendar app -->
+    <!-- STEP 2: Download ICS -->
     <div id="ics-step-2" style="display:none">
-      <div style="font-size:11px;color:var(--text3);margin-bottom:12px;font-weight:500;text-transform:uppercase;letter-spacing:.06em">Add to which calendar?</div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:12px;line-height:1.6">
+        Your .ics file includes <strong id="ics-reminder-summary"></strong>. Open it in any calendar app — Google Calendar, Outlook, or Apple Calendar — to import with reminders pre-set.
+      </div>
       <div class="ics-options">
-        <a id="ics-gcal-btn" href="#" target="_blank" rel="noopener noreferrer" class="ics-opt ics-opt-link" onclick="document.getElementById('ics-modal-overlay').classList.remove('open')">
-          <div class="ics-opt-icon">📅</div>
-          <div>
-            <div class="ics-opt-title">Google Calendar</div>
-            <div class="ics-opt-desc">Opens a pre-filled event — save in one click. <strong>Add reminders manually</strong> after saving (Google doesn't accept reminders via link).</div>
-          </div>
-        </a>
-        <a id="ics-outlook-btn" href="#" target="_blank" rel="noopener noreferrer" class="ics-opt ics-opt-link" onclick="document.getElementById('ics-modal-overlay').classList.remove('open')">
-          <div class="ics-opt-icon">📆</div>
-          <div>
-            <div class="ics-opt-title">Outlook / Office 365</div>
-            <div class="ics-opt-desc">Opens Outlook web with the event pre-filled. <strong>Add reminders manually</strong> after saving.</div>
-          </div>
-        </a>
-        <div class="ics-opt" onclick="icsDownloadFile()">
+        <div class="ics-opt" onclick="icsDownloadFile()" style="cursor:pointer">
           <div class="ics-opt-icon">⬇️</div>
           <div>
-            <div class="ics-opt-title">Download .ics file ✓ Reminders included</div>
-            <div class="ics-opt-desc">Best option for reminders — imports into any calendar app (Google, Outlook, Apple) with your chosen alerts pre-built at 9am.</div>
+            <div class="ics-opt-title">Download .ics file</div>
+            <div class="ics-opt-desc">Works with Google Calendar, Outlook, and Apple Calendar. Reminders fire at 9am on the correct days.</div>
           </div>
         </div>
       </div>
-      <button onclick="icsBackToStep1()" style="background:none;border:none;color:var(--text3);font-size:11px;cursor:pointer;margin-top:8px;font-family:var(--sans);text-decoration:underline">← Back</button>
+      <div style="margin-top:14px;padding:10px 12px;background:var(--bg3);border-radius:8px;font-size:11px;color:var(--text3);line-height:1.6">
+        <strong style="color:var(--text2)">How to import:</strong> After downloading, open the file. Your calendar app will ask to add the event with reminders already set.
+      </div>
+      <button onclick="icsBackToStep1()" style="background:none;border:none;color:var(--text3);font-size:11px;cursor:pointer;margin-top:10px;font-family:var(--sans);text-decoration:underline">← Back</button>
     </div>
 
     <button class="ics-cancel" onclick="document.getElementById('ics-modal-overlay').classList.remove('open')">Cancel</button>
