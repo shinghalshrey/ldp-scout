@@ -4467,8 +4467,8 @@ function exportAllDeadlines(){
       'TRANSP:TRANSPARENT',
       'X-MICROSOFT-CDO-ALLDAYEVENT:TRUE',
       'X-MICROSOFT-CDO-BUSYSTATUS:FREE',
-      'BEGIN:VALARM','TRIGGER:-P6DT15H','ACTION:DISPLAY',`DESCRIPTION:7 days until your ${sumName} deadline — time to finalise`,'END:VALARM',
-      'BEGIN:VALARM','TRIGGER:-PT15H','ACTION:DISPLAY',`DESCRIPTION:Tomorrow is the ${sumName} deadline — submit today!`,'END:VALARM',
+      `BEGIN:VALARM`,`UID:${uid}-alarm1`,`ACTION:DISPLAY`,`TRIGGER;RELATED=START:-P6DT15H`,`DESCRIPTION:7 days until your ${sumName} deadline — time to finalise`,`END:VALARM`,
+      `BEGIN:VALARM`,`UID:${uid}-alarm2`,`ACTION:DISPLAY`,`TRIGGER;RELATED=START:-PT15H`,`DESCRIPTION:Tomorrow is the ${sumName} deadline — submit today!`,`END:VALARM`,
       'END:VEVENT'
     ].join('\r\n');
   });
@@ -4555,23 +4555,30 @@ function downloadICS(item, mode='multi'){
   const uid     = `ldpscout-${Date.now()}@ldpscout.app`;
 
   const progName = item.name;
+  // CRITICAL: each VALARM needs its own UID. Outlook and Apple Calendar
+  // deduplicate VALARMs that lack unique identifiers — that is why a 2-reminder
+  // file was only producing 1 reminder. RELATED=START makes the trigger
+  // explicitly relative to the event start (the deadline).
   const alarmLines = mode === 'single'
     ? [
         'BEGIN:VALARM',
-        'TRIGGER:-PT15H',
+        `UID:${uid}-alarm1`,
         'ACTION:DISPLAY',
+        'TRIGGER;RELATED=START:-PT15H',
         `DESCRIPTION:Tomorrow is the ${progName} deadline — submit today!`,
         'END:VALARM'
       ]
     : [
         'BEGIN:VALARM',
-        'TRIGGER:-P6DT15H',
+        `UID:${uid}-alarm1`,
         'ACTION:DISPLAY',
+        'TRIGGER;RELATED=START:-P6DT15H',
         `DESCRIPTION:7 days until your ${progName} deadline — time to finalise`,
         'END:VALARM',
         'BEGIN:VALARM',
-        'TRIGGER:-PT15H',
+        `UID:${uid}-alarm2`,
         'ACTION:DISPLAY',
+        'TRIGGER;RELATED=START:-PT15H',
         `DESCRIPTION:Tomorrow is the ${progName} deadline — submit today!`,
         'END:VALARM'
       ];
