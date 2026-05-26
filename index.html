@@ -54,6 +54,11 @@
      when the user actually uploads a résumé. Keeping them out of <head>
      saves ~400KB of render-blocking JS on first paint. -->
 <link rel="stylesheet" href="styles.css">
+<style>
+  .row-edit-btn{background:none;border:none;cursor:pointer;font-size:11px;padding:1px 4px;margin-left:4px;opacity:0.45;border-radius:4px;vertical-align:middle;transition:opacity .15s}
+  .row-edit-btn:hover{opacity:1;background:var(--bg3)}
+  #aps-catalog-lock-note{grid-column:1/-1}
+</style>
 <script>
   // Task 19.2.4 — set the active page from localStorage BEFORE first paint.
   // Without this, the browser renders #page-programs first (because we used
@@ -678,6 +683,7 @@
     <div class="fg"><label>Geography</label><input id="aps-geo" placeholder="EU / UAE"></div>
     <div class="fg"><label>Function</label><input id="aps-fn" placeholder="e.g. Operations"></div>
     <div class="fg"><label>Sector</label><input id="aps-sector" placeholder="e.g. Tech"></div>
+    <div id="aps-catalog-lock-note" style="display:none;grid-column:1/-1;font-size:11px;color:var(--text3);background:var(--bg3);border:1px solid var(--border2);border-radius:7px;padding:7px 11px;line-height:1.5">🔒 <strong>Function, Sector, Link and Visa</strong> are set by the catalog and can't be edited here. Only your deadline, stage, notes, and contact are saved per-user.</div>
     <div class="fg"><label>Link <span style="font-size:10px;color:var(--text3);font-weight:400">(program website — optional)</span></label><input id="aps-url" placeholder="https://..."></div>
     <div class="fg"><label>Visa Sponsorship</label><select id="aps-visa"><option value="">Unknown / not confirmed</option><option value="yes">Yes — sponsors visas</option><option value="no">No — does not sponsor</option></select></div>
     <div class="fg"><label>Stage</label>

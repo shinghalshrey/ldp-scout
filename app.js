@@ -2891,7 +2891,8 @@ function _userAddedRows(){
       status: a.status || 'shortlisted',
       deadline: a.deadline || '',
       // fields the catalog filter/sort touch — kept present & inert so neither throws
-      dlnote: '', tags: [], fit: 0, visa: false, last_verified_at: null, notes: a.notes || '',
+      // NOTE: visa is set above from a.visa — do NOT repeat it here (duplicate key = last wins)
+      dlnote: '', tags: [], fit: 0, last_verified_at: null, notes: a.notes || '',
       aiTier: null
     }));
 }
@@ -2909,7 +2910,7 @@ function _userAddedRowHTML(p){
     <div>
       ${nameHtml}
       <div class="porg">${esc(p.org)}</div>
-      <div class="tags"><span class="tag" style="background:var(--accent-bg);color:var(--accent);font-weight:600">★ Added by you</span>${p.visa?` <span style="font-size:10px;color:var(--teal);font-weight:600;margin-left:4px">✓ Visa</span>`:''}</div>
+      <div class="tags"><span class="tag" style="background:var(--accent-bg);color:var(--accent);font-weight:600">★ Added by you</span>${p.visa?` <span style="font-size:10px;color:var(--teal);font-weight:600;margin-left:4px">✓ Visa</span>`:''}<button class="row-edit-btn" onclick="openEditModalForProgram('${p.id}')" title="Edit this program">✏️</button></div>
     </div>
     <div class="cell">${p.fn ? esc(cap(p.fn)) : '—'}</div>
     <div class="cell">${p.sector ? esc(cap(p.sector)) : '—'}</div>
@@ -2950,6 +2951,7 @@ function _userAddedCardHTML(p){
       <div class="pmc-actions">
         <div class="pmc-stage-wrap"><span class="badge b-watch">${esc(stageLbl)}</span></div>
         ${reminderBtn}
+        <button class="row-edit-btn" onclick="openEditModalForProgram('${p.id}')" title="Edit this program" style="opacity:0.5;font-size:13px">✏️</button>
       </div>
     </div>`;
 }
@@ -3091,7 +3093,7 @@ function renderPrograms(){
         <div>
           <div class="pname">${p.url?`<a href="${esc(p.url)}" target="_blank" rel="noopener noreferrer" style="color:var(--text);text-decoration:none;border-bottom:1px solid var(--border2);padding-bottom:1px" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--text)'">${esc(p.name)}</a>`:esc(p.name)}</div>
           <div class="porg">${esc(p.org)}${p.visa?` <span style="font-size:10px;color:var(--teal);font-weight:600;margin-left:4px">✓ Visa</span>`:''}</div>
-          <div class="tags">${(p.tags||[]).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}${verifiedBadge(p)}</div>
+          <div class="tags">${(p.tags||[]).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}${verifiedBadge(p)}${rv.inPipeline?`<button class="row-edit-btn" onclick="openEditModalForProgram(${p.id})" title="Edit your notes, deadline, stage…">✏️</button>`:''}</div>
         </div>
         <div class="cell">${cap(p.fn)}</div>
         <div class="cell">${cap(p.sector)}</div>
@@ -3274,6 +3276,7 @@ function _mobileCardHTML(p){
       <div class="pmc-actions">
         <div class="pmc-stage-wrap">${renderStageDropdown(p)}</div>
         ${reminderBtn}
+        ${rv.inPipeline ? `<button class="row-edit-btn" onclick="openEditModalForProgram(${p.id})" title="Edit notes, deadline…" style="opacity:0.5;font-size:13px">✏️</button>` : ''}
       </div>
     </div>
   `;
@@ -3332,7 +3335,35 @@ function openICSModalForProgram(progId){
   });
 }
 
-// ═══════════════ ALUMNI TAB — SCHOOL DROPDOWN + TABLE ═══════════════
+// Phase 2 (Task 27B.2): ✏️ edit button on Programs-page rows opens the Log Application
+// modal pre-filled with the user's existing pipeline row (if any) or the catalog program
+// data (if not yet tracked). For user-added rows, opens the matching app row directly.
+function openEditModalForProgram(progId){
+  // User-added: synthetic id 'ua-<appId>'
+  if(typeof progId === 'string' && progId.startsWith('ua-')){
+    const appId = progId.slice(3);
+    const a = apps.find(x => String(x.id) === appId);
+    if(a) openM('app', a);
+    return;
+  }
+  // Catalog program: find existing pipeline row, or open with catalog data pre-filled
+  const p = progs.find(x => x.id === progId);
+  if(!p) return;
+  const existing = _findAppForProgram(p);
+  if(existing){
+    openM('app', existing);
+  } else {
+    // Not yet in pipeline — pre-fill with catalog data so user can log it
+    const geoLabel = ({europe:'Europe', uae:'UAE / Gulf', global:'Global'})[p.geo] || p.geo || '';
+    openM('app', {
+      name: p.name, org: p.org, geo: geoLabel,
+      program_id: p.id,
+      fn: p.fn, sector: p.sector, url: p.url, visa: p.visa
+    });
+  }
+}
+
+
 let activeAlumniSchool = null;
 
 function initAlumniSchoolDrop(){
@@ -5186,24 +5217,44 @@ function openM(type,data={}){
       : (data.visa === true || data.visa === 'yes' ? 'yes' : data.visa === false || data.visa === 'no' ? 'no' : '');
     sv('aps-visa', _visaVal);
     // Lock fn/sector/url/visa for catalog programs so users understand these are catalog-managed.
+    // IMPORTANT: use pointer-events:none + readonly (NOT disabled) — disabled inputs return ''
+    // from gv(), which would wipe fn/sector/url on save. readonly prevents editing while
+    // keeping the value readable. pointer-events:none stops click/focus on mobile too.
     // For user-added programs, all fields are freely editable.
+    const _lockNote = document.getElementById('aps-catalog-lock-note');
     ['aps-fn','aps-sector','aps-url','aps-visa'].forEach(fid => {
       const el = document.getElementById(fid);
       if(!el) return;
       if(_isCatalog){
         el.setAttribute('readonly', '');
-        el.setAttribute('disabled', '');
-        el.style.opacity = '0.55';
-        el.style.cursor  = 'not-allowed';
+        el.style.pointerEvents = 'none';
+        el.style.opacity = '0.6';
+        el.style.background = 'var(--bg2)';
         el.title = 'Set by the catalog — not user-editable';
       } else {
         el.removeAttribute('readonly');
-        el.removeAttribute('disabled');
+        el.style.pointerEvents = '';
         el.style.opacity = '';
-        el.style.cursor  = '';
+        el.style.background = '';
         el.title = '';
       }
     });
+    // Also lock the visa select — readonly doesn't work on <select>, so we swap
+    // the select to a visually identical disabled state but preserve the value for gv().
+    const _visaEl = document.getElementById('aps-visa');
+    if(_visaEl){
+      if(_isCatalog){
+        _visaEl.style.pointerEvents = 'none';
+        _visaEl.style.opacity = '0.6';
+        _visaEl.style.background = 'var(--bg2)';
+      } else {
+        _visaEl.style.pointerEvents = '';
+        _visaEl.style.opacity = '';
+        _visaEl.style.background = '';
+      }
+    }
+    // Show/hide the "catalog lock" note below the fn/sector row
+    if(_lockNote) _lockNote.style.display = _isCatalog ? 'block' : 'none';
     // Dynamic delete/remove button label: catalog program → "Remove from pipeline",
     // user-added or new entry → "Delete". Button is hidden when no existing row.
     const _delBtn = document.getElementById('aps-delete-btn');
