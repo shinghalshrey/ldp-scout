@@ -5264,7 +5264,15 @@ function openM(type,data={}){
     // Task 27B.2: fn/sector/url/visa — for catalog programs these come from the catalog
     // and are READ-ONLY (user cannot override them, to avoid confusion about why changes
     // don't show up in catalog filters). For user-added programs (no _cp) they are editable.
-    const _cp = data.program_id ? progs.find(x=>x.id===data.program_id) : null;
+    // Try program_id first (fast, exact). Fall back to name+org match for legacy app rows
+    // where program_id was never written (null) but the program IS in the catalog.
+    // This is why Amazon showed unlocked fields — its app row had program_id:null but the
+    // name matched a catalog entry. Without the fallback, _isCatalog was false → no lock.
+    const _cp = (data.program_id ? progs.find(x=>x.id===data.program_id) : null)
+      || (data.name ? progs.find(x=>
+          (x.name||'').toLowerCase().trim() === (data.name||'').toLowerCase().trim() &&
+          (x.org ||'').toLowerCase().trim() === (data.org ||'').toLowerCase().trim()
+        ) : null);
     const _isCatalog = !!_cp;
     sv('aps-fn',     _isCatalog ? (_cp.fn     || '') : (data.fn     || ''));
     sv('aps-sector', _isCatalog ? (_cp.sector || '') : (data.sector || ''));
