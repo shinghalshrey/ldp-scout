@@ -91,7 +91,7 @@ input, textarea, select, button { font-family: inherit; }
 .th.sortable.sorted{color:var(--accent)}
 .th.sortable.sorted .th-arrow{opacity:1}
 .prow{display:grid;grid-template-columns:2.2fr 1fr 0.9fr 0.8fr .6fr .7fr .5fr 110px 70px;padding:13px 16px;border-bottom:1px solid var(--border);align-items:center;transition:background .1s}
-.prow > div:not(:first-child){text-align:center;display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:4px}
+/* Note: .prog-table-wrap overrides .prow to display:table-row — do NOT add display:flex here */
 .prow:last-child{border-bottom:none}
 .prow:hover{background:var(--bg3)}
 .pname{font-size:13px;font-weight:500;line-height:1.3}

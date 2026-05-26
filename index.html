@@ -818,34 +818,62 @@
   </div>
 </div>
 
-<!-- CALENDAR REMINDER MODAL — Phase 3: deep-links (Google + Outlook) + ICS fallback -->
+<!-- CALENDAR REMINDER MODAL — Phase 3: two-step flow -->
 <div class="ics-modal-overlay" id="ics-modal-overlay">
   <div class="ics-modal">
     <h3 id="ics-modal-title">Add deadline reminder</h3>
     <div class="ics-modal-sub" id="ics-modal-sub"></div>
-    <div class="ics-options" id="ics-cal-options" style="margin-top:16px;display:flex;flex-direction:column;gap:10px">
-      <a id="ics-gcal-btn" href="#" target="_blank" rel="noopener noreferrer" class="ics-opt ics-opt-link" style="text-decoration:none">
-        <div class="ics-opt-icon">📅</div>
-        <div>
-          <div class="ics-opt-title">Google Calendar</div>
-          <div class="ics-opt-desc">Opens a pre-filled event in Google Calendar — one click to save</div>
+
+    <!-- STEP 1: Pick reminder frequency -->
+    <div id="ics-step-1">
+      <div style="font-size:11px;color:var(--text3);margin-bottom:12px;font-weight:500;text-transform:uppercase;letter-spacing:.06em">How many reminders?</div>
+      <div class="ics-options">
+        <div class="ics-opt" onclick="icsPickMode('multi')">
+          <div class="ics-opt-icon">🔔🔔</div>
+          <div>
+            <div class="ics-opt-title">Two reminders</div>
+            <div class="ics-opt-desc">Alert 7 days before — enough time to finalise your application. Alert 1 day before — last chance to submit.</div>
+          </div>
         </div>
-      </a>
-      <a id="ics-outlook-btn" href="#" target="_blank" rel="noopener noreferrer" class="ics-opt ics-opt-link" style="text-decoration:none">
-        <div class="ics-opt-icon">📆</div>
-        <div>
-          <div class="ics-opt-title">Outlook / Office 365</div>
-          <div class="ics-opt-desc">Opens Outlook web calendar with the event pre-filled</div>
-        </div>
-      </a>
-      <div class="ics-opt" onclick="confirmICS('multi')" style="cursor:pointer">
-        <div class="ics-opt-icon">⬇️</div>
-        <div>
-          <div class="ics-opt-title">Download .ics file</div>
-          <div class="ics-opt-desc">For Apple Calendar or desktop Outlook — imports with 30/7/1-day reminders built in</div>
+        <div class="ics-opt" onclick="icsPickMode('single')">
+          <div class="ics-opt-icon">🔔</div>
+          <div>
+            <div class="ics-opt-title">One reminder</div>
+            <div class="ics-opt-desc">Alert 1 day before the deadline — good for programs you're keeping a light eye on.</div>
+          </div>
         </div>
       </div>
     </div>
+
+    <!-- STEP 2: Pick calendar app -->
+    <div id="ics-step-2" style="display:none">
+      <div style="font-size:11px;color:var(--text3);margin-bottom:12px;font-weight:500;text-transform:uppercase;letter-spacing:.06em">Add to which calendar?</div>
+      <div class="ics-options">
+        <a id="ics-gcal-btn" href="#" target="_blank" rel="noopener noreferrer" class="ics-opt ics-opt-link" onclick="document.getElementById('ics-modal-overlay').classList.remove('open')">
+          <div class="ics-opt-icon">📅</div>
+          <div>
+            <div class="ics-opt-title">Google Calendar</div>
+            <div class="ics-opt-desc">Opens a pre-filled event — one click to save</div>
+          </div>
+        </a>
+        <a id="ics-outlook-btn" href="#" target="_blank" rel="noopener noreferrer" class="ics-opt ics-opt-link" onclick="document.getElementById('ics-modal-overlay').classList.remove('open')">
+          <div class="ics-opt-icon">📆</div>
+          <div>
+            <div class="ics-opt-title">Outlook / Office 365</div>
+            <div class="ics-opt-desc">Opens Outlook web with the event pre-filled</div>
+          </div>
+        </a>
+        <div class="ics-opt" onclick="icsDownloadFile()">
+          <div class="ics-opt-icon">⬇️</div>
+          <div>
+            <div class="ics-opt-title">Download .ics file</div>
+            <div class="ics-opt-desc">For Apple Calendar or desktop Outlook — imports with your chosen reminders built in</div>
+          </div>
+        </div>
+      </div>
+      <button onclick="icsBackToStep1()" style="background:none;border:none;color:var(--text3);font-size:11px;cursor:pointer;margin-top:8px;font-family:var(--sans);text-decoration:underline">← Back</button>
+    </div>
+
     <button class="ics-cancel" onclick="document.getElementById('ics-modal-overlay').classList.remove('open')">Cancel</button>
   </div>
 </div>

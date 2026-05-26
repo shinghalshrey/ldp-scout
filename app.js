@@ -2347,25 +2347,48 @@ function toggleSchool(btn){ addSchool(btn.getAttribute('data-school')); }
 
 // ═══════════════ ICS MODAL ═══════════════
 let _icsItem = null;
+let _icsMode = 'multi';  // 'multi' = 7d+1d reminders, 'single' = 1d only
 function openICSModal(item){
   _icsItem = item;
-  const dl = new Date(item.deadline);
+  const dl  = new Date(item.deadline);
+  const dlFmt = dl.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
   const title = document.getElementById('ics-modal-title');
   const sub   = document.getElementById('ics-modal-sub');
-  if(title) title.textContent = `Add deadline reminder — ${item.name}`;
-  if(sub)   sub.textContent   = `${item.org} · ${dl.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}`;
+  if(title) title.textContent = `Set a deadline reminder`;
+  if(sub)   sub.textContent   = `${item.name} · ${item.org} · ${dlFmt}`;
+  // Always start on step 1
+  icsShowStep(1);
+  document.getElementById('ics-modal-overlay').classList.add('open');
+}
 
-  // Build deep-links — Phase 3: one-click, no OAuth.
-  // Google Calendar: event on the deadline date, 1-day duration.
+// Step navigation
+function icsShowStep(n){
+  const s1 = document.getElementById('ics-step-1');
+  const s2 = document.getElementById('ics-step-2');
+  if(s1) s1.style.display = n === 1 ? 'block' : 'none';
+  if(s2) s2.style.display = n === 2 ? 'block' : 'none';
+}
+function icsBackToStep1(){ icsShowStep(1); }
+
+// User picks reminder mode → build deep-links and advance to step 2
+function icsPickMode(mode){
+  _icsMode = mode;   // 'multi' = 7d+1d, 'single' = 1d only
+  if(!_icsItem) return;
+  const dl   = new Date(_icsItem.deadline);
+  const name = _icsItem.name;
+  const org  = _icsItem.org;
+
+  // Google Calendar deep-link
   const dateStr  = dl.toISOString().split('T')[0].replace(/-/g,'');
   const dateNext = new Date(dl.getTime() + 86400000).toISOString().split('T')[0].replace(/-/g,'');
-  const evTitle  = encodeURIComponent(`DEADLINE: ${item.name} (${item.org})`);
-  const evDetails= encodeURIComponent(`Application deadline tracked via LDP Scout.\nhttps://ldpscout.com`);
+  const evTitle  = encodeURIComponent(`DEADLINE: ${name} (${org})`);
+  const reminder7d = mode === 'multi' ? `7-day and 1-day reminders set.` : `1-day reminder set.`;
+  const evDetails= encodeURIComponent(`Application deadline tracked via LDP Scout.\n${reminder7d}\nhttps://ldpscout.com`);
   const gcalUrl  = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${evTitle}&dates=${dateStr}/${dateNext}&details=${evDetails}`;
 
-  // Outlook web (office.com compose URL)
-  const olStart  = dl.toISOString().split('T')[0]; // YYYY-MM-DD
-  const olEnd    = new Date(dl.getTime() + 86400000).toISOString().split('T')[0];
+  // Outlook web deep-link
+  const olStart    = dl.toISOString().split('T')[0];
+  const olEnd      = new Date(dl.getTime() + 86400000).toISOString().split('T')[0];
   const outlookUrl = `https://outlook.office.com/calendar/deeplink/compose?subject=${evTitle}&startdt=${olStart}&enddt=${olEnd}&body=${evDetails}`;
 
   const gcalBtn    = document.getElementById('ics-gcal-btn');
@@ -2373,8 +2396,16 @@ function openICSModal(item){
   if(gcalBtn)    gcalBtn.href    = gcalUrl;
   if(outlookBtn) outlookBtn.href = outlookUrl;
 
-  document.getElementById('ics-modal-overlay').classList.add('open');
+  icsShowStep(2);
 }
+
+// ICS file download from step 2
+function icsDownloadFile(){
+  document.getElementById('ics-modal-overlay').classList.remove('open');
+  if(_icsItem) downloadICS(_icsItem, _icsMode || 'multi');
+}
+
+// Legacy confirmICS kept for any existing callers (bulk export path)
 function confirmICS(mode){
   document.getElementById('ics-modal-overlay').classList.remove('open');
   if(_icsItem) downloadICS(_icsItem, mode);
@@ -4465,8 +4496,10 @@ function exportAllDeadlines(){
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = `ldp-deadlines-${todayStr}.ics`;
+  document.body.appendChild(a);
   a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
   toast(`📅 Exported ${dated.length} deadline${dated.length===1?'':'s'} — open the file to import into your calendar`);
 }
 
@@ -4497,7 +4530,10 @@ function exportPipelineCSV(){
   ].map(escape).join(','));
   const csv  = [headers.join(','), ...rows].join('\r\n');
   const date = new Date().toISOString().split('T')[0];
-  const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+  // UTF-8 BOM (\uFEFF) tells Excel to open the file as UTF-8 instead of
+  // defaulting to Latin-1 — prevents em-dashes and other characters from
+  // showing as alien characters (â€" etc).
+  const blob = new Blob(['\uFEFF' + csv], {type:'text/csv;charset=utf-8'});
   const el   = document.createElement('a');
   el.href    = URL.createObjectURL(blob);
   el.download = `ldp-pipeline-${date}.csv`;
@@ -4507,30 +4543,55 @@ function exportPipelineCSV(){
 }
 
 function downloadICS(item, mode='multi'){
-  const fmt=d=>{const s=d.toISOString().replace(/[-:]/g,'').split('.')[0]+'Z';return s;};
-  const uid=`ldpscout-${Date.now()}@ldpscout.app`;
-  const now=fmt(new Date());
-  const dateStr=dl.toISOString().split('T')[0].replace(/-/g,'');
+  const dl  = new Date(item.deadline);
+  const fmt = d => d.toISOString().replace(/[-:]/g,'').split('.')[0]+'Z';
+  const uid = `ldpscout-${Date.now()}@ldpscout.app`;
+  const now = fmt(new Date());
+  const dateStr = dl.toISOString().split('T')[0].replace(/-/g,'');
 
-  const alarmMulti=`BEGIN:VALARM\nTRIGGER:-P30D\nACTION:DISPLAY\nDESCRIPTION:30 days until ${item.name} deadline — start your application\nEND:VALARM\nBEGIN:VALARM\nTRIGGER:-P7D\nACTION:DISPLAY\nDESCRIPTION:7 days until ${item.name} deadline — final review\nEND:VALARM\nBEGIN:VALARM\nTRIGGER:-P1D\nACTION:DISPLAY\nDESCRIPTION:Tomorrow: ${item.name} deadline — submit today!\nEND:VALARM`;
-  const alarmSingle=`BEGIN:VALARM\nTRIGGER:-P7D\nACTION:DISPLAY\nDESCRIPTION:7 days until: ${item.name} deadline\nEND:VALARM`;
-  const alarms=mode==='multi'?alarmMulti:alarmSingle;
+  // Two reminder modes:
+  // 'multi'  → 7 days before + 1 day before
+  // 'single' → 1 day before only
+  const progName = item.name;
+  const alarmLines = mode === 'single'
+    ? [
+        'BEGIN:VALARM', 'TRIGGER:-P1D', 'ACTION:DISPLAY',
+        `DESCRIPTION:Tomorrow is the ${progName} deadline — submit today!`,
+        'END:VALARM'
+      ]
+    : [
+        'BEGIN:VALARM', 'TRIGGER:-P7D', 'ACTION:DISPLAY',
+        `DESCRIPTION:7 days until your ${progName} deadline — time to finalise your application`,
+        'END:VALARM',
+        'BEGIN:VALARM', 'TRIGGER:-P1D', 'ACTION:DISPLAY',
+        `DESCRIPTION:Tomorrow is the ${progName} deadline — submit today!`,
+        'END:VALARM'
+      ];
 
-  const lines=[
-    'BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//LDP Scout//EN','CALSCALE:GREGORIAN','METHOD:PUBLISH',
-    'BEGIN:VEVENT',`UID:${uid}`,`DTSTART;VALUE=DATE:${dateStr}`,`DTEND;VALUE=DATE:${dateStr}`,
-    `DTSTAMP:${now}`,`SUMMARY:DEADLINE: ${item.name} (${item.org})`,
-    `DESCRIPTION:Application deadline tracked via LDP Scout.`,
-    ...alarms.split('\n'),
-    'END:VEVENT','END:VCALENDAR'
+  const lines = [
+    'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//LDP Scout//EN',
+    'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',
+    'BEGIN:VEVENT',
+    `UID:${uid}`,
+    `DTSTART;VALUE=DATE:${dateStr}`,
+    `DTEND;VALUE=DATE:${dateStr}`,
+    `DTSTAMP:${now}`,
+    `SUMMARY:DEADLINE: ${item.name} (${item.org})`,
+    `DESCRIPTION:Application deadline — ${item.org}. Tracked via LDP Scout (ldpscout.com).`,
+    ...alarmLines,
+    'END:VEVENT', 'END:VCALENDAR'
   ];
-  const ics=lines.join('\r\n');
-  const blob=new Blob([ics],{type:'text/calendar;charset=utf-8'});
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);
-  a.download=`ldp-${item.org.toLowerCase().replace(/\s+/g,'-')}.ics`;
+
+  const ics  = lines.join('\r\n');
+  const blob = new Blob([ics], {type:'text/calendar;charset=utf-8'});
+  const a    = document.createElement('a');
+  a.href     = URL.createObjectURL(blob);
+  a.download = `ldp-${item.org.toLowerCase().replace(/\s+/g,'-')}-deadline.ics`;
+  document.body.appendChild(a);
   a.click();
-  toast('📅 Calendar file downloaded — open it to import into Google Calendar, Outlook, or Apple Calendar');
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  toast('📅 .ics downloaded — open it to import into your calendar');
 }
 
 // ═══════════════ AI FILE PARSING (PDF.js + Mammoth) ═══════════════
