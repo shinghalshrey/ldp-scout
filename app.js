@@ -1612,7 +1612,8 @@ async function loadUserApplications(){
       notes: r.notes||'',
       fn: r.fn||'',             // Phase 1: user-added program metadata
       sector: r.sector||'',
-      url: r.url||''
+      url: r.url||'',
+      visa: r.visa != null ? r.visa : null   // Task 27B.2
     }));
   } catch(e){
     console.warn('loadUserApplications failed:', e);
@@ -1636,7 +1637,8 @@ async function saveApplicationToDB(app){
     notes:      app.notes || null,
     fn:         app.fn || null,        // Phase 1: user-added program metadata
     sector:     app.sector || null,
-    url:        app.url || null
+    url:        app.url || null,
+    visa:       app.visa != null ? app.visa : null   // Task 27B.2: user-set visa flag for user-added programs
   };
   try {
     if(app.id && app._db){
@@ -2885,6 +2887,7 @@ function _userAddedRows(){
       _appId: a.id,
       name: a.name, org: a.org || '', geo: a.geo || '', loc: a.geo || '',
       fn: a.fn || '', sector: a.sector || '', url: a.url || '',
+      visa: a.visa === true,   // Task 27B.2: user-set visa flag — feeds _visaOnly filter
       status: a.status || 'shortlisted',
       deadline: a.deadline || '',
       // fields the catalog filter/sort touch — kept present & inert so neither throws
@@ -2906,7 +2909,7 @@ function _userAddedRowHTML(p){
     <div>
       ${nameHtml}
       <div class="porg">${esc(p.org)}</div>
-      <div class="tags"><span class="tag" style="background:var(--accent-bg);color:var(--accent);font-weight:600">★ Added by you</span></div>
+      <div class="tags"><span class="tag" style="background:var(--accent-bg);color:var(--accent);font-weight:600">★ Added by you</span>${p.visa?` <span style="font-size:10px;color:var(--teal);font-weight:600;margin-left:4px">✓ Visa</span>`:''}</div>
     </div>
     <div class="cell">${p.fn ? esc(cap(p.fn)) : '—'}</div>
     <div class="cell">${p.sector ? esc(cap(p.sector)) : '—'}</div>
@@ -2942,6 +2945,7 @@ function _userAddedCardHTML(p){
       <div class="pmc-chips">
         <span class="pmc-chip" style="background:var(--accent-bg);color:var(--accent);font-weight:600">★ Added by you</span>
         <span class="pmc-chip">Not scored</span>
+        ${p.visa ? '<span class="pmc-chip pmc-visa">✓ Visa</span>' : ''}
       </div>
       <div class="pmc-actions">
         <div class="pmc-stage-wrap"><span class="badge b-watch">${esc(stageLbl)}</span></div>
@@ -3031,16 +3035,23 @@ function renderPrograms(){
   };
 
   // Phase 1 (Task 27B.1) — user-added programs are now first-class on this list.
-  // They carry their own geo/fn/sector, so they obey those filters and the search box
-  // exactly like catalog rows. They have no catalog App Cycle / AI Fit / visa / verified
-  // equivalent, so any of THOSE filters hides them. They're always in the pipeline, so the
-  // My-Pipeline filter keeps them. Pinned to the top (added after the catalog sort).
+  // They carry their own geo/fn/sector/visa, so they obey those filters and the search box
+  // exactly like catalog rows. They have no catalog App Cycle / AI Fit / Verified
+  // equivalent, so those filters hide them. My-Pipeline always passes them.
+  // Task 27B.2: visa filter now works for user-added rows too (user sets visa in modal).
   const _uaAll = _userAddedRows();                       // unfiltered — drives the Total count
-  const _catalogOnlyFilter = F.st.size || window._fitOnly || window._visaOnly || window._verifiedOnly;
+  const _catalogOnlyFilter = F.st.size || window._fitOnly || window._verifiedOnly;
   let _uaRows = _catalogOnlyFilter ? [] : _uaAll.filter(p => {
     if(F.geo.size    && !F.geo.has(p.geo))       return false;
-    if(F.fn.size     && !F.fn.has(p.fn))         return false;
-    if(F.sector.size && !F.sector.has(p.sector)) return false;
+    if(F.fn.size){
+      const pfn = (p.fn||'').toLowerCase().trim();
+      if(![...F.fn].some(v => v.toLowerCase() === pfn)) return false;
+    }
+    if(F.sector.size){
+      const ps = (p.sector||'').toLowerCase().trim();
+      if(![...F.sector].some(v => v.toLowerCase() === ps)) return false;
+    }
+    if(window._visaOnly && !p.visa) return false;
     if(q && !p.name.toLowerCase().includes(q) && !p.org.toLowerCase().includes(q)) return false;
     return true;   // pipeline filter: user-added are always in the pipeline → always pass
   });
@@ -5147,7 +5158,7 @@ function openM(type,data={}){
     sv('ai-notes',data.notes||'');
   }
   if(type==='app'){
-    // Phase 9: populate program-name autocomplete from the 48 tracked programs.
+    // Phase 9: populate program-name autocomplete from the catalog programs.
     // User can type freely (custom program) OR pick from the dropdown — picking auto-fills other empty fields.
     const dl = document.getElementById('prog-suggestions');
     if(dl){
@@ -5161,12 +5172,49 @@ function openM(type,data={}){
     sv('aps-date',data.date||new Date().toISOString().split('T')[0]);
     sv('aps-deadline',data.deadline||'');sv('aps-next',data.next||'');
     sv('aps-contact',data.contact||'');sv('aps-notes',data.notes||'');
-    // Phase 1: fn/sector/url — prefer the user's saved values; for an existing
-    // catalog-linked program, fall back to the catalog so they're visible on open.
+    // Task 27B.2: fn/sector/url/visa — for catalog programs these come from the catalog
+    // and are READ-ONLY (user cannot override them, to avoid confusion about why changes
+    // don't show up in catalog filters). For user-added programs (no _cp) they are editable.
     const _cp = data.program_id ? progs.find(x=>x.id===data.program_id) : null;
-    sv('aps-fn',     data.fn     || (_cp&&_cp.fn     ? _cp.fn     : ''));
-    sv('aps-sector', data.sector || (_cp&&_cp.sector ? _cp.sector : ''));
-    sv('aps-url',    data.url    || (_cp&&_cp.url     ? _cp.url     : ''));
+    const _isCatalog = !!_cp;
+    sv('aps-fn',     _isCatalog ? (_cp.fn     || '') : (data.fn     || ''));
+    sv('aps-sector', _isCatalog ? (_cp.sector || '') : (data.sector || ''));
+    sv('aps-url',    _isCatalog ? (_cp.url    || '') : (data.url    || ''));
+    // Visa: catalog → from catalog (bool→'yes'/'no'/''). User-added → from saved value.
+    const _visaVal = _isCatalog
+      ? (_cp.visa === true ? 'yes' : _cp.visa === false ? 'no' : '')
+      : (data.visa === true || data.visa === 'yes' ? 'yes' : data.visa === false || data.visa === 'no' ? 'no' : '');
+    sv('aps-visa', _visaVal);
+    // Lock fn/sector/url/visa for catalog programs so users understand these are catalog-managed.
+    // For user-added programs, all fields are freely editable.
+    ['aps-fn','aps-sector','aps-url','aps-visa'].forEach(fid => {
+      const el = document.getElementById(fid);
+      if(!el) return;
+      if(_isCatalog){
+        el.setAttribute('readonly', '');
+        el.setAttribute('disabled', '');
+        el.style.opacity = '0.55';
+        el.style.cursor  = 'not-allowed';
+        el.title = 'Set by the catalog — not user-editable';
+      } else {
+        el.removeAttribute('readonly');
+        el.removeAttribute('disabled');
+        el.style.opacity = '';
+        el.style.cursor  = '';
+        el.title = '';
+      }
+    });
+    // Dynamic delete/remove button label: catalog program → "Remove from pipeline",
+    // user-added or new entry → "Delete". Button is hidden when no existing row.
+    const _delBtn = document.getElementById('aps-delete-btn');
+    if(_delBtn){
+      if(!data.id){
+        _delBtn.style.display = 'none';   // new entry — nothing to delete yet
+      } else {
+        _delBtn.style.display = '';
+        _delBtn.textContent = _isCatalog ? 'Remove from pipeline' : 'Delete';
+      }
+    }
   }
   document.getElementById('ov-'+type).classList.add('open');
 }
@@ -5231,7 +5279,8 @@ async function saveApp(){
     name:gv('aps-name'), org:gv('aps-org'), geo:gv('aps-geo'),
     status:gv('aps-status'), date:gv('aps-date'), deadline:gv('aps-deadline'),
     next:gv('aps-next'), contact:gv('aps-contact'), notes:gv('aps-notes'),
-    fn:gv('aps-fn'), sector:gv('aps-sector'), url:gv('aps-url')   // Phase 1: user-added program metadata
+    fn:gv('aps-fn'), sector:gv('aps-sector'), url:gv('aps-url'),  // Phase 1: user-added program metadata
+    visa: (()=>{ const v=gv('aps-visa'); return v==='yes' ? true : v==='no' ? false : null; })()  // Task 27B.2
   };
   if(!a.name){alert('Program/role name required.');return;}
 
