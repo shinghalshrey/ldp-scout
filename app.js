@@ -4466,10 +4466,10 @@ function exportAllDeadlines(){
   const sanitize = s => String(s||'').replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\r?\n/g,'\\n');
 
   const events = dated.map((it, idx) => {
-    const dl      = new Date(it.deadline);
-    const dlNext  = new Date(dl.getTime() + 86400000);
-    const dateStr = dl.toISOString().split('T')[0].replace(/-/g,'');
-    const dateEnd = dlNext.toISOString().split('T')[0].replace(/-/g,'');
+    const [yr, mo, dy] = it.deadline.split('-').map(Number);
+    const dateStr = `${yr}${String(mo).padStart(2,'0')}${String(dy).padStart(2,'0')}`;
+    const nd = new Date(yr, mo - 1, dy + 1);
+    const dateEnd = `${nd.getFullYear()}${String(nd.getMonth()+1).padStart(2,'0')}${String(nd.getDate()).padStart(2,'0')}`;
     const uid = `ldpscout-bulk-${Date.now()}-${idx}@ldpscout.app`;
     const sumName = sanitize(it.name);
     const sumOrg  = sanitize(it.org);
@@ -4481,14 +4481,17 @@ function exportAllDeadlines(){
       `DTSTAMP:${now}`,
       `SUMMARY:DEADLINE: ${sumName} (${sumOrg})`,
       `DESCRIPTION:Application deadline — ${sumOrg}. Tracked via LDP Scout (ldpscout.com).`,
-      'BEGIN:VALARM','TRIGGER:-P6DT15H','ACTION:DISPLAY',`DESCRIPTION:7 days until your ${sumName} deadline — start finalising`,'END:VALARM',
+      'TRANSP:TRANSPARENT',
+      'X-MICROSOFT-CDO-ALLDAYEVENT:TRUE',
+      'X-MICROSOFT-CDO-BUSYSTATUS:FREE',
+      'BEGIN:VALARM','TRIGGER:-P6DT15H','ACTION:DISPLAY',`DESCRIPTION:7 days until your ${sumName} deadline — time to finalise`,'END:VALARM',
       'BEGIN:VALARM','TRIGGER:-PT15H','ACTION:DISPLAY',`DESCRIPTION:Tomorrow is the ${sumName} deadline — submit today!`,'END:VALARM',
       'END:VEVENT'
     ].join('\r\n');
   });
 
   const ics = [
-    'BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//LDP Scout//EN','CALSCALE:GREGORIAN','METHOD:PUBLISH',
+    'BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//LDP Scout//EN','CALSCALE:GREGORIAN',
     ...events,
     'END:VCALENDAR'
   ].join('\r\n');
@@ -4544,57 +4547,63 @@ function exportPipelineCSV(){
 }
 
 function downloadICS(item, mode='multi'){
-  const dl      = new Date(item.deadline);
-  // For all-day events, DTEND must be the day AFTER the event (exclusive).
-  // DTSTART = DTEND causes zero-duration events; alarm triggers misfire.
-  const dlNext  = new Date(dl.getTime() + 86400000);
-  const fmtDate = d => d.toISOString().split('T')[0].replace(/-/g,'');
-  const fmtStamp= d => d.toISOString().replace(/[-:]/g,'').split('.')[0]+'Z';
-  const uid     = `ldpscout-${Date.now()}@ldpscout.app`;
-  const now     = fmtStamp(new Date());
-  const dateStr = fmtDate(dl);
-  const dateEnd = fmtDate(dlNext);   // exclusive end = deadline + 1 day
+  // Parse date parts directly from the string to avoid timezone conversion.
+  // new Date('2026-07-26') = UTC midnight, which in IST = Jul 25 18:30 — wrong.
+  // Splitting the string directly gives the correct calendar date regardless of timezone.
+  const [year, month, day] = item.deadline.split('-').map(Number);
+  const dateStr = `${year}${String(month).padStart(2,'0')}${String(day).padStart(2,'0')}`;
+  // DTEND for all-day = next calendar day (exclusive end per RFC 5545)
+  const nextDay = new Date(year, month - 1, day + 1);
+  const dateEnd = `${nextDay.getFullYear()}${String(nextDay.getMonth()+1).padStart(2,'0')}${String(nextDay.getDate()).padStart(2,'0')}`;
 
-  // TRIGGER uses RELATED=START (relative to event start = deadline day).
-  // -P1D  = fire at start of the day before the deadline (midnight local time).
-  // -P7D  = fire 7 days before the deadline.
-  // Using -PT9H so the alarm fires at ~9am local time rather than midnight.
-  // For all-day events, START is midnight; -P1DT0H = midnight the night before,
-  // which many apps silence. -PT15H = 9am day before is the reliable choice.
+  const fmtStamp = d => d.toISOString().replace(/[-:]/g,'').split('.')[0]+'Z';
+  const uid = `ldpscout-${Date.now()}@ldpscout.app`;
+  const now = fmtStamp(new Date());
+
+  // Alarm triggers — relative to DTSTART (midnight of deadline day, local time).
+  // TRIGGER:-PT15H    = 15h before midnight Jun 26 = 9am Jun 25 (day before) ✓
+  // TRIGGER:-P6DT15H  = 6 days 15h before midnight Jun 26 = 9am Jun 19 (7 days before) ✓
   const progName = item.name;
   const alarmLines = mode === 'single'
     ? [
         'BEGIN:VALARM',
-        'TRIGGER:-PT15H',   // 9am the day before the deadline
+        'TRIGGER:-PT15H',
         'ACTION:DISPLAY',
         `DESCRIPTION:Tomorrow is the ${progName} deadline — submit today!`,
         'END:VALARM'
       ]
     : [
         'BEGIN:VALARM',
-        'TRIGGER:-P6DT15H', // 9am, 7 days before the deadline
+        'TRIGGER:-P6DT15H',
         'ACTION:DISPLAY',
         `DESCRIPTION:7 days until your ${progName} deadline — time to finalise your application`,
         'END:VALARM',
         'BEGIN:VALARM',
-        'TRIGGER:-PT15H',   // 9am the day before the deadline
+        'TRIGGER:-PT15H',
         'ACTION:DISPLAY',
         `DESCRIPTION:Tomorrow is the ${progName} deadline — submit today!`,
         'END:VALARM'
       ];
 
   const lines = [
-    'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//LDP Scout//EN',
-    'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//LDP Scout//EN',
+    'CALSCALE:GREGORIAN',
+    // No METHOD:PUBLISH — causes Outlook to treat events as meeting requests
     'BEGIN:VEVENT',
     `UID:${uid}`,
     `DTSTART;VALUE=DATE:${dateStr}`,
-    `DTEND;VALUE=DATE:${dateEnd}`,   // next day — correct all-day format
+    `DTEND;VALUE=DATE:${dateEnd}`,
     `DTSTAMP:${now}`,
     `SUMMARY:DEADLINE: ${item.name} (${item.org})`,
     `DESCRIPTION:Application deadline — ${item.org}. Tracked via LDP Scout (ldpscout.com).`,
+    'TRANSP:TRANSPARENT',                 // show as free (not busy) — it's a deadline marker
+    'X-MICROSOFT-CDO-ALLDAYEVENT:TRUE',   // force Outlook to treat as all-day
+    'X-MICROSOFT-CDO-BUSYSTATUS:FREE',
     ...alarmLines,
-    'END:VEVENT', 'END:VCALENDAR'
+    'END:VEVENT',
+    'END:VCALENDAR'
   ];
 
   const ics  = lines.join('\r\n');
