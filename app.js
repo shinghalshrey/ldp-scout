@@ -5175,47 +5175,52 @@ function reuploadResume(){
 // Called from openM (on modal open) AND autoFillFromProgram (when user switches
 // programs mid-modal). Uses pointer-events:none + readonly instead of disabled so
 // gv() still reads the value; onfocus blur so keyboard tab can't land in the field.
+// Stores the locked values while a catalog modal is open, so any edit attempt is reverted.
+let _modalLockedValues = null;
+
+function _revertLockedField(el){
+  if(!_modalLockedValues) return;
+  const locked = _modalLockedValues[el.id];
+  if(locked !== undefined) el.value = locked;
+}
+
 function _applyModalCatalogLock(isCatalog){
   const lockNote = document.getElementById('aps-catalog-lock-note');
-  ['aps-fn','aps-sector','aps-url'].forEach(fid => {
-    const el = document.getElementById(fid);
-    if(!el) return;
-    if(isCatalog){
-      el.setAttribute('readonly', '');
-      el.setAttribute('tabindex', '-1');
-      el.setAttribute('onfocus', 'this.blur()');
+  const fieldIds = ['aps-fn','aps-sector','aps-url','aps-visa'];
+
+  if(isCatalog){
+    // Snapshot the current values as "locked" — any attempted change is reverted
+    _modalLockedValues = {};
+    fieldIds.forEach(fid => {
+      const el = document.getElementById(fid);
+      if(!el) return;
+      _modalLockedValues[fid] = el.value;
+      el.style.opacity    = '0.55';
+      el.style.background = 'var(--bg2)';
+      el.style.cursor     = 'default';
+      el.style.userSelect = 'none';
       el.style.pointerEvents = 'none';
-      el.style.opacity       = '0.55';
-      el.style.background    = 'var(--bg2)';
-      el.style.cursor        = 'default';
-    } else {
-      el.removeAttribute('readonly');
-      el.removeAttribute('tabindex');
-      el.removeAttribute('onfocus');
+      // Belt-and-suspenders: revert on every input/change/keydown
+      el.oninput  = () => _revertLockedField(el);
+      el.onchange = () => _revertLockedField(el);
+      el.onkeydown = e => { e.preventDefault(); _revertLockedField(el); };
+      el.onfocus  = () => el.blur();
+    });
+  } else {
+    _modalLockedValues = null;
+    fieldIds.forEach(fid => {
+      const el = document.getElementById(fid);
+      if(!el) return;
+      el.style.opacity    = '';
+      el.style.background = '';
+      el.style.cursor     = '';
+      el.style.userSelect = '';
       el.style.pointerEvents = '';
-      el.style.opacity       = '';
-      el.style.background    = '';
-      el.style.cursor        = '';
-    }
-  });
-  // <select> ignores readonly — use pointer-events + tabindex instead
-  const visaEl = document.getElementById('aps-visa');
-  if(visaEl){
-    if(isCatalog){
-      visaEl.setAttribute('tabindex', '-1');
-      visaEl.setAttribute('onfocus', 'this.blur()');
-      visaEl.style.pointerEvents = 'none';
-      visaEl.style.opacity       = '0.55';
-      visaEl.style.background    = 'var(--bg2)';
-      visaEl.style.cursor        = 'default';
-    } else {
-      visaEl.removeAttribute('tabindex');
-      visaEl.removeAttribute('onfocus');
-      visaEl.style.pointerEvents = '';
-      visaEl.style.opacity       = '';
-      visaEl.style.background    = '';
-      visaEl.style.cursor        = '';
-    }
+      el.oninput   = null;
+      el.onchange  = null;
+      el.onkeydown = null;
+      el.onfocus   = null;
+    });
   }
   if(lockNote) lockNote.style.display = isCatalog ? 'block' : 'none';
 }
@@ -5286,7 +5291,13 @@ function openM(type,data={}){
   }
   document.getElementById('ov-'+type).classList.add('open');
 }
-function closeM(type){document.getElementById('ov-'+type).classList.remove('open');}
+function closeM(type){
+  document.getElementById('ov-'+type).classList.remove('open');
+  if(type === 'app'){
+    _modalLockedValues = null;
+    _applyModalCatalogLock(false);  // always unlock on close so next open starts clean
+  }
+}
 function sv(id,val){const e=document.getElementById(id);if(e)e.value=val;}
 function gv(id){const e=document.getElementById(id);return e?e.value.trim():'';}
 
