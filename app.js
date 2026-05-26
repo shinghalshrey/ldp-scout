@@ -2349,10 +2349,30 @@ function toggleSchool(btn){ addSchool(btn.getAttribute('data-school')); }
 let _icsItem = null;
 function openICSModal(item){
   _icsItem = item;
+  const dl = new Date(item.deadline);
   const title = document.getElementById('ics-modal-title');
-  const sub = document.getElementById('ics-modal-sub');
-  if(title) title.textContent = `Deadline reminder — ${item.name}`;
-  if(sub) sub.textContent = `${item.org} · ${new Date(item.deadline).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}`;
+  const sub   = document.getElementById('ics-modal-sub');
+  if(title) title.textContent = `Add deadline reminder — ${item.name}`;
+  if(sub)   sub.textContent   = `${item.org} · ${dl.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}`;
+
+  // Build deep-links — Phase 3: one-click, no OAuth.
+  // Google Calendar: event on the deadline date, 1-day duration.
+  const dateStr  = dl.toISOString().split('T')[0].replace(/-/g,'');
+  const dateNext = new Date(dl.getTime() + 86400000).toISOString().split('T')[0].replace(/-/g,'');
+  const evTitle  = encodeURIComponent(`DEADLINE: ${item.name} (${item.org})`);
+  const evDetails= encodeURIComponent(`Application deadline tracked via LDP Scout.\nhttps://ldpscout.com`);
+  const gcalUrl  = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${evTitle}&dates=${dateStr}/${dateNext}&details=${evDetails}`;
+
+  // Outlook web (office.com compose URL)
+  const olStart  = dl.toISOString().split('T')[0]; // YYYY-MM-DD
+  const olEnd    = new Date(dl.getTime() + 86400000).toISOString().split('T')[0];
+  const outlookUrl = `https://outlook.office.com/calendar/deeplink/compose?subject=${evTitle}&startdt=${olStart}&enddt=${olEnd}&body=${evDetails}`;
+
+  const gcalBtn    = document.getElementById('ics-gcal-btn');
+  const outlookBtn = document.getElementById('ics-outlook-btn');
+  if(gcalBtn)    gcalBtn.href    = gcalUrl;
+  if(outlookBtn) outlookBtn.href = outlookUrl;
+
   document.getElementById('ics-modal-overlay').classList.add('open');
 }
 function confirmICS(mode){
@@ -3508,7 +3528,6 @@ function resolveProgramView(p){
            || null;
   const deadline = (app && app.deadline) || (p.deadline || '');
   if(app && app.deadline){
-    console.log('[overlay] user deadline wins for program', p.id, '→', app.deadline, '(catalog was', (p.deadline||'none')+')');
   }
   return {
     ...p,
@@ -4451,8 +4470,43 @@ function exportAllDeadlines(){
   toast(`📅 Exported ${dated.length} deadline${dated.length===1?'':'s'} — open the file to import into your calendar`);
 }
 
+// Phase 3: Client-side CSV export of the user's pipeline.
+// Columns: Program, Organisation, Geography, Function, Sector, Stage,
+//          Started/Applied On, Deadline, Next Step, Alumni Contact, Notes.
+// Data comes entirely from apps[] — no server round-trip. Safe: this is the
+// user's own data (data-portability). No sensitive data beyond what they entered.
+function exportPipelineCSV(){
+  if(!apps || apps.length === 0){
+    toast('No applications in your pipeline yet.');
+    return;
+  }
+  const escape = v => {
+    const s = String(v == null ? '' : v).replace(/\r?\n/g, ' ');
+    return s.includes(',') || s.includes('"') || s.includes('\n')
+      ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const headers = ['Program','Organisation','Geography','Function','Sector',
+                   'Stage','Started/Applied On','Deadline','Next Step','Alumni Contact','Notes'];
+  const stageLabel = s => ({
+    shortlisted:'Shortlisted', networking:'Networking', drafting:'Drafting',
+    applied:'Applied', interview:'Interview', offer:'Offer', rejected:'Rejected'
+  }[s] || s || '');
+  const rows = apps.map(a => [
+    a.name, a.org, a.geo, a.fn, a.sector,
+    stageLabel(a.status), a.date, a.deadline, a.next, a.contact, a.notes
+  ].map(escape).join(','));
+  const csv  = [headers.join(','), ...rows].join('\r\n');
+  const date = new Date().toISOString().split('T')[0];
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+  const el   = document.createElement('a');
+  el.href    = URL.createObjectURL(blob);
+  el.download = `ldp-pipeline-${date}.csv`;
+  el.click();
+  setTimeout(() => URL.revokeObjectURL(el.href), 1000);
+  toast(`✓ Exported ${apps.length} application${apps.length===1?'':'s'} to CSV`);
+}
+
 function downloadICS(item, mode='multi'){
-  const dl=new Date(item.deadline);
   const fmt=d=>{const s=d.toISOString().replace(/[-:]/g,'').split('.')[0]+'Z';return s;};
   const uid=`ldpscout-${Date.now()}@ldpscout.app`;
   const now=fmt(new Date());
@@ -5323,7 +5377,6 @@ function autoFillFromProgram(name){
   const hid = document.getElementById('aps-program-id');
   if(hid){
     hid.value = p ? p.id : '';
-    console.log('[overlay] program_id capture →', hid.value || '(blank → user-added)', 'for input', JSON.stringify(name||''));
   }
   if(!p){
     // User typed a custom name — unlock fn/sector/url/visa for free entry
@@ -5395,7 +5448,6 @@ async function saveApp(){
     if(dup){
       a.id  = dup.id;        // target the existing row → saveApplicationToDB updates it
       a._db = dup._db;
-      console.log('[overlay] log matched existing row', dup.id, '— updating instead of inserting');
     }
   }
   // ────────────────────────────────────────────────────────────────────────────

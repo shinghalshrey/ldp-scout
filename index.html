@@ -422,7 +422,7 @@
 
         <div class="al-pro-tip prog-tip">
           <div class="al-pro-tip-title">💡 Pro Tip</div>
-          <p>Click any row to open program details. Use the <strong>Stage</strong> dropdown to add a program to your pipeline at any stage.</p>
+          <p>Click <strong>✏️</strong> on any row to log or edit your application. Use the <strong>Stage</strong> dropdown to move a program through your pipeline.</p>
         </div>
       </div>
     </aside>
@@ -551,6 +551,7 @@
   <div class="filter-row" style="margin-bottom:18px">
     <input class="si-input" id="app-search" type="text" placeholder="Search applications..." oninput="renderApplications()">
     <div class="spacer"></div>
+    <button class="add-btn" style="background:transparent;color:var(--text2);border:1px solid var(--border2);margin-right:8px" onclick="exportPipelineCSV()" title="Download your pipeline as a CSV spreadsheet">⬇ Export CSV</button>
     <button class="add-btn" onclick="openM('app')">+ Log Application</button>
   </div>
   <div class="kanban" id="app-kanban"></div>
@@ -817,24 +818,32 @@
   </div>
 </div>
 
-<!-- ICS REMINDER CHOICE MODAL -->
+<!-- CALENDAR REMINDER MODAL — Phase 3: deep-links (Google + Outlook) + ICS fallback -->
 <div class="ics-modal-overlay" id="ics-modal-overlay">
   <div class="ics-modal">
-    <h3 id="ics-modal-title">Set a deadline reminder</h3>
-    <div class="ics-modal-sub" id="ics-modal-sub">Choose how many reminders you want for this deadline.</div>
-    <div class="ics-how">
-      <strong>How it works:</strong> Clicking either option downloads a single <code>.ics</code> calendar file. Open it and your calendar app (Google Calendar, Outlook, Apple Calendar) will import the event automatically — with your chosen reminders already built in. One file, all reminders.
-    </div>
-    <div class="ics-options">
-      <div class="ics-opt" onclick="confirmICS('multi')">
-        <div class="ics-opt-icon">🔔🔔🔔</div>
-        <div class="ics-opt-title">Multiple Reminders</div>
-        <div class="ics-opt-desc">Alerts at 30 days, 7 days, and 1 day before the deadline — recommended for important programs</div>
-      </div>
-      <div class="ics-opt" onclick="confirmICS('single')">
-        <div class="ics-opt-icon">🔔</div>
-        <div class="ics-opt-title">One Reminder</div>
-        <div class="ics-opt-desc">A single alert 7 days before the deadline — good for programs you're keeping an eye on</div>
+    <h3 id="ics-modal-title">Add deadline reminder</h3>
+    <div class="ics-modal-sub" id="ics-modal-sub"></div>
+    <div class="ics-options" id="ics-cal-options" style="margin-top:16px;display:flex;flex-direction:column;gap:10px">
+      <a id="ics-gcal-btn" href="#" target="_blank" rel="noopener noreferrer" class="ics-opt ics-opt-link" style="text-decoration:none">
+        <div class="ics-opt-icon">📅</div>
+        <div>
+          <div class="ics-opt-title">Google Calendar</div>
+          <div class="ics-opt-desc">Opens a pre-filled event in Google Calendar — one click to save</div>
+        </div>
+      </a>
+      <a id="ics-outlook-btn" href="#" target="_blank" rel="noopener noreferrer" class="ics-opt ics-opt-link" style="text-decoration:none">
+        <div class="ics-opt-icon">📆</div>
+        <div>
+          <div class="ics-opt-title">Outlook / Office 365</div>
+          <div class="ics-opt-desc">Opens Outlook web calendar with the event pre-filled</div>
+        </div>
+      </a>
+      <div class="ics-opt" onclick="confirmICS('multi')" style="cursor:pointer">
+        <div class="ics-opt-icon">⬇️</div>
+        <div>
+          <div class="ics-opt-title">Download .ics file</div>
+          <div class="ics-opt-desc">For Apple Calendar or desktop Outlook — imports with 30/7/1-day reminders built in</div>
+        </div>
       </div>
     </div>
     <button class="ics-cancel" onclick="document.getElementById('ics-modal-overlay').classList.remove('open')">Cancel</button>

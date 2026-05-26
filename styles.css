@@ -80,15 +80,18 @@ input, textarea, select, button { font-family: inherit; }
 /* TABLE */
 .table-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow)}
 .thead{display:grid;grid-template-columns:2.2fr 1fr 0.9fr 0.8fr .6fr .7fr .5fr 110px 70px;padding:9px 16px;border-bottom:1px solid var(--border);background:var(--bg3)}
-.th{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em}
+.th{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;text-align:center}
+.th:first-child{text-align:left}
 /* Phase 10: sortable column headers */
-.th.sortable{cursor:pointer;user-select:none;display:flex;align-items:center;gap:5px;transition:color .1s}
+.th.sortable{cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:center;gap:5px;transition:color .1s}
+.th.sortable:first-child{justify-content:flex-start}
 .th.sortable:hover{color:var(--text2)}
 .th.sortable .th-arrow{display:inline-block;font-size:9px;opacity:0;transition:opacity .15s;color:var(--accent)}
 .th.sortable:hover .th-arrow{opacity:.4}
 .th.sortable.sorted{color:var(--accent)}
 .th.sortable.sorted .th-arrow{opacity:1}
 .prow{display:grid;grid-template-columns:2.2fr 1fr 0.9fr 0.8fr .6fr .7fr .5fr 110px 70px;padding:13px 16px;border-bottom:1px solid var(--border);align-items:center;transition:background .1s}
+.prow > div:not(:first-child){text-align:center;display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:4px}
 .prow:last-child{border-bottom:none}
 .prow:hover{background:var(--bg3)}
 .pname{font-size:13px;font-weight:500;line-height:1.3}
@@ -121,7 +124,7 @@ input, textarea, select, button { font-family: inherit; }
 
 /* Kanban card: program_type badge (typographic, no color) */
 .apptype{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-top:4px;font-weight:500}
-.cell{font-size:12px;color:var(--text2)}
+.cell{font-size:12px;color:var(--text2);text-align:center}
 .mono{font-family:var(--mono);font-size:11px}
 
 /* Phase 14: Pipeline column on Programs table — Save / Saved state */
@@ -633,16 +636,16 @@ input, textarea, select, button { font-family: inherit; }
 .ics-modal-overlay.show{display:flex}
 .ics-modal{background:var(--bg2);border:1px solid var(--border2);border-radius:16px;padding:28px;width:460px;max-width:95vw;box-shadow:var(--shadow-md)}
 .ics-modal h3{font-family:var(--serif);font-size:18px;font-weight:400;margin-bottom:6px}
-.ics-modal-sub{font-size:12px;color:var(--text2);line-height:1.65;margin-bottom:20px}
-.ics-how{background:var(--blue-bg);border:1px solid rgba(26,79,168,.12);border-left:3px solid var(--blue);border-radius:0 8px 8px 0;padding:10px 14px;margin-bottom:20px;font-size:11px;color:var(--text2);line-height:1.65}
-.ics-how strong{color:var(--blue)}
-.ics-options{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
-.ics-opt{border:1.5px solid var(--border2);border-radius:10px;padding:16px;cursor:pointer;background:var(--bg3);transition:all .15s;text-align:center}
+.ics-modal-sub{font-size:12px;color:var(--text2);line-height:1.65;margin-bottom:16px}
+.ics-options{display:flex;flex-direction:column;gap:10px;margin-bottom:4px}
+.ics-opt{border:1.5px solid var(--border2);border-radius:10px;padding:14px 16px;cursor:pointer;background:var(--bg3);transition:all .15s;display:flex;align-items:center;gap:14px;text-align:left}
 .ics-opt:hover{border-color:var(--accent);background:var(--accent-bg)}
-.ics-opt-icon{font-size:22px;margin-bottom:8px}
-.ics-opt-title{font-size:13px;font-weight:600;margin-bottom:4px}
+.ics-opt-link{color:var(--text);display:flex;align-items:center;gap:14px;text-decoration:none}
+.ics-opt-link:hover{border-color:var(--accent)!important;background:var(--accent-bg)!important}
+.ics-opt-icon{font-size:20px;flex-shrink:0}
+.ics-opt-title{font-size:13px;font-weight:600;margin-bottom:3px}
 .ics-opt-desc{font-size:10px;color:var(--text3);line-height:1.5}
-.ics-cancel{font-size:12px;color:var(--text3);background:none;border:none;cursor:pointer;font-family:var(--sans);text-decoration:underline;display:block;margin:0 auto}
+.ics-cancel{font-size:12px;color:var(--text3);background:none;border:none;cursor:pointer;font-family:var(--sans);text-decoration:underline;display:block;margin:12px auto 0}
 
 /* FIT PROMPT BANNER */
 .fit-prompt-banner{display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,var(--accent-bg),#f0faf5);border:1px solid rgba(29,106,69,.2);border-radius:10px;padding:11px 16px;margin-bottom:16px;cursor:pointer;transition:all .15s}
