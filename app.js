@@ -4466,8 +4466,10 @@ function exportAllDeadlines(){
   const sanitize = s => String(s||'').replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\r?\n/g,'\\n');
 
   const events = dated.map((it, idx) => {
-    const dl = new Date(it.deadline);
+    const dl      = new Date(it.deadline);
+    const dlNext  = new Date(dl.getTime() + 86400000);
     const dateStr = dl.toISOString().split('T')[0].replace(/-/g,'');
+    const dateEnd = dlNext.toISOString().split('T')[0].replace(/-/g,'');
     const uid = `ldpscout-bulk-${Date.now()}-${idx}@ldpscout.app`;
     const sumName = sanitize(it.name);
     const sumOrg  = sanitize(it.org);
@@ -4475,13 +4477,12 @@ function exportAllDeadlines(){
       'BEGIN:VEVENT',
       `UID:${uid}`,
       `DTSTART;VALUE=DATE:${dateStr}`,
-      `DTEND;VALUE=DATE:${dateStr}`,
+      `DTEND;VALUE=DATE:${dateEnd}`,
       `DTSTAMP:${now}`,
       `SUMMARY:DEADLINE: ${sumName} (${sumOrg})`,
-      `DESCRIPTION:Application deadline tracked via LDP Scout.`,
-      'BEGIN:VALARM','TRIGGER:-P30D','ACTION:DISPLAY',`DESCRIPTION:30 days until ${sumName} deadline`,'END:VALARM',
-      'BEGIN:VALARM','TRIGGER:-P7D','ACTION:DISPLAY',`DESCRIPTION:7 days until ${sumName} deadline`,'END:VALARM',
-      'BEGIN:VALARM','TRIGGER:-P1D','ACTION:DISPLAY',`DESCRIPTION:Tomorrow: ${sumName} deadline — submit today!`,'END:VALARM',
+      `DESCRIPTION:Application deadline — ${sumOrg}. Tracked via LDP Scout (ldpscout.com).`,
+      'BEGIN:VALARM','TRIGGER:-P6DT15H','ACTION:DISPLAY',`DESCRIPTION:7 days until your ${sumName} deadline — start finalising`,'END:VALARM',
+      'BEGIN:VALARM','TRIGGER:-PT15H','ACTION:DISPLAY',`DESCRIPTION:Tomorrow is the ${sumName} deadline — submit today!`,'END:VALARM',
       'END:VEVENT'
     ].join('\r\n');
   });
@@ -4543,27 +4544,41 @@ function exportPipelineCSV(){
 }
 
 function downloadICS(item, mode='multi'){
-  const dl  = new Date(item.deadline);
-  const fmt = d => d.toISOString().replace(/[-:]/g,'').split('.')[0]+'Z';
-  const uid = `ldpscout-${Date.now()}@ldpscout.app`;
-  const now = fmt(new Date());
-  const dateStr = dl.toISOString().split('T')[0].replace(/-/g,'');
+  const dl      = new Date(item.deadline);
+  // For all-day events, DTEND must be the day AFTER the event (exclusive).
+  // DTSTART = DTEND causes zero-duration events; alarm triggers misfire.
+  const dlNext  = new Date(dl.getTime() + 86400000);
+  const fmtDate = d => d.toISOString().split('T')[0].replace(/-/g,'');
+  const fmtStamp= d => d.toISOString().replace(/[-:]/g,'').split('.')[0]+'Z';
+  const uid     = `ldpscout-${Date.now()}@ldpscout.app`;
+  const now     = fmtStamp(new Date());
+  const dateStr = fmtDate(dl);
+  const dateEnd = fmtDate(dlNext);   // exclusive end = deadline + 1 day
 
-  // Two reminder modes:
-  // 'multi'  → 7 days before + 1 day before
-  // 'single' → 1 day before only
+  // TRIGGER uses RELATED=START (relative to event start = deadline day).
+  // -P1D  = fire at start of the day before the deadline (midnight local time).
+  // -P7D  = fire 7 days before the deadline.
+  // Using -PT9H so the alarm fires at ~9am local time rather than midnight.
+  // For all-day events, START is midnight; -P1DT0H = midnight the night before,
+  // which many apps silence. -PT15H = 9am day before is the reliable choice.
   const progName = item.name;
   const alarmLines = mode === 'single'
     ? [
-        'BEGIN:VALARM', 'TRIGGER:-P1D', 'ACTION:DISPLAY',
+        'BEGIN:VALARM',
+        'TRIGGER:-PT15H',   // 9am the day before the deadline
+        'ACTION:DISPLAY',
         `DESCRIPTION:Tomorrow is the ${progName} deadline — submit today!`,
         'END:VALARM'
       ]
     : [
-        'BEGIN:VALARM', 'TRIGGER:-P7D', 'ACTION:DISPLAY',
+        'BEGIN:VALARM',
+        'TRIGGER:-P6DT15H', // 9am, 7 days before the deadline
+        'ACTION:DISPLAY',
         `DESCRIPTION:7 days until your ${progName} deadline — time to finalise your application`,
         'END:VALARM',
-        'BEGIN:VALARM', 'TRIGGER:-P1D', 'ACTION:DISPLAY',
+        'BEGIN:VALARM',
+        'TRIGGER:-PT15H',   // 9am the day before the deadline
+        'ACTION:DISPLAY',
         `DESCRIPTION:Tomorrow is the ${progName} deadline — submit today!`,
         'END:VALARM'
       ];
@@ -4574,7 +4589,7 @@ function downloadICS(item, mode='multi'){
     'BEGIN:VEVENT',
     `UID:${uid}`,
     `DTSTART;VALUE=DATE:${dateStr}`,
-    `DTEND;VALUE=DATE:${dateStr}`,
+    `DTEND;VALUE=DATE:${dateEnd}`,   // next day — correct all-day format
     `DTSTAMP:${now}`,
     `SUMMARY:DEADLINE: ${item.name} (${item.org})`,
     `DESCRIPTION:Application deadline — ${item.org}. Tracked via LDP Scout (ldpscout.com).`,
