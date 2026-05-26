@@ -499,9 +499,8 @@ async function fetchProgramsFromSupabase() {
 
     progsLoadedFromDb = true;
     console.log(`[LDP Scout] ✓ Loaded ${progs.length} programs from Supabase`);
-    // Phase 16 (P3): keep all user-visible "N programs" strings in sync with the
-    // actual DB count instead of the legacy hardcoded "48".
     updateProgramCountInUI();
+    _initProgSuggestionsDatalist();   // Task 27B.2 perf: populate datalist once here, not on every modal open
     return true;
 
   } catch (e) {
@@ -3093,7 +3092,7 @@ function renderPrograms(){
         <div>
           <div class="pname">${p.url?`<a href="${esc(p.url)}" target="_blank" rel="noopener noreferrer" style="color:var(--text);text-decoration:none;border-bottom:1px solid var(--border2);padding-bottom:1px" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--text)'">${esc(p.name)}</a>`:esc(p.name)}</div>
           <div class="porg">${esc(p.org)}${p.visa?` <span style="font-size:10px;color:var(--teal);font-weight:600;margin-left:4px">✓ Visa</span>`:''}</div>
-          <div class="tags">${(p.tags||[]).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}${verifiedBadge(p)}${rv.inPipeline?`<button class="row-edit-btn" onclick="openEditModalForProgram(${p.id})" title="Edit your notes, deadline, stage…">✏️</button>`:''}</div>
+          <div class="tags">${(p.tags||[]).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}${verifiedBadge(p)}<button class="row-edit-btn" onclick="openEditModalForProgram(${p.id})" title="Log application / edit notes, deadline…">✏️</button></div>
         </div>
         <div class="cell">${cap(p.fn)}</div>
         <div class="cell">${cap(p.sector)}</div>
@@ -3276,7 +3275,7 @@ function _mobileCardHTML(p){
       <div class="pmc-actions">
         <div class="pmc-stage-wrap">${renderStageDropdown(p)}</div>
         ${reminderBtn}
-        ${rv.inPipeline ? `<button class="row-edit-btn" onclick="openEditModalForProgram(${p.id})" title="Edit notes, deadline…" style="opacity:0.5;font-size:13px">✏️</button>` : ''}
+        <button class="row-edit-btn" onclick="openEditModalForProgram(${p.id})" title="Log application / edit notes…" style="opacity:0.5;font-size:13px">✏️</button>
       </div>
     </div>
   `;
@@ -5171,6 +5170,67 @@ function reuploadResume(){
 }
 
 // ═══════════════ MODALS ═══════════════
+
+// Task 27B.2: Shared lock/unlock for the catalog-managed fields in the app modal.
+// Called from openM (on modal open) AND autoFillFromProgram (when user switches
+// programs mid-modal). Uses pointer-events:none + readonly instead of disabled so
+// gv() still reads the value; onfocus blur so keyboard tab can't land in the field.
+function _applyModalCatalogLock(isCatalog){
+  const lockNote = document.getElementById('aps-catalog-lock-note');
+  ['aps-fn','aps-sector','aps-url'].forEach(fid => {
+    const el = document.getElementById(fid);
+    if(!el) return;
+    if(isCatalog){
+      el.setAttribute('readonly', '');
+      el.setAttribute('tabindex', '-1');
+      el.setAttribute('onfocus', 'this.blur()');
+      el.style.pointerEvents = 'none';
+      el.style.opacity       = '0.55';
+      el.style.background    = 'var(--bg2)';
+      el.style.cursor        = 'default';
+    } else {
+      el.removeAttribute('readonly');
+      el.removeAttribute('tabindex');
+      el.removeAttribute('onfocus');
+      el.style.pointerEvents = '';
+      el.style.opacity       = '';
+      el.style.background    = '';
+      el.style.cursor        = '';
+    }
+  });
+  // <select> ignores readonly — use pointer-events + tabindex instead
+  const visaEl = document.getElementById('aps-visa');
+  if(visaEl){
+    if(isCatalog){
+      visaEl.setAttribute('tabindex', '-1');
+      visaEl.setAttribute('onfocus', 'this.blur()');
+      visaEl.style.pointerEvents = 'none';
+      visaEl.style.opacity       = '0.55';
+      visaEl.style.background    = 'var(--bg2)';
+      visaEl.style.cursor        = 'default';
+    } else {
+      visaEl.removeAttribute('tabindex');
+      visaEl.removeAttribute('onfocus');
+      visaEl.style.pointerEvents = '';
+      visaEl.style.opacity       = '';
+      visaEl.style.background    = '';
+      visaEl.style.cursor        = '';
+    }
+  }
+  if(lockNote) lockNote.style.display = isCatalog ? 'block' : 'none';
+}
+
+// Performance: populate the prog-suggestions datalist ONCE after programs load,
+// not on every modal open (was O(n) DOM rebuild every click).
+// Called from fetchProgramsFromSupabase() after progs[] is populated.
+function _initProgSuggestionsDatalist(){
+  const dl = document.getElementById('prog-suggestions');
+  if(!dl) return;
+  dl.innerHTML = progs.map(p =>
+    `<option value="${(p.name||'').replace(/"/g,'&quot;')}">${(p.org||'').replace(/"/g,'&quot;')}</option>`
+  ).join('');
+}
+
 function openM(type,data={}){
   eId[type==='prog'?'prog':type==='alumni'?'alumni':'app']=data.id||null;
   if(type==='prog'){
@@ -5189,14 +5249,7 @@ function openM(type,data={}){
     sv('ai-notes',data.notes||'');
   }
   if(type==='app'){
-    // Phase 9: populate program-name autocomplete from the catalog programs.
-    // User can type freely (custom program) OR pick from the dropdown — picking auto-fills other empty fields.
-    const dl = document.getElementById('prog-suggestions');
-    if(dl){
-      dl.innerHTML = progs.map(p =>
-        `<option value="${(p.name||'').replace(/"/g,'&quot;')}">${(p.org||'').replace(/"/g,'&quot;')}</option>`
-      ).join('');
-    }
+    // datalist is pre-populated by _initProgSuggestionsDatalist() after programs load — no rebuild needed here.
     sv('aps-name',data.name||'');sv('aps-org',data.org||'');sv('aps-geo',data.geo||'');
     sv('aps-program-id',data.program_id||'');   // Task 27A: preserve link when editing a tracked app
     sv('aps-status',data.status||'shortlisted');
@@ -5216,45 +5269,9 @@ function openM(type,data={}){
       ? (_cp.visa === true ? 'yes' : _cp.visa === false ? 'no' : '')
       : (data.visa === true || data.visa === 'yes' ? 'yes' : data.visa === false || data.visa === 'no' ? 'no' : '');
     sv('aps-visa', _visaVal);
-    // Lock fn/sector/url/visa for catalog programs so users understand these are catalog-managed.
-    // IMPORTANT: use pointer-events:none + readonly (NOT disabled) — disabled inputs return ''
-    // from gv(), which would wipe fn/sector/url on save. readonly prevents editing while
-    // keeping the value readable. pointer-events:none stops click/focus on mobile too.
-    // For user-added programs, all fields are freely editable.
-    const _lockNote = document.getElementById('aps-catalog-lock-note');
-    ['aps-fn','aps-sector','aps-url','aps-visa'].forEach(fid => {
-      const el = document.getElementById(fid);
-      if(!el) return;
-      if(_isCatalog){
-        el.setAttribute('readonly', '');
-        el.style.pointerEvents = 'none';
-        el.style.opacity = '0.6';
-        el.style.background = 'var(--bg2)';
-        el.title = 'Set by the catalog — not user-editable';
-      } else {
-        el.removeAttribute('readonly');
-        el.style.pointerEvents = '';
-        el.style.opacity = '';
-        el.style.background = '';
-        el.title = '';
-      }
-    });
-    // Also lock the visa select — readonly doesn't work on <select>, so we swap
-    // the select to a visually identical disabled state but preserve the value for gv().
-    const _visaEl = document.getElementById('aps-visa');
-    if(_visaEl){
-      if(_isCatalog){
-        _visaEl.style.pointerEvents = 'none';
-        _visaEl.style.opacity = '0.6';
-        _visaEl.style.background = 'var(--bg2)';
-      } else {
-        _visaEl.style.pointerEvents = '';
-        _visaEl.style.opacity = '';
-        _visaEl.style.background = '';
-      }
-    }
-    // Show/hide the "catalog lock" note below the fn/sector row
-    if(_lockNote) _lockNote.style.display = _isCatalog ? 'block' : 'none';
+    // Apply catalog lock/unlock — shared with autoFillFromProgram so switching
+    // programs mid-modal always reflects the correct lock state.
+    _applyModalCatalogLock(_isCatalog);
     // Dynamic delete/remove button label: catalog program → "Remove from pipeline",
     // user-added or new entry → "Delete". Button is hidden when no existing row.
     const _delBtn = document.getElementById('aps-delete-btn');
@@ -5274,35 +5291,46 @@ function sv(id,val){const e=document.getElementById(id);if(e)e.value=val;}
 function gv(id){const e=document.getElementById(id);return e?e.value.trim():'';}
 
 // Phase 9: when the user picks a tracked program from the Application modal's autocomplete,
-// fill in any EMPTY adjacent fields (org, geo, deadline). Never overwrite fields the user has typed.
+// fill in org, geo, deadline, fn, sector, url, visa from the catalog. ALWAYS overwrite
+// these when a catalog program is matched — the user deliberately picked a program from
+// the list, so stale values from a previously-selected program must not linger.
+// Task 27B.2: also apply/remove the catalog lock on fn/sector/url/visa when the user
+// switches programs mid-modal.
 function autoFillFromProgram(name){
   const target = (name || '').trim().toLowerCase();
-  // Task 27A — program_id capture. This runs on EVERY input event (oninput).
-  // Exact case-insensitive name match → store that catalog program's id in the
-  // hidden field. ANY other state (empty box, partial text, no match, or text
-  // edited after a pick so it no longer matches) → BLANK the hidden field.
-  // The clear (else → '') is load-bearing: without it a stale id from an earlier
-  // pick stays attached to a now-different name and saveApp would silently write
-  // the wrong link. Set AND clear, every event. Do not delete the blank branch.
+  // Task 27A — program_id capture. Runs on EVERY input event.
+  // Exact match → set id. Any other state → blank. Do not remove the blank branch.
   const p = target ? progs.find(x => (x.name||'').toLowerCase() === target) : null;
   const hid = document.getElementById('aps-program-id');
   if(hid){
     hid.value = p ? p.id : '';
     console.log('[overlay] program_id capture →', hid.value || '(blank → user-added)', 'for input', JSON.stringify(name||''));
   }
-  if(!p) return;   // free-typed custom name — leave the visible fields alone
+  if(!p){
+    // User typed a custom name — unlock fn/sector/url/visa for free entry
+    _applyModalCatalogLock(false);
+    return;
+  }
+  // Matched a catalog program — always overwrite adjacent fields (don't check if empty,
+  // so switching from one program to another refreshes all values correctly).
   const orgEl = document.getElementById('aps-org');
   const geoEl = document.getElementById('aps-geo');
   const dlEl  = document.getElementById('aps-deadline');
-  // Map internal geo keys to friendly labels for the free-text geo field
+  const fnEl  = document.getElementById('aps-fn');
+  const secEl = document.getElementById('aps-sector');
+  const urlEl = document.getElementById('aps-url');
+  const visaEl= document.getElementById('aps-visa');
   const geoLabel = ({europe:'Europe', uae:'UAE / Gulf', global:'Global'})[p.geo] || p.geo || '';
-  const filled = [];
-  if(orgEl && !orgEl.value.trim() && p.org)      { orgEl.value = p.org;       filled.push('Org'); }
-  if(geoEl && !geoEl.value.trim() && geoLabel)   { geoEl.value = geoLabel;    filled.push('Geo'); }
-  if(dlEl  && !dlEl.value         && p.deadline) { dlEl.value  = p.deadline;  filled.push('Deadline'); }
-  if(filled.length){
-    toast(`Auto-filled from ${p.org}: ${filled.join(' · ')}`);
-  }
+  if(orgEl)  orgEl.value  = p.org      || '';
+  if(geoEl)  geoEl.value  = geoLabel;
+  if(dlEl && p.deadline) dlEl.value = p.deadline;
+  if(fnEl)   fnEl.value   = p.fn       || '';
+  if(secEl)  secEl.value  = p.sector   || '';
+  if(urlEl)  urlEl.value  = p.url      || '';
+  if(visaEl) visaEl.value = p.visa === true ? 'yes' : p.visa === false ? 'no' : '';
+  // Lock catalog-managed fields
+  _applyModalCatalogLock(true);
+  toast(`Auto-filled from ${p.org}`);
 }
 
 // ═══════════════ SAVE ═══════════════
