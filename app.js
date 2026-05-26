@@ -1609,7 +1609,10 @@ async function loadUserApplications(){
       deadline: r.deadline||'',
       next: r.next_step||'',
       contact: r.contact||'',
-      notes: r.notes||''
+      notes: r.notes||'',
+      fn: r.fn||'',             // Phase 1: user-added program metadata
+      sector: r.sector||'',
+      url: r.url||''
     }));
   } catch(e){
     console.warn('loadUserApplications failed:', e);
@@ -1630,7 +1633,10 @@ async function saveApplicationToDB(app){
     deadline:   app.deadline || null,
     next_step:  app.next || null,
     contact:    app.contact || null,
-    notes:      app.notes || null
+    notes:      app.notes || null,
+    fn:         app.fn || null,        // Phase 1: user-added program metadata
+    sector:     app.sector || null,
+    url:        app.url || null
   };
   try {
     if(app.id && app._db){
@@ -2877,9 +2883,13 @@ function _userAddedRows(){
       id: 'ua-' + a.id,     // synthetic, namespaced — never collides with catalog ids
       _userAdded: true,
       _appId: a.id,
-      name: a.name, org: a.org || '', geo: a.geo || '',
+      name: a.name, org: a.org || '', geo: a.geo || '', loc: a.geo || '',
+      fn: a.fn || '', sector: a.sector || '', url: a.url || '',
       status: a.status || 'shortlisted',
-      deadline: a.deadline || ''
+      deadline: a.deadline || '',
+      // fields the catalog filter/sort touch — kept present & inert so neither throws
+      dlnote: '', tags: [], fit: 0, visa: false, last_verified_at: null, notes: a.notes || '',
+      aiTier: null
     }));
 }
 
@@ -2889,14 +2899,17 @@ function _userAddedRows(){
 function _userAddedRowHTML(p){
   const dl = p.deadline ? new Date(p.deadline).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '—';
   const stageLbl = (STAGE_BY_KEY[p.status]?.label) || p.status || '—';
+  const nameHtml = p.url
+    ? `<a href="${esc(p.url)}" target="_blank" rel="noopener noreferrer" class="pname">${esc(p.name)}</a>`
+    : `<div class="pname">${esc(p.name)}</div>`;
   return `<div class="prow">
     <div>
-      <div class="pname">${esc(p.name)}</div>
+      ${nameHtml}
       <div class="porg">${esc(p.org)}</div>
       <div class="tags"><span class="tag" style="background:var(--accent-bg);color:var(--accent);font-weight:600">★ Added by you</span></div>
     </div>
-    <div class="cell">—</div>
-    <div class="cell">—</div>
+    <div class="cell">${p.fn ? esc(cap(p.fn)) : '—'}</div>
+    <div class="cell">${p.sector ? esc(cap(p.sector)) : '—'}</div>
     <div class="cell">${esc(p.geo||'—')}</div>
     <div class="cell mono" style="font-size:10px;line-height:1.5">${dl}</div>
     <div><span class="badge b-closed">—</span></div>
@@ -2919,7 +2932,7 @@ function _userAddedCardHTML(p){
       <div class="pmc-head">
         <div class="pmc-logo">${esc(_initials(p.org))}</div>
         <div class="pmc-title-wrap">
-          <div class="pmc-title">${esc(p.name)}</div>
+          <div class="pmc-title">${p.url ? `<a href="${esc(p.url)}" target="_blank" rel="noopener noreferrer">${esc(p.name)}</a>` : esc(p.name)}</div>
           <div class="pmc-org">${esc(p.org||'')}</div>
         </div>
       </div>
@@ -2948,6 +2961,8 @@ function renderPrograms(){
   // Task 19.2 — keep sidebar active-filter count badges in sync with F state.
   _refreshSidebarBadges();
   const q=(document.getElementById('prog-search')||{}).value?.toLowerCase()||'';
+  // Visa filter disclaimer — case-by-case sponsorship caveat
+  const _vn=document.getElementById('visa-note'); if(_vn) _vn.style.display = window._visaOnly ? 'block' : 'none';
   // Phase 10: persist search text whenever this runs (oninput → renderPrograms)
   _persistFilterState();
   let list=progs.filter(p=>{
@@ -3015,26 +3030,38 @@ function renderPrograms(){
     return '<span class="fit-tier ft-stretch">Stretch</span>';
   };
 
+  // Phase 1 (Task 27B.1) — user-added programs are now first-class on this list.
+  // They carry their own geo/fn/sector, so they obey those filters and the search box
+  // exactly like catalog rows. They have no catalog App Cycle / AI Fit / visa / verified
+  // equivalent, so any of THOSE filters hides them. They're always in the pipeline, so the
+  // My-Pipeline filter keeps them. Pinned to the top (added after the catalog sort).
+  const _uaAll = _userAddedRows();                       // unfiltered — drives the Total count
+  const _catalogOnlyFilter = F.st.size || window._fitOnly || window._visaOnly || window._verifiedOnly;
+  let _uaRows = _catalogOnlyFilter ? [] : _uaAll.filter(p => {
+    if(F.geo.size    && !F.geo.has(p.geo))       return false;
+    if(F.fn.size     && !F.fn.has(p.fn))         return false;
+    if(F.sector.size && !F.sector.has(p.sector)) return false;
+    if(q && !p.name.toLowerCase().includes(q) && !p.org.toLowerCase().includes(q)) return false;
+    return true;   // pipeline filter: user-added are always in the pipeline → always pass
+  });
+
+  // Total = catalog + THIS user's user-added rows (per-user: User B, who added nothing, sees only the catalog count).
+  const _total = progs.length + _uaAll.length;
+  const _shown = list.length + _uaRows.length;
+
   // Phase 9: count line is prominent when filters narrow the result set
   const metaEl = document.getElementById('prog-meta');
   if(metaEl){
-    if(list.length === progs.length){
+    if(_shown === _total){
       metaEl.className = 'results-meta';
-      metaEl.textContent = `Showing all ${progs.length} programs`;
+      metaEl.textContent = `Showing all ${_total} programs`;
     } else {
       metaEl.className = 'results-meta filtered';
-      metaEl.innerHTML = `<span><strong>${list.length}</strong> of ${progs.length} programs match your filters</span>
+      metaEl.innerHTML = `<span><strong>${_shown}</strong> of ${_total} programs match your filters</span>
         <button class="results-meta-clear" onclick="clearAll()">Clear filters</button>`;
     }
   }
 
-  // Task 27B — prepend user-added programs. Hidden when any catalog-specific filter
-  // is active (they have no fn/sector/fit to match). Search box still filters them by
-  // name/org. Pinned to the top of the list. Meta count above intentionally reflects
-  // catalog programs only, so it stays accurate against progs.length.
-  const _anyCatalogFilter = F.geo.size||F.fn.size||F.sector.size||F.st.size||window._fitOnly||window._visaOnly||window._verifiedOnly;
-  let _uaRows = _anyCatalogFilter ? [] : _userAddedRows();
-  if(q) _uaRows = _uaRows.filter(p => p.name.toLowerCase().includes(q) || p.org.toLowerCase().includes(q));
   if(_uaRows.length) list = [..._uaRows, ...list];
 
   document.getElementById('prog-list').innerHTML=list.length===0
@@ -3081,7 +3108,7 @@ function renderPrograms(){
 
   document.getElementById('prog-stats').innerHTML=`
     <div class="stat-card sc-total ${anyFilterActive?'sc-active':''}" onclick="clearAll()" title="Click to clear all filters">
-      <div class="stat-num cn">${progs.length}</div>
+      <div class="stat-num cn">${_total}</div>
       <div class="stat-lbl">Total Programs</div>
       <div class="stat-hint">Clear filters</div>
     </div>
@@ -5134,6 +5161,12 @@ function openM(type,data={}){
     sv('aps-date',data.date||new Date().toISOString().split('T')[0]);
     sv('aps-deadline',data.deadline||'');sv('aps-next',data.next||'');
     sv('aps-contact',data.contact||'');sv('aps-notes',data.notes||'');
+    // Phase 1: fn/sector/url — prefer the user's saved values; for an existing
+    // catalog-linked program, fall back to the catalog so they're visible on open.
+    const _cp = data.program_id ? progs.find(x=>x.id===data.program_id) : null;
+    sv('aps-fn',     data.fn     || (_cp&&_cp.fn     ? _cp.fn     : ''));
+    sv('aps-sector', data.sector || (_cp&&_cp.sector ? _cp.sector : ''));
+    sv('aps-url',    data.url    || (_cp&&_cp.url     ? _cp.url     : ''));
   }
   document.getElementById('ov-'+type).classList.add('open');
 }
@@ -5197,7 +5230,8 @@ async function saveApp(){
     program_id: gv('aps-program-id') ? Number(gv('aps-program-id')) : null,  // Task 27A.1: numeric FK (hidden field is a string) — keeps id-matching working before reload
     name:gv('aps-name'), org:gv('aps-org'), geo:gv('aps-geo'),
     status:gv('aps-status'), date:gv('aps-date'), deadline:gv('aps-deadline'),
-    next:gv('aps-next'), contact:gv('aps-contact'), notes:gv('aps-notes')
+    next:gv('aps-next'), contact:gv('aps-contact'), notes:gv('aps-notes'),
+    fn:gv('aps-fn'), sector:gv('aps-sector'), url:gv('aps-url')   // Phase 1: user-added program metadata
   };
   if(!a.name){alert('Program/role name required.');return;}
 
