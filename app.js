@@ -4453,28 +4453,61 @@ function exportAllDeadlines(){
     const dtStart = `${yr}${String(mo).padStart(2,'0')}${String(dy).padStart(2,'0')}T000000`;
     const nd = new Date(yr, mo - 1, dy + 1);
     const dtEnd = `${nd.getFullYear()}${String(nd.getMonth()+1).padStart(2,'0')}${String(nd.getDate()).padStart(2,'0')}T000000`;
-    const uid = `ldpscout-bulk-${Date.now()}-${idx}@ldpscout.app`;
+    const uid = `ldpscout-bulk-${Date.now()}-${idx}`;
     const sumName = sanitize(it.name);
     const sumOrg  = sanitize(it.org);
-    return [
+
+    // Helper: format a Date as YYYYMMDDT033000Z (9am IST = 03:30 UTC)
+    const fmtR  = d => `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}T033000Z`;
+    const fmtRE = d => `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}T043000Z`;
+
+    const d1 = new Date(yr, mo - 1, dy - 1);
+    const d7 = new Date(yr, mo - 1, dy - 7);
+
+    // Deadline all-day event
+    const deadlineEv = [
       'BEGIN:VEVENT',
-      `UID:${uid}`,
+      `UID:${uid}-deadline@ldpscout.com`,
       `DTSTART:${dtStart}`,
       `DTEND:${dtEnd}`,
       `DTSTAMP:${now}`,
       `SUMMARY:DEADLINE: ${sumName} (${sumOrg})`,
-      `DESCRIPTION:Application deadline — ${sumOrg}. Tracked via LDP Scout (ldpscout.com).`,
+      `DESCRIPTION:Application deadline - ${sumOrg}. Tracked via LDP Scout (ldpscout.com).`,
       'TRANSP:TRANSPARENT',
       'X-MICROSOFT-CDO-ALLDAYEVENT:TRUE',
       'X-MICROSOFT-CDO-BUSYSTATUS:FREE',
-      `BEGIN:VALARM`,`UID:${uid}-alarm1`,`ACTION:DISPLAY`,`TRIGGER;RELATED=START:-P6DT15H`,`DESCRIPTION:7 days until your ${sumName} deadline — time to finalise`,`END:VALARM`,
-      `BEGIN:VALARM`,`UID:${uid}-alarm2`,`ACTION:DISPLAY`,`TRIGGER;RELATED=START:-PT15H`,`DESCRIPTION:Tomorrow is the ${sumName} deadline — submit today!`,`END:VALARM`,
       'END:VEVENT'
-    ].join('\r\n');
+    ];
+
+    // 7-day reminder
+    const rem7 = [
+      'BEGIN:VEVENT',
+      `UID:${uid}-rem7d@ldpscout.com`,
+      `DTSTART:${fmtR(d7)}`,
+      `DTEND:${fmtRE(d7)}`,
+      `DTSTAMP:${now}`,
+      `SUMMARY:LDP Scout: ${sumName} deadline in 7 days`,
+      `DESCRIPTION:${sumName} (${sumOrg}) deadline is ${String(dy).padStart(2,'0')}/${String(mo).padStart(2,'0')}/${yr}. Apply at ldpscout.com.`,
+      'END:VEVENT'
+    ];
+
+    // 1-day reminder
+    const rem1 = [
+      'BEGIN:VEVENT',
+      `UID:${uid}-rem1d@ldpscout.com`,
+      `DTSTART:${fmtR(d1)}`,
+      `DTEND:${fmtRE(d1)}`,
+      `DTSTAMP:${now}`,
+      `SUMMARY:LDP Scout: ${sumName} deadline TOMORROW`,
+      `DESCRIPTION:${sumName} (${sumOrg}) deadline is tomorrow. Apply at ldpscout.com.`,
+      'END:VEVENT'
+    ];
+
+    return [...deadlineEv, ...rem7, ...rem1].join('\r\n');
   });
 
   const ics = [
-    'BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//LDP Scout//EN','CALSCALE:GREGORIAN',
+    'BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//LDP Scout//ldpscout.com//EN','CALSCALE:GREGORIAN','METHOD:PUBLISH',
     ...events,
     'END:VCALENDAR'
   ].join('\r\n');
@@ -4533,73 +4566,76 @@ function downloadICS(item, mode='multi'){
   // Parse date parts from string directly — never use new Date() on a date string
   // because JS parses YYYY-MM-DD as UTC midnight, wrong in non-UTC timezones.
   const [year, month, day] = item.deadline.split('-').map(Number);
-  const yy = String(year);
-  const mm = String(month).padStart(2,'0');
-  const dd = String(day).padStart(2,'0');
 
-  // Next calendar day for DTEND (RFC 5545: all-day DTEND is exclusive = day+1)
-  const nd  = new Date(year, month - 1, day + 1);
-  const yy2 = String(nd.getFullYear());
-  const mm2 = String(nd.getMonth()+1).padStart(2,'0');
-  const dd2 = String(nd.getDate()).padStart(2,'0');
-
-  // FLOATING datetime: DTSTART:20261015T000000 (no TZID, no trailing Z).
-  // Floating = "midnight wherever the user's calendar is set."
-  // VALUE=DATE is mishandled by Outlook web (converts to UTC midnight → 5:30am IST).
-  // Floating datetime is the correct cross-platform solution for deadline reminders.
-  // TRIGGER:-PT15H on floating midnight = 9am the day before, in local time. ✓
-  // TRIGGER:-P6DT15H on floating midnight = 9am, 7 days before, in local time. ✓
-  const dtStart = `${yy}${mm}${dd}T000000`;
-  const dtEnd   = `${yy2}${mm2}${dd2}T000000`;
   const dtStamp = new Date().toISOString().replace(/[-:]/g,'').split('.')[0]+'Z';
-  const uid     = `ldpscout-${Date.now()}@ldpscout.app`;
+  const baseUid = `ldpscout-${Date.now()}`;
 
-  const progName = item.name;
-  // CRITICAL: each VALARM needs its own UID. Outlook and Apple Calendar
-  // deduplicate VALARMs that lack unique identifiers — that is why a 2-reminder
-  // file was only producing 1 reminder. RELATED=START makes the trigger
-  // explicitly relative to the event start (the deadline).
-  const alarmLines = mode === 'single'
-    ? [
-        'BEGIN:VALARM',
-        `UID:${uid}-alarm1`,
-        'ACTION:DISPLAY',
-        'TRIGGER;RELATED=START:-PT15H',
-        `DESCRIPTION:Tomorrow is the ${progName} deadline — submit today!`,
-        'END:VALARM'
-      ]
-    : [
-        'BEGIN:VALARM',
-        `UID:${uid}-alarm1`,
-        'ACTION:DISPLAY',
-        'TRIGGER;RELATED=START:-P6DT15H',
-        `DESCRIPTION:7 days until your ${progName} deadline — time to finalise`,
-        'END:VALARM',
-        'BEGIN:VALARM',
-        `UID:${uid}-alarm2`,
-        'ACTION:DISPLAY',
-        'TRIGGER;RELATED=START:-PT15H',
-        `DESCRIPTION:Tomorrow is the ${progName} deadline — submit today!`,
-        'END:VALARM'
-      ];
+  const sanitize = s => String(s||'').replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\r?\n/g,'\\n');
+  const sumName = sanitize(item.name);
+  const sumOrg  = sanitize(item.org);
+
+  // Helper: format a Date as YYYYMMDDT033000Z (9am IST = 03:30 UTC)
+  const fmtReminder = d => `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}T033000Z`;
+  const fmtReminderEnd = d => `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}T043000Z`;
+
+  // Deadline all-day event (floating datetime, no Z/TZID)
+  const yy = String(year), mm = String(month).padStart(2,'0'), dd = String(day).padStart(2,'0');
+  const nd = new Date(year, month - 1, day + 1);
+  const yy2 = String(nd.getFullYear()), mm2 = String(nd.getMonth()+1).padStart(2,'0'), dd2 = String(nd.getDate()).padStart(2,'0');
+
+  const deadlineEvent = [
+    'BEGIN:VEVENT',
+    `UID:${baseUid}-deadline@ldpscout.com`,
+    `DTSTART:${yy}${mm}${dd}T000000`,
+    `DTEND:${yy2}${mm2}${dd2}T000000`,
+    `DTSTAMP:${dtStamp}`,
+    `SUMMARY:DEADLINE: ${sumName} (${sumOrg})`,
+    `DESCRIPTION:Application deadline - ${sumOrg}. Tracked via LDP Scout (ldpscout.com).`,
+    'TRANSP:TRANSPARENT',
+    'X-MICROSOFT-CDO-ALLDAYEVENT:TRUE',
+    'X-MICROSOFT-CDO-BUSYSTATUS:FREE',
+    'END:VEVENT'
+  ];
+
+  // Reminder events as separate VEVENTs (Outlook-safe — no VALARMs)
+  const reminderEvents = [];
+
+  // 1-day-before reminder (always present)
+  const d1 = new Date(year, month - 1, day - 1);
+  reminderEvents.push([
+    'BEGIN:VEVENT',
+    `UID:${baseUid}-rem1d@ldpscout.com`,
+    `DTSTART:${fmtReminder(d1)}`,
+    `DTEND:${fmtReminderEnd(d1)}`,
+    `DTSTAMP:${dtStamp}`,
+    `SUMMARY:LDP Scout: ${sumName} deadline TOMORROW`,
+    `DESCRIPTION:${sumName} (${sumOrg}) deadline is tomorrow. Apply at ldpscout.com.`,
+    'END:VEVENT'
+  ]);
+
+  // 7-day-before reminder (multi mode only)
+  if(mode === 'multi'){
+    const d7 = new Date(year, month - 1, day - 7);
+    reminderEvents.push([
+      'BEGIN:VEVENT',
+      `UID:${baseUid}-rem7d@ldpscout.com`,
+      `DTSTART:${fmtReminder(d7)}`,
+      `DTEND:${fmtReminderEnd(d7)}`,
+      `DTSTAMP:${dtStamp}`,
+      `SUMMARY:LDP Scout: ${sumName} deadline in 7 days`,
+      `DESCRIPTION:${sumName} (${sumOrg}) deadline is ${dd}/${mm}/${yy}. Apply at ldpscout.com.`,
+      'END:VEVENT'
+    ]);
+  }
 
   const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//LDP Scout//EN',
+    'PRODID:-//LDP Scout//ldpscout.com//EN',
     'CALSCALE:GREGORIAN',
-    'BEGIN:VEVENT',
-    `UID:${uid}`,
-    `DTSTART:${dtStart}`,
-    `DTEND:${dtEnd}`,
-    `DTSTAMP:${dtStamp}`,
-    `SUMMARY:DEADLINE: ${item.name} (${item.org})`,
-    `DESCRIPTION:Application deadline — ${item.org}. Tracked via LDP Scout (ldpscout.com).`,
-    'TRANSP:TRANSPARENT',
-    'X-MICROSOFT-CDO-ALLDAYEVENT:TRUE',
-    'X-MICROSOFT-CDO-BUSYSTATUS:FREE',
-    ...alarmLines,
-    'END:VEVENT',
+    'METHOD:PUBLISH',
+    ...deadlineEvent,
+    ...reminderEvents.flat(),
     'END:VCALENDAR'
   ];
 
