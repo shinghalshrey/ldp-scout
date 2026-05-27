@@ -1409,6 +1409,17 @@ function updateFitTabIndicator(){
 // "Tour this page" links inside info cards re-run on demand.
 
 const TOURS = {
+  command: [
+    {target:'#cc-stat-row',      title:'Your pipeline at a glance', body:'Active applications, networking in progress, submitted, and offers. These update live as your pipeline changes.'},
+    {target:'#cc-funnel-bar',    title:'The pipeline funnel',       body:'Every application by stage, sized proportionally. A quick read on where your pipeline is strong — and where it\u2019s thin.'},
+    {target:'#cc-target-grid',   title:'Where you\u2019re aiming',   body:'The geographies, sectors, and functions your pipeline leans toward. Helps you see whether you\u2019re focused or spread thin.'},
+    {target:'.cc-quick-actions', title:'Jump back in',              body:'Shortcuts to the things you do most — browse programs, log an application, or run an AI fit scan.'}
+  ],
+  networking: [
+    {target:'#nt-overview',     title:'Your outreach at a glance', body:'Total contacts, active conversations, unique companies reached, and referrals landed.'},
+    {target:'.nt-filter-rail',  title:'Filter your contacts',      body:'Narrow by status or company, or surface everyone who needs a follow-up so no conversation goes cold.'},
+    {target:'.nt-add-btn',      title:'Log a new contact',         body:'Add alumni, recruiters, anyone in your network. Track each one from first message all the way to a referral.'}
+  ],
   programs: [
     {target:'#prog-stats',         title:'Pipeline at a glance',  body:'Snapshot of all tracked LDPs by status — open, rolling, watch-list, and closed. Updates as you filter below.'},
     {target:'.prog-sidebar',       title:'Filter and search',     body:'Use the sidebar to narrow the list. Expand any section: Quick Filters (Visa), Geography, Function, Sector, or App Cycle. Search matches program names, firms, and keywords. Active filters appear in the stat row above.'},
@@ -1462,6 +1473,14 @@ function maybeAutoTour(pageKey){
   if(!TOURS[pageKey]) return;                                // unknown page
   if(_isTourSeen(pageKey)) return;                           // already seen (Supabase OR LS)
   if(document.querySelector('.overlay.open')) return;        // another modal is up (e.g. onboarding)
+  // Command Center first-run: the dashboard (#cc-body) is hidden behind the
+  // empty state, so every tour step would target a zero-size element and the
+  // tour would silently "complete" without showing anything — then never
+  // re-fire. Defer the tour until the user actually has a populated dashboard.
+  if(pageKey === 'command'){
+    const body = document.getElementById('cc-body');
+    if(!body || body.style.display === 'none') return;
+  }
   // 30-second stack lock: if another tour just ended, don't immediately start a new one
   if(Date.now() - _lastTourTime < 30000) return;
   _lastTourTime = Date.now();
