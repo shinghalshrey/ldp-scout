@@ -2708,7 +2708,19 @@ async function saveProfileChanges(){
 // Onboarding now lives in the onb* state machine; paywall was removed (isUnlocked = true).
 
 // ═══════════════ NAV ═══════════════
-const PAGE_ORDER=['command','programs','aifit','alumni','applications','networking','deadlines'];
+
+// GA helper — safe wrapper around gtag(). No-ops silently if GA isn't loaded
+// (dev environment, ad-blocker, etc.). Cookie consent / GA consent mode is a
+// separate Step 4 task; for now events fire unconditionally on page load.
+function _ga(eventName, params){
+  try {
+    if(typeof gtag === 'function'){
+      gtag('event', eventName, params || {});
+    }
+  } catch(e){ /* swallow */ }
+}
+
+const PAGE_ORDER=['command','programs','aifit','alumni','applications','networking','deadlines','market'];
 function showPage(id){
   // Hard-gate: must be signed in to access any tab
   if(!currentUser){
@@ -2725,8 +2737,11 @@ function showPage(id){
 
   // Task 19.2.3: persist last-active page so refresh lands on the same tab.
   try { localStorage.setItem('ldps_last_page', id); } catch {}
-  
-  ({command:renderCommandCenter,programs:()=>{_restoreSidebarSections();renderPrograms();},alumni:()=>{initAlumniSchoolDrop();renderAlumniSectorList();renderAlumniSearch();},applications:renderApplications,networking:renderContacts,deadlines:renderDeadlines,aifit:loadAndRenderLastScan})[id]?.();
+
+  // GA: fire a tab_view event on every page switch.
+  _ga('tab_view', {tab: id});
+
+  ({command:renderCommandCenter,programs:()=>{_restoreSidebarSections();renderPrograms();},alumni:()=>{initAlumniSchoolDrop();renderAlumniSectorList();renderAlumniSearch();},applications:renderApplications,networking:renderContacts,deadlines:renderDeadlines,aifit:loadAndRenderLastScan,market:renderMarketIntel})[id]?.();
 
   // Task 19 — apply personalization for this page (header text, etc.) AFTER
   // the page's render function runs so any DOM the render function builds is
@@ -4804,6 +4819,9 @@ async function runAIAnalysis(){
   _aifitScanning = true;
   clearAifitDwell();
 
+  // GA: scan initiated (fires after quota gate — only real attempts counted).
+  _ga('scan_run');
+
   // Vercel proxy handles the API key — no key needed in the browser
   const PROXY_URL = 'https://ldp-proxy.vercel.app/api/scan';
 
@@ -5565,11 +5583,16 @@ async function saveApp(){
   }
   // ────────────────────────────────────────────────────────────────────────────
 
+  // GA: new application (not an edit, not a de-dup update of an existing row).
+  const _isNewApp = !a._db;
+
   // Persist to Supabase
   const newId = await saveApplicationToDB(a);
   if(!newId){ return; }   // toast already shown by saveApplicationToDB
   a.id = newId;
   a._db = true;
+
+  if(_isNewApp) _ga('application_logged', {program_name: a.name, org: a.org||''});
 
   // Update in-memory cache: replace the matched/edited row if present, else prepend.
   const ci = apps.findIndex(x => String(x.id) === String(a.id));
@@ -6275,6 +6298,7 @@ async function saveContact(){
         last_contacted:row.last_contacted||'', follow_up_date:row.follow_up_date||'',
         notes:row.notes||'', related_app_id:row.related_app_id||null,
       });
+      _ga('contact_created');
       toast('Contact saved.');
     }
     closeContactModal();
@@ -6301,4 +6325,64 @@ async function deleteContact(){
     console.warn('deleteContact failed:',e);
     toast('Delete failed — please try again.');
   }
+}
+
+// ═══════════════ MARKET INTELLIGENCE (fake-door) ═══════════════
+// Renders a "Coming soon" panel. No data needed.
+// GA event fired on notify-me click via marketIntelNotify().
+
+function renderMarketIntel(){
+  const el = document.getElementById('page-market');
+  if(!el) return;
+  el.innerHTML = `
+    <header class="page-editorial-header" id="market-header">
+      <div class="page-editorial-eyebrow-row">
+        <div class="page-editorial-eyebrow"><span>Market Intelligence · coming soon</span></div>
+      </div>
+      <h1 class="page-editorial-h1">Market Intelligence</h1>
+      <p class="page-editorial-subline">Outcome data, salary benchmarks, and programme intel — all in one place.</p>
+    </header>
+
+    <div class="mi-coming-soon-wrap">
+      <div class="mi-coming-soon-card">
+        <div class="mi-cs-icon">⚡</div>
+        <h2 class="mi-cs-headline">Coming soon</h2>
+        <p class="mi-cs-body">We're building something useful here — aggregate outcome data from past LDP applicants, historical salary benchmarks, and a way to book a coaching session with an alumni who's been through the process.</p>
+        <p class="mi-cs-body">Hit "Notify me" and you'll be first to know when it's ready.</p>
+        <button class="mi-notify-btn" onclick="marketIntelNotify(this)">Notify me when it's ready</button>
+      </div>
+
+      <div class="mi-teaser-grid">
+        <div class="mi-teaser-card mi-teaser-locked">
+          <div class="mi-teaser-icon">📊</div>
+          <div class="mi-teaser-label">Outcome data</div>
+          <div class="mi-teaser-desc">Where past applicants landed — by school, function, and geography.</div>
+          <div class="mi-lock-chip">Coming soon</div>
+        </div>
+        <div class="mi-teaser-card mi-teaser-locked">
+          <div class="mi-teaser-icon">💰</div>
+          <div class="mi-teaser-label">Salary benchmarks</div>
+          <div class="mi-teaser-desc">Compensation ranges across LDP tracks, anonymised and aggregated.</div>
+          <div class="mi-lock-chip">Coming soon</div>
+        </div>
+        <div class="mi-teaser-card mi-teaser-locked">
+          <div class="mi-teaser-icon">🗓️</div>
+          <div class="mi-teaser-label">Book a coaching session</div>
+          <div class="mi-teaser-desc">30-minute 1:1 with an alumni who's done the LDP circuit. Real talk, no fluff.</div>
+          <div class="mi-lock-chip">Coming soon</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function marketIntelNotify(btn){
+  // GA: user expressed interest in Market Intelligence (fake-door conversion).
+  _ga('market_intel_notify');
+  if(btn){
+    btn.disabled = true;
+    btn.textContent = '✓ We\'ll let you know';
+    btn.style.background = 'var(--teal)';
+  }
+  toast('Got it — we\'ll ping you when Market Intelligence is ready.');
 }
