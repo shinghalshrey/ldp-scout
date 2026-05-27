@@ -277,10 +277,12 @@
     <div class="brand-name">LDP <span>Scout</span></div>
   </div>
   <div class="nav-tabs">
+    <button class="nav-tab" data-short="Home" onclick="showPage('command')">Command Center</button>
     <button class="nav-tab active" data-short="Programs" onclick="showPage('programs')">Programs</button>
     <button class="nav-tab" data-short="AI Fit" onclick="showPage('aifit')">✦ AI Fit Scan</button>
     <button class="nav-tab" data-short="Alumni" onclick="showPage('alumni')">Alumni Finder</button>
     <button class="nav-tab" data-short="Apps" onclick="showPage('applications')">My Applications</button>
+    <button class="nav-tab" data-short="Networking" onclick="showPage('networking')">Networking</button>
     <button class="nav-tab" data-short="Deadlines" onclick="showPage('deadlines')">Deadlines</button>
   </div>
   <div class="topbar-right">
@@ -643,6 +645,87 @@
   </div>
 </div>
 
+<!-- COMMAND CENTER PAGE -->
+<div class="page" id="page-command">
+  <header class="page-editorial-header" id="command-header">
+    <div class="page-editorial-eyebrow-row">
+      <div class="page-editorial-eyebrow"><span id="command-eyebrow-text">Your command center · pipeline at a glance</span></div>
+      <a class="page-tour-link" onclick="tourStart('command')" title="Walk through this page">Tour this page →</a>
+    </div>
+    <h1 class="page-editorial-h1" id="command-h1">Command Center</h1>
+    <p class="page-editorial-subline" id="command-subline">Everything you need to know about your LDP pipeline in one place.</p>
+  </header>
+
+  <!-- Section A: Pipeline stat cards -->
+  <div class="cc-stat-row" id="cc-stat-row"></div>
+
+  <!-- Section B: Pipeline funnel -->
+  <section class="cc-section">
+    <div class="cc-section-head">
+      <h2 class="cc-section-title">Pipeline funnel</h2>
+      <span class="cc-section-meta" id="cc-funnel-total"></span>
+    </div>
+    <div class="cc-funnel-wrap">
+      <div class="cc-funnel-bar" id="cc-funnel-bar" role="img" aria-label="Pipeline funnel"></div>
+      <div class="cc-funnel-legend" id="cc-funnel-legend"></div>
+    </div>
+  </section>
+
+  <!-- Sections C + D: Two columns -->
+  <div class="cc-two-col cc-section">
+    <!-- C: Upcoming deadlines -->
+    <div>
+      <div class="cc-section-head">
+        <h2 class="cc-section-title">Upcoming deadlines · 30 days</h2>
+        <a class="cc-section-link" onclick="showPage('deadlines')" href="#">See all →</a>
+      </div>
+      <div class="cc-list-card" id="cc-deadlines-list"></div>
+    </div>
+    <!-- D: Next steps -->
+    <div>
+      <div class="cc-section-head">
+        <h2 class="cc-section-title">Next steps · action items</h2>
+        <a class="cc-section-link" onclick="showPage('applications')" href="#">See all →</a>
+      </div>
+      <div class="cc-list-card" id="cc-nextsteps-list"></div>
+    </div>
+  </div>
+
+  <!-- Section E: Quick actions -->
+  <div class="cc-quick-actions">
+    <button class="cc-ghost-btn" onclick="showPage('programs')">Browse Programs →</button>
+    <button class="cc-ghost-btn" onclick="openM('app')">Log an Application →</button>
+    <button class="cc-ghost-btn" onclick="showPage('aifit')">Run AI Fit Scan →</button>
+  </div>
+</div>
+
+<!-- NETWORKING TRACKER PAGE -->
+<div class="page" id="page-networking">
+  <header class="page-editorial-header" id="networking-header">
+    <div class="page-editorial-eyebrow-row">
+      <div class="page-editorial-eyebrow"><span id="networking-eyebrow-text">Networking tracker · outreach &amp; connections</span></div>
+      <a class="page-tour-link" onclick="tourStart('networking')" title="Walk through this page">Tour this page →</a>
+    </div>
+    <h1 class="page-editorial-h1" id="networking-h1">Networking Tracker</h1>
+    <p class="page-editorial-subline" id="networking-subline">Track your outreach, follow-ups, and referrals. Every connection counts.</p>
+  </header>
+
+  <!-- Toolbar -->
+  <div class="nt-toolbar">
+    <div class="nt-search-wrap">
+      <input class="nt-search" id="nt-search" type="search" placeholder="Search contacts..." oninput="renderContacts()" />
+    </div>
+    <div style="flex:1"></div>
+    <button class="nt-add-btn" onclick="openContactModal(null)">+ Add Contact</button>
+  </div>
+
+  <!-- Stats strip -->
+  <div class="nt-stats-strip" id="nt-stats-strip"></div>
+
+  <!-- Contact list -->
+  <div class="nt-contact-list" id="nt-contact-list"></div>
+</div>
+
 </div><!-- /main -->
 
 <!-- PROGRAM MODAL — Task 19.2: REMOVED (Path A architecture).
@@ -861,6 +944,71 @@
     <div style="display:flex;gap:8px">
       <button class="tour-btn ghost" id="tour-skip-btn" onclick="tourSkip()">Skip</button>
       <button class="tour-btn" id="tour-next-btn" onclick="tourNext()">Next</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONTACT MODAL (Networking Tracker) -->
+<div class="ics-modal-overlay" id="contact-modal-overlay" onclick="if(event.target===this) closeContactModal()">
+  <div class="ics-modal" style="max-width:520px">
+    <h3 id="contact-modal-title">Add Contact</h3>
+    <div class="ics-modal-sub" id="contact-modal-sub">Track a new alumni or recruiter conversation.</div>
+
+    <div class="fgrid" style="margin-top:16px">
+      <div class="fg full">
+        <label>Full Name <span style="color:var(--coral)">*</span></label>
+        <input id="ct-name" class="nt-modal-input" placeholder="e.g. Priya Shah" />
+      </div>
+      <div class="fg">
+        <label>Company / Program</label>
+        <input id="ct-company" class="nt-modal-input" list="ct-prog-datalist" placeholder="Search programs..." />
+        <datalist id="ct-prog-datalist"></datalist>
+      </div>
+      <div class="fg">
+        <label>Role / Title</label>
+        <input id="ct-role" class="nt-modal-input" placeholder="e.g. Senior Operations Manager" />
+      </div>
+      <div class="fg">
+        <label>LinkedIn URL</label>
+        <input id="ct-linkedin" class="nt-modal-input" type="url" placeholder="linkedin.com/in/..." />
+      </div>
+      <div class="fg">
+        <label>Email</label>
+        <input id="ct-email" class="nt-modal-input" type="email" placeholder="name@example.com" />
+      </div>
+      <div class="fg">
+        <label>Status <span style="color:var(--coral)">*</span></label>
+        <select id="ct-status" class="nt-modal-input">
+          <option value="identified">Identified</option>
+          <option value="reached_out">Reached Out</option>
+          <option value="responded">Responded</option>
+          <option value="call_scheduled">Call Scheduled</option>
+          <option value="call_done">Call Done</option>
+          <option value="referral_received">Referral Received</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>Last Contacted</label>
+        <input id="ct-last-contacted" class="nt-modal-input" type="date" />
+      </div>
+      <div class="fg full">
+        <label>Notes</label>
+        <textarea id="ct-notes" class="nt-modal-input" rows="3" placeholder="What was discussed, next steps, mutual connections..."></textarea>
+      </div>
+      <div class="fg full">
+        <label>Related Application</label>
+        <select id="ct-app-id" class="nt-modal-input">
+          <option value="">— None —</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="ct-err" style="display:none;font-size:12px;color:var(--coral);margin-top:10px;padding:8px 12px;background:#fee2e2;border-radius:6px;"></div>
+
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
+      <button onclick="closeContactModal()" style="background:transparent;border:1px solid var(--border2);color:var(--text2);padding:9px 16px;border-radius:8px;cursor:pointer;font-family:var(--sans);font-size:13px;">Cancel</button>
+      <button id="ct-delete-btn" style="display:none;background:transparent;border:1px solid rgba(192,57,43,.3);color:var(--coral);padding:9px 16px;border-radius:8px;cursor:pointer;font-family:var(--sans);font-size:13px;" onclick="deleteContact()">Delete</button>
+      <button id="ct-save-btn" onclick="saveContact()" style="background:var(--accent);color:#fff;border:none;padding:9px 18px;border-radius:8px;cursor:pointer;font-family:var(--sans);font-size:13px;font-weight:600;">Save Contact</button>
     </div>
   </div>
 </div>

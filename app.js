@@ -163,7 +163,19 @@ function applyPagePersonalization(pageId){
     }
   }
 
-  // ─── AI FIT SCAN (pre-scan view only) ──────────────────────────
+  // ─── COMMAND CENTER ────────────────────────────────────────────
+  if(pageId === 'command'){
+    const h1 = document.getElementById('command-h1');
+    if(h1) h1.textContent = firstName ? `${firstName}'s Command Center` : 'Command Center';
+  }
+
+  // ─── NETWORKING TRACKER ────────────────────────────────────────
+  if(pageId === 'networking'){
+    const h1 = document.getElementById('networking-h1');
+    if(h1) h1.textContent = firstName ? `${firstName}'s Networking` : 'Networking Tracker';
+  }
+
+
   // Post-scan summary is personalized inside renderAIResults() because that
   // view is template-rendered every time and a one-shot would be wiped.
   if(pageId === 'aifit'){
@@ -524,6 +536,7 @@ async function onSignIn(){
   // Load profile, applications, resume — all from Supabase
   await loadUserProfile();
   await loadUserApplications();
+  await loadUserContacts();
   await loadUserResume();
   // Task 19 — userProfile is now populated; refresh topbar and the active
   // page's header (sign-in path doesn't go through showPage(), which would
@@ -2672,7 +2685,7 @@ async function saveProfileChanges(){
 // Onboarding now lives in the onb* state machine; paywall was removed (isUnlocked = true).
 
 // ═══════════════ NAV ═══════════════
-const PAGE_ORDER=['programs','aifit','alumni','applications','deadlines'];
+const PAGE_ORDER=['command','programs','aifit','alumni','applications','networking','deadlines'];
 function showPage(id){
   // Hard-gate: must be signed in to access any tab
   if(!currentUser){
@@ -2690,7 +2703,7 @@ function showPage(id){
   // Task 19.2.3: persist last-active page so refresh lands on the same tab.
   try { localStorage.setItem('ldps_last_page', id); } catch {}
   
-  ({programs:()=>{_restoreSidebarSections();renderPrograms();},alumni:()=>{initAlumniSchoolDrop();renderAlumniSectorList();renderAlumniSearch();},applications:renderApplications,deadlines:renderDeadlines,aifit:loadAndRenderLastScan})[id]?.();
+  ({command:renderCommandCenter,programs:()=>{_restoreSidebarSections();renderPrograms();},alumni:()=>{initAlumniSchoolDrop();renderAlumniSectorList();renderAlumniSearch();},applications:renderApplications,networking:renderContacts,deadlines:renderDeadlines,aifit:loadAndRenderLastScan})[id]?.();
 
   // Task 19 — apply personalization for this page (header text, etc.) AFTER
   // the page's render function runs so any DOM the render function builds is
@@ -5647,3 +5660,404 @@ renderPrograms();
 // Set dynamic program count in topbar stats
 const pcEl=document.getElementById('prog-count');
 if(pcEl) pcEl.textContent=progs.length;
+
+
+// ═══════════════════════════════════════════════════════════════════
+// COMMAND CENTER
+// ═══════════════════════════════════════════════════════════════════
+
+function renderCommandCenter(){
+  _renderCCStats();
+  _renderCCFunnel();
+  _renderCCDeadlines();
+  _renderCCNextSteps();
+}
+
+function _renderCCStats(){
+  const row = document.getElementById('cc-stat-row');
+  if(!row) return;
+  const active    = apps.filter(a => a.status !== 'rejected').length;
+  const networking= apps.filter(a => a.status === 'networking').length;
+  const applied   = apps.filter(a => a.status === 'applied' || a.status === 'interview').length;
+  const offers    = apps.filter(a => a.status === 'offer').length;
+  row.innerHTML = `
+    <div class="cc-stat-card" style="--c:var(--accent)">
+      <div class="cc-stat-num">${active}</div>
+      <div class="cc-stat-label">Total Active</div>
+      <div class="cc-stat-sub">Across all stages</div>
+    </div>
+    <div class="cc-stat-card" style="--c:var(--blue)">
+      <div class="cc-stat-num">${networking}</div>
+      <div class="cc-stat-label">Networking</div>
+      <div class="cc-stat-sub">Outreach in progress</div>
+    </div>
+    <div class="cc-stat-card" style="--c:var(--amber)">
+      <div class="cc-stat-num">${applied}</div>
+      <div class="cc-stat-label">Applied</div>
+      <div class="cc-stat-sub">Submitted · awaiting</div>
+    </div>
+    <div class="cc-stat-card" style="--c:var(--teal)">
+      <div class="cc-stat-num">${offers}</div>
+      <div class="cc-stat-label">Offers</div>
+      <div class="cc-stat-sub">Decision pending</div>
+    </div>`;
+}
+
+function _renderCCFunnel(){
+  const bar    = document.getElementById('cc-funnel-bar');
+  const legend = document.getElementById('cc-funnel-legend');
+  const total  = document.getElementById('cc-funnel-total');
+  if(!bar || !legend) return;
+
+  const counts = {};
+  STAGES.forEach(s => { counts[s.key] = 0; });
+  apps.forEach(a => { if(counts[a.status] !== undefined) counts[a.status]++; });
+  const totalCount = apps.length;
+  if(total) total.textContent = `${totalCount} total tracked`;
+
+  // Build funnel bar — each segment flex proportional to count (min 0.3 so 0-count segs still visible)
+  bar.innerHTML = STAGES.map(s => {
+    const n = counts[s.key] || 0;
+    const flex = Math.max(0.3, n);
+    const txt  = n > 0 ? n : '';
+    const style = `flex:${flex};background:${s.color}`;
+    return `<div class="cc-funnel-seg" style="${style}" title="${s.label}: ${n}">${txt}</div>`;
+  }).join('');
+
+  legend.innerHTML = STAGES.map(s =>
+    `<span class="cc-legend-item">
+      <span class="cc-legend-dot" style="background:${s.color}"></span>
+      ${s.label}
+      <span class="cc-legend-count">${counts[s.key]}</span>
+    </span>`
+  ).join('');
+}
+
+function _renderCCDeadlines(){
+  const el = document.getElementById('cc-deadlines-list');
+  if(!el) return;
+
+  const today = new Date(); today.setHours(0,0,0,0);
+  const horizon = new Date(today.getTime() + 30*86400000);
+
+  const upcoming = apps
+    .filter(a => {
+      if(!a.deadline || a.status === 'rejected') return false;
+      const [yr,mo,dy] = a.deadline.split('-').map(Number);
+      const d = new Date(yr, mo-1, dy);
+      return d >= today && d <= horizon;
+    })
+    .sort((a,b) => {
+      const [ay,am,ad] = a.deadline.split('-').map(Number);
+      const [by,bm,bd] = b.deadline.split('-').map(Number);
+      return new Date(ay,am-1,ad) - new Date(by,bm-1,bd);
+    })
+    .slice(0,5);
+
+  if(upcoming.length === 0){
+    el.innerHTML = `<div class="cc-empty">No deadlines in the next 30 days. Browse programs to find your next target.</div>`;
+    return;
+  }
+
+  el.innerHTML = upcoming.map(a => {
+    const [yr,mo,dy] = a.deadline.split('-').map(Number);
+    const d = new Date(yr, mo-1, dy);
+    const daysLeft = Math.round((d - today) / 86400000);
+    const dateStr  = d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+    let pillClass = 'cc-pill-amber';
+    if(daysLeft <= 7) pillClass = 'cc-pill-coral';
+    const label = daysLeft === 0 ? 'Today' : `${daysLeft} day${daysLeft!==1?'s':''} left`;
+    return `<div class="cc-list-row">
+      <div class="cc-list-main">
+        <div class="cc-list-title">${_esc(a.name)}</div>
+        <div class="cc-list-sub">${_esc(a.org||'—')} · ${dateStr}</div>
+      </div>
+      <span class="cc-pill ${pillClass}">${label}</span>
+    </div>`;
+  }).join('');
+}
+
+function _renderCCNextSteps(){
+  const el = document.getElementById('cc-nextsteps-list');
+  if(!el) return;
+
+  const withNext = apps
+    .filter(a => a.next && a.next.trim() && a.status !== 'rejected')
+    .slice(0,5);
+
+  if(withNext.length === 0){
+    el.innerHTML = `<div class="cc-empty">No next steps logged yet. Add them from My Applications to keep track.</div>`;
+    return;
+  }
+
+  el.innerHTML = withNext.map(a => {
+    let dateLabel = '—';
+    if(a.deadline){
+      const [yr,mo,dy] = a.deadline.split('-').map(Number);
+      dateLabel = new Date(yr, mo-1, dy).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+    }
+    return `<div class="cc-list-row">
+      <div class="cc-list-main">
+        <div class="cc-list-title">${_esc(a.name)}</div>
+        <div class="cc-next-step">→ ${_esc(a.next)}</div>
+      </div>
+      <span class="cc-list-date">${dateLabel}</span>
+    </div>`;
+  }).join('');
+}
+
+
+// ═══════════════════════════════════════════════════════════════════
+// NETWORKING TRACKER
+// ═══════════════════════════════════════════════════════════════════
+
+let contacts = [];  // loaded from Supabase user_contacts
+let _editingContactId = null;
+
+const CONTACT_STATUSES = [
+  {key:'identified',       label:'Identified',       pillClass:'cc-pill-grey'},
+  {key:'reached_out',      label:'Reached Out',      pillClass:'cc-pill-blue'},
+  {key:'responded',        label:'Responded',        pillClass:'cc-pill-purple'},
+  {key:'call_scheduled',   label:'Call Scheduled',   pillClass:'cc-pill-amber'},
+  {key:'call_done',        label:'Call Done',        pillClass:'cc-pill-teal'},
+  {key:'referral_received',label:'Referral Received',pillClass:'cc-pill-accent'},
+];
+const STATUS_BY_KEY = Object.fromEntries(CONTACT_STATUSES.map(s=>[s.key,s]));
+
+async function loadUserContacts(){
+  if(!currentUser){ contacts = []; return; }
+  try {
+    const {data,error} = await sb.from('user_contacts').select('*').eq('user_id',currentUser.id).order('created_at',{ascending:false});
+    if(error) throw error;
+    contacts = (data||[]).map(r=>({
+      id: r.id,
+      full_name:    r.full_name,
+      company:      r.company||'',
+      program_id:   r.program_id||null,
+      role_title:   r.role_title||'',
+      linkedin_url: r.linkedin_url||'',
+      email:        r.email||'',
+      status:       r.status||'identified',
+      last_contacted:r.last_contacted||'',
+      notes:        r.notes||'',
+      related_app_id: r.related_app_id||null,
+    }));
+  } catch(e){
+    console.warn('loadUserContacts failed:',e);
+    contacts = [];
+  }
+}
+
+function renderContacts(){
+  const listEl  = document.getElementById('nt-contact-list');
+  const statsEl = document.getElementById('nt-stats-strip');
+  if(!listEl) return;
+
+  const q = (document.getElementById('nt-search')?.value||'').toLowerCase();
+  const filtered = contacts.filter(c => {
+    if(!q) return true;
+    return (c.full_name+c.company+c.role_title+c.notes).toLowerCase().includes(q);
+  });
+
+  // Stats strip
+  if(statsEl){
+    const total    = contacts.length;
+    const active   = contacts.filter(c=>['reached_out','responded','call_scheduled'].includes(c.status)).length;
+    const referrals= contacts.filter(c=>c.status==='referral_received').length;
+    const awaiting = contacts.filter(c=>c.status==='reached_out').length;
+    statsEl.innerHTML = `
+      <div class="nt-stat"><b>${total}</b> total contacts</div>
+      <div class="nt-stat"><b>${active}</b> active conversations</div>
+      <div class="nt-stat"><b>${referrals}</b> referrals received</div>
+      <div class="nt-stat"><b>${awaiting}</b> awaiting response</div>`;
+  }
+
+  // Empty state
+  if(filtered.length === 0){
+    if(contacts.length === 0){
+      listEl.innerHTML = `
+        <div class="nt-empty-state">
+          <h3>Start tracking your networking outreach</h3>
+          <p>Add contacts you're reaching out to at target companies. Track status from first message to referral.</p>
+          <button class="nt-add-btn" onclick="openContactModal(null)">+ Add Contact</button>
+        </div>`;
+    } else {
+      listEl.innerHTML = `<div class="nt-empty-state"><p>No contacts match your search.</p></div>`;
+    }
+    return;
+  }
+
+  listEl.innerHTML = filtered.map(c => {
+    const st = STATUS_BY_KEY[c.status] || {label:c.status, pillClass:'cc-pill-grey'};
+    const lastStr = c.last_contacted
+      ? (() => {
+          const [yr,mo,dy] = c.last_contacted.split('-').map(Number);
+          return 'Last contacted: ' + new Date(yr,mo-1,dy).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+        })()
+      : 'Not yet contacted';
+    const liLink = c.linkedin_url
+      ? `<a class="nt-li-link" href="${_esc(c.linkedin_url)}" target="_blank" rel="noopener" title="LinkedIn">in</a>`
+      : '';
+    const notesHtml = c.notes ? `<div class="nt-contact-notes">${_esc(c.notes)}</div>` : '';
+    return `
+      <article class="nt-contact-card" onclick="openContactModal(${c.id})">
+        <div class="nt-contact-main">
+          <div>
+            <span class="nt-contact-name">${_esc(c.full_name)}</span>
+            ${c.company ? `<span class="nt-contact-company">${_esc(c.company)}</span>` : ''}
+          </div>
+          ${c.role_title ? `<div class="nt-contact-role">${_esc(c.role_title)}</div>` : ''}
+          <div class="nt-contact-meta">
+            <span class="nt-last">${lastStr}</span>
+            ${liLink}
+          </div>
+          ${notesHtml}
+        </div>
+        <div class="nt-contact-right">
+          <select class="nt-status-select" onclick="event.stopPropagation()" onchange="quickUpdateContactStatus(${c.id}, this.value)">
+            ${CONTACT_STATUSES.map(s=>`<option value="${s.key}"${s.key===c.status?' selected':''}>${s.label}</option>`).join('')}
+          </select>
+          <span class="cc-pill ${st.pillClass}">${st.label}</span>
+        </div>
+      </article>`;
+  }).join('');
+}
+
+async function quickUpdateContactStatus(id, newStatus){
+  const c = contacts.find(x=>x.id===id);
+  if(!c) return;
+  c.status = newStatus;
+  renderContacts();
+  try {
+    const {error} = await sb.from('user_contacts').update({status:newStatus,updated_at:new Date().toISOString()}).eq('id',id).eq('user_id',currentUser.id);
+    if(error) throw error;
+  } catch(e){
+    console.warn('quickUpdateContactStatus failed:',e);
+    toast('Failed to save status — please try again.');
+  }
+}
+
+function openContactModal(id){
+  _editingContactId = id;
+  const overlay = document.getElementById('contact-modal-overlay');
+  if(!overlay) return;
+
+  // Populate related-app dropdown
+  const appSel = document.getElementById('ct-app-id');
+  if(appSel){
+    appSel.innerHTML = '<option value="">— None —</option>' +
+      apps.filter(a=>a.status!=='rejected').map(a=>`<option value="${a.id}">${_esc(a.name)}</option>`).join('');
+  }
+
+  // Populate programs datalist
+  const dl = document.getElementById('ct-prog-datalist');
+  if(dl && typeof progs !== 'undefined'){
+    dl.innerHTML = progs.slice(0,200).map(p=>`<option value="${_esc(p.company+' — '+p.program_name)}"></option>`).join('');
+  }
+
+  const titleEl = document.getElementById('contact-modal-title');
+  const deleteBtn = document.getElementById('ct-delete-btn');
+  const errEl = document.getElementById('ct-err');
+  if(errEl) errEl.style.display = 'none';
+
+  if(id){
+    // Edit mode
+    const c = contacts.find(x=>x.id===id);
+    if(!c) return;
+    if(titleEl) titleEl.textContent = 'Edit Contact';
+    if(deleteBtn) deleteBtn.style.display = 'inline-flex';
+    document.getElementById('ct-name').value          = c.full_name||'';
+    document.getElementById('ct-company').value       = c.company||'';
+    document.getElementById('ct-role').value          = c.role_title||'';
+    document.getElementById('ct-linkedin').value      = c.linkedin_url||'';
+    document.getElementById('ct-email').value         = c.email||'';
+    document.getElementById('ct-status').value        = c.status||'identified';
+    document.getElementById('ct-last-contacted').value= c.last_contacted||'';
+    document.getElementById('ct-notes').value         = c.notes||'';
+    if(appSel) appSel.value = c.related_app_id||'';
+  } else {
+    // Add mode
+    if(titleEl) titleEl.textContent = 'Add Contact';
+    if(deleteBtn) deleteBtn.style.display = 'none';
+    ['ct-name','ct-company','ct-role','ct-linkedin','ct-email','ct-last-contacted','ct-notes'].forEach(id=>{
+      const el = document.getElementById(id); if(el) el.value='';
+    });
+    const statusEl = document.getElementById('ct-status');
+    if(statusEl) statusEl.value = 'identified';
+    if(appSel) appSel.value = '';
+  }
+
+  overlay.classList.add('open');
+}
+
+function closeContactModal(){
+  const overlay = document.getElementById('contact-modal-overlay');
+  if(overlay) overlay.classList.remove('open');
+  _editingContactId = null;
+}
+
+async function saveContact(){
+  const nameVal = (document.getElementById('ct-name')?.value||'').trim();
+  const errEl   = document.getElementById('ct-err');
+  if(!nameVal){
+    if(errEl){ errEl.textContent='Full name is required.'; errEl.style.display='block'; }
+    return;
+  }
+  if(errEl) errEl.style.display='none';
+
+  const btn = document.getElementById('ct-save-btn');
+  if(btn){ btn.disabled=true; btn.textContent='Saving…'; }
+
+  const relatedAppId = document.getElementById('ct-app-id')?.value||'';
+  const row = {
+    user_id:        currentUser.id,
+    full_name:      nameVal,
+    company:        document.getElementById('ct-company')?.value.trim()||null,
+    role_title:     document.getElementById('ct-role')?.value.trim()||null,
+    linkedin_url:   document.getElementById('ct-linkedin')?.value.trim()||null,
+    email:          document.getElementById('ct-email')?.value.trim()||null,
+    status:         document.getElementById('ct-status')?.value||'identified',
+    last_contacted: document.getElementById('ct-last-contacted')?.value||null,
+    notes:          document.getElementById('ct-notes')?.value.trim()||null,
+    related_app_id: relatedAppId||null,
+    updated_at:     new Date().toISOString(),
+  };
+
+  try {
+    if(_editingContactId){
+      const {error} = await sb.from('user_contacts').update(row).eq('id',_editingContactId).eq('user_id',currentUser.id);
+      if(error) throw error;
+      const idx = contacts.findIndex(c=>c.id===_editingContactId);
+      if(idx>=0) contacts[idx] = {...contacts[idx], ...row, id:_editingContactId};
+      toast('Contact updated.');
+    } else {
+      const {data,error} = await sb.from('user_contacts').insert(row).select('id').single();
+      if(error) throw error;
+      contacts.unshift({...row, id:data.id});
+      toast('Contact saved.');
+    }
+    closeContactModal();
+    renderContacts();
+  } catch(e){
+    console.warn('saveContact failed:',e);
+    if(errEl){ errEl.textContent='Save failed — please try again.'; errEl.style.display='block'; }
+  } finally {
+    if(btn){ btn.disabled=false; btn.textContent='Save Contact'; }
+  }
+}
+
+async function deleteContact(){
+  if(!_editingContactId) return;
+  if(!confirm('Delete this contact? This cannot be undone.')) return;
+  try {
+    const {error} = await sb.from('user_contacts').delete().eq('id',_editingContactId).eq('user_id',currentUser.id);
+    if(error) throw error;
+    contacts = contacts.filter(c=>c.id!==_editingContactId);
+    closeContactModal();
+    renderContacts();
+    toast('Contact deleted.');
+  } catch(e){
+    console.warn('deleteContact failed:',e);
+    toast('Delete failed — please try again.');
+  }
+}
