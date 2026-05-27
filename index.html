@@ -824,45 +824,26 @@
     <h3 id="ics-modal-title">Add deadline reminder</h3>
     <div class="ics-modal-sub" id="ics-modal-sub"></div>
 
-    <!-- STEP 1: Pick reminder frequency -->
-    <div id="ics-step-1">
-      <div style="font-size:11px;color:var(--text3);margin-bottom:12px;font-weight:500;text-transform:uppercase;letter-spacing:.06em">How many reminders?</div>
-      <div class="ics-options">
-        <div class="ics-opt" onclick="icsPickMode('multi')">
-          <div class="ics-opt-icon">🔔🔔</div>
-          <div>
-            <div class="ics-opt-title">Two reminders</div>
-            <div class="ics-opt-desc">Alert 7 days before — enough time to finalise your application. Alert 1 day before — last chance to submit.</div>
-          </div>
+    <!-- Single step: pick reminder count → downloads immediately -->
+    <div style="font-size:11px;color:var(--text3);margin-bottom:12px;font-weight:500;text-transform:uppercase;letter-spacing:.06em">How many reminders?</div>
+    <div class="ics-options">
+      <div class="ics-opt" onclick="icsPickMode('multi')">
+        <div class="ics-opt-icon">🔔🔔</div>
+        <div>
+          <div class="ics-opt-title">Two reminders</div>
+          <div class="ics-opt-desc">9 AM alert 7 days before and 9 AM alert 1 day before the deadline.</div>
         </div>
-        <div class="ics-opt" onclick="icsPickMode('single')">
-          <div class="ics-opt-icon">🔔</div>
-          <div>
-            <div class="ics-opt-title">One reminder</div>
-            <div class="ics-opt-desc">Alert 1 day before the deadline — good for programs you're keeping a light eye on.</div>
-          </div>
+      </div>
+      <div class="ics-opt" onclick="icsPickMode('single')">
+        <div class="ics-opt-icon">🔔</div>
+        <div>
+          <div class="ics-opt-title">One reminder</div>
+          <div class="ics-opt-desc">9 AM alert 1 day before the deadline.</div>
         </div>
       </div>
     </div>
-
-    <!-- STEP 2: Download ICS -->
-    <div id="ics-step-2" style="display:none">
-      <div style="font-size:11px;color:var(--text3);margin-bottom:12px;line-height:1.6">
-        Your .ics file includes <strong id="ics-reminder-summary"></strong>. Open it in any calendar app — Google Calendar, Outlook, or Apple Calendar — to import with reminders pre-set.
-      </div>
-      <div class="ics-options">
-        <div class="ics-opt" onclick="icsDownloadFile()" style="cursor:pointer">
-          <div class="ics-opt-icon">⬇️</div>
-          <div>
-            <div class="ics-opt-title">Download .ics file</div>
-            <div class="ics-opt-desc">Works with Google Calendar, Outlook, and Apple Calendar. Reminders fire at 9am on the correct days.</div>
-          </div>
-        </div>
-      </div>
-      <div style="margin-top:14px;padding:10px 12px;background:var(--bg3);border-radius:8px;font-size:11px;color:var(--text3);line-height:1.6">
-        <strong style="color:var(--text2)">How to import:</strong> After downloading, open the file. Your calendar app will ask to add the event with reminders already set.
-      </div>
-      <button onclick="icsBackToStep1()" style="background:none;border:none;color:var(--text3);font-size:11px;cursor:pointer;margin-top:10px;font-family:var(--sans);text-decoration:underline">← Back</button>
+    <div style="margin-top:14px;padding:10px 12px;background:var(--bg3);border-radius:8px;font-size:11px;color:var(--text3);line-height:1.6">
+      <strong style="color:var(--text2)">How it works:</strong> Clicking an option downloads a calendar file (.ics). Open it — Gmail, Outlook, and Apple Calendar will all prompt you to import the reminders.
     </div>
 
     <button class="ics-cancel" onclick="document.getElementById('ics-modal-overlay').classList.remove('open')">Cancel</button>

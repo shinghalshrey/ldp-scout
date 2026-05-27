@@ -2350,14 +2350,13 @@ let _icsItem = null;
 let _icsMode = 'multi';  // 'multi' = 7d+1d reminders, 'single' = 1d only
 function openICSModal(item){
   _icsItem = item;
-  const dl  = new Date(item.deadline);
-  const dlFmt = dl.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+  // Parse date parts directly — never new Date('YYYY-MM-DD') (UTC midnight, wrong in IST)
+  const [yr, mo, dy] = item.deadline.split('-').map(Number);
+  const dlFmt = new Date(yr, mo - 1, dy).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
   const title = document.getElementById('ics-modal-title');
   const sub   = document.getElementById('ics-modal-sub');
   if(title) title.textContent = `Set a deadline reminder`;
   if(sub)   sub.textContent   = `${item.name} · ${item.org} · ${dlFmt}`;
-  // Always start on step 1
-  icsShowStep(1);
   document.getElementById('ics-modal-overlay').classList.add('open');
 }
 
@@ -2370,19 +2369,14 @@ function icsShowStep(n){
 }
 function icsBackToStep1(){ icsShowStep(1); }
 
-// User picks reminder mode → show step 2 with appropriate summary text
+// User picks reminder mode → download immediately and close modal (single step)
 function icsPickMode(mode){
   _icsMode = mode;
-  const summary = document.getElementById('ics-reminder-summary');
-  if(summary){
-    summary.textContent = mode === 'single'
-      ? 'a reminder at 9am the day before the deadline'
-      : 'reminders at 9am 7 days before and 9am the day before the deadline';
-  }
-  icsShowStep(2);
+  document.getElementById('ics-modal-overlay').classList.remove('open');
+  if(_icsItem) downloadICS(_icsItem, mode);
 }
 
-// ICS file download from step 2
+// ICS file download (kept for bulk export path / legacy callers)
 function icsDownloadFile(){
   document.getElementById('ics-modal-overlay').classList.remove('open');
   if(_icsItem) downloadICS(_icsItem, _icsMode || 'multi');
@@ -4448,62 +4442,46 @@ function exportAllDeadlines(){
 
   const sanitize = s => String(s||'').replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\r?\n/g,'\\n');
 
-  const events = dated.map((it, idx) => {
+  const events = dated.flatMap((it, idx) => {
     const [yr, mo, dy] = it.deadline.split('-').map(Number);
-    const dtStart = `${yr}${String(mo).padStart(2,'0')}${String(dy).padStart(2,'0')}T000000`;
-    const nd = new Date(yr, mo - 1, dy + 1);
-    const dtEnd = `${nd.getFullYear()}${String(nd.getMonth()+1).padStart(2,'0')}${String(nd.getDate()).padStart(2,'0')}T000000`;
     const uid = `ldpscout-bulk-${Date.now()}-${idx}`;
     const sumName = sanitize(it.name);
     const sumOrg  = sanitize(it.org);
+    const ddStr = String(dy).padStart(2,'0');
+    const mmStr = String(mo).padStart(2,'0');
 
-    // Helper: format a Date as YYYYMMDDT033000Z (9am IST = 03:30 UTC)
+    // Format a Date as YYYYMMDDT033000Z (9am IST = 03:30 UTC)
     const fmtR  = d => `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}T033000Z`;
     const fmtRE = d => `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}T043000Z`;
 
-    const d1 = new Date(yr, mo - 1, dy - 1);
     const d7 = new Date(yr, mo - 1, dy - 7);
+    const d1 = new Date(yr, mo - 1, dy - 1);
 
-    // Deadline all-day event
-    const deadlineEv = [
-      'BEGIN:VEVENT',
-      `UID:${uid}-deadline@ldpscout.com`,
-      `DTSTART:${dtStart}`,
-      `DTEND:${dtEnd}`,
-      `DTSTAMP:${now}`,
-      `SUMMARY:DEADLINE: ${sumName} (${sumOrg})`,
-      `DESCRIPTION:Application deadline - ${sumOrg}. Tracked via LDP Scout (ldpscout.com).`,
-      'TRANSP:TRANSPARENT',
-      'X-MICROSOFT-CDO-ALLDAYEVENT:TRUE',
-      'X-MICROSOFT-CDO-BUSYSTATUS:FREE',
-      'END:VEVENT'
+    // Only reminder events — no deadline all-day event
+    return [
+      // 7-day reminder
+      [
+        'BEGIN:VEVENT',
+        `UID:${uid}-rem7d@ldpscout.com`,
+        `DTSTART:${fmtR(d7)}`,
+        `DTEND:${fmtRE(d7)}`,
+        `DTSTAMP:${now}`,
+        `SUMMARY:LDP Scout: ${sumName} deadline in 7 days`,
+        `DESCRIPTION:${sumName} (${sumOrg}) deadline is ${ddStr}/${mmStr}/${yr}. Apply at ldpscout.com.`,
+        'END:VEVENT'
+      ].join('\r\n'),
+      // 1-day reminder
+      [
+        'BEGIN:VEVENT',
+        `UID:${uid}-rem1d@ldpscout.com`,
+        `DTSTART:${fmtR(d1)}`,
+        `DTEND:${fmtRE(d1)}`,
+        `DTSTAMP:${now}`,
+        `SUMMARY:LDP Scout: ${sumName} deadline TOMORROW`,
+        `DESCRIPTION:${sumName} (${sumOrg}) deadline is tomorrow (${ddStr}/${mmStr}/${yr}). Apply at ldpscout.com.`,
+        'END:VEVENT'
+      ].join('\r\n')
     ];
-
-    // 7-day reminder
-    const rem7 = [
-      'BEGIN:VEVENT',
-      `UID:${uid}-rem7d@ldpscout.com`,
-      `DTSTART:${fmtR(d7)}`,
-      `DTEND:${fmtRE(d7)}`,
-      `DTSTAMP:${now}`,
-      `SUMMARY:LDP Scout: ${sumName} deadline in 7 days`,
-      `DESCRIPTION:${sumName} (${sumOrg}) deadline is ${String(dy).padStart(2,'0')}/${String(mo).padStart(2,'0')}/${yr}. Apply at ldpscout.com.`,
-      'END:VEVENT'
-    ];
-
-    // 1-day reminder
-    const rem1 = [
-      'BEGIN:VEVENT',
-      `UID:${uid}-rem1d@ldpscout.com`,
-      `DTSTART:${fmtR(d1)}`,
-      `DTEND:${fmtRE(d1)}`,
-      `DTSTAMP:${now}`,
-      `SUMMARY:LDP Scout: ${sumName} deadline TOMORROW`,
-      `DESCRIPTION:${sumName} (${sumOrg}) deadline is tomorrow. Apply at ldpscout.com.`,
-      'END:VEVENT'
-    ];
-
-    return [...deadlineEv, ...rem7, ...rem1].join('\r\n');
   });
 
   const ics = [
@@ -4563,69 +4541,51 @@ function exportPipelineCSV(){
 }
 
 function downloadICS(item, mode='multi'){
-  // Parse date parts from string directly — never use new Date() on a date string
-  // because JS parses YYYY-MM-DD as UTC midnight, wrong in non-UTC timezones.
+  // Parse date parts directly — never new Date('YYYY-MM-DD') (UTC midnight, wrong in IST)
   const [year, month, day] = item.deadline.split('-').map(Number);
+  const dd = String(day).padStart(2,'0');
+  const mm = String(month).padStart(2,'0');
+  const yy = String(year);
 
   const dtStamp = new Date().toISOString().replace(/[-:]/g,'').split('.')[0]+'Z';
   const baseUid = `ldpscout-${Date.now()}`;
-
   const sanitize = s => String(s||'').replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\r?\n/g,'\\n');
   const sumName = sanitize(item.name);
   const sumOrg  = sanitize(item.org);
 
-  // Helper: format a Date as YYYYMMDDT033000Z (9am IST = 03:30 UTC)
-  const fmtReminder = d => `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}T033000Z`;
-  const fmtReminderEnd = d => `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}T043000Z`;
+  // Format a Date as YYYYMMDDT033000Z (9am IST = 03:30 UTC)
+  const fmtR  = d => `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}T033000Z`;
+  const fmtRE = d => `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}T043000Z`;
 
-  // Deadline all-day event (floating datetime, no Z/TZID)
-  const yy = String(year), mm = String(month).padStart(2,'0'), dd = String(day).padStart(2,'0');
-  const nd = new Date(year, month - 1, day + 1);
-  const yy2 = String(nd.getFullYear()), mm2 = String(nd.getMonth()+1).padStart(2,'0'), dd2 = String(nd.getDate()).padStart(2,'0');
-
-  const deadlineEvent = [
-    'BEGIN:VEVENT',
-    `UID:${baseUid}-deadline@ldpscout.com`,
-    `DTSTART:${yy}${mm}${dd}T000000`,
-    `DTEND:${yy2}${mm2}${dd2}T000000`,
-    `DTSTAMP:${dtStamp}`,
-    `SUMMARY:DEADLINE: ${sumName} (${sumOrg})`,
-    `DESCRIPTION:Application deadline - ${sumOrg}. Tracked via LDP Scout (ldpscout.com).`,
-    'TRANSP:TRANSPARENT',
-    'X-MICROSOFT-CDO-ALLDAYEVENT:TRUE',
-    'X-MICROSOFT-CDO-BUSYSTATUS:FREE',
-    'END:VEVENT'
-  ];
-
-  // Reminder events as separate VEVENTs (Outlook-safe — no VALARMs)
-  const reminderEvents = [];
+  // Only reminder events — no deadline all-day event (user confirmed this is cleaner)
+  const events = [];
 
   // 1-day-before reminder (always present)
   const d1 = new Date(year, month - 1, day - 1);
-  reminderEvents.push([
+  events.push(
     'BEGIN:VEVENT',
     `UID:${baseUid}-rem1d@ldpscout.com`,
-    `DTSTART:${fmtReminder(d1)}`,
-    `DTEND:${fmtReminderEnd(d1)}`,
+    `DTSTART:${fmtR(d1)}`,
+    `DTEND:${fmtRE(d1)}`,
     `DTSTAMP:${dtStamp}`,
     `SUMMARY:LDP Scout: ${sumName} deadline TOMORROW`,
-    `DESCRIPTION:${sumName} (${sumOrg}) deadline is tomorrow. Apply at ldpscout.com.`,
+    `DESCRIPTION:${sumName} (${sumOrg}) deadline is tomorrow (${dd}/${mm}/${yy}). Apply at ldpscout.com.`,
     'END:VEVENT'
-  ]);
+  );
 
   // 7-day-before reminder (multi mode only)
   if(mode === 'multi'){
     const d7 = new Date(year, month - 1, day - 7);
-    reminderEvents.push([
+    events.push(
       'BEGIN:VEVENT',
       `UID:${baseUid}-rem7d@ldpscout.com`,
-      `DTSTART:${fmtReminder(d7)}`,
-      `DTEND:${fmtReminderEnd(d7)}`,
+      `DTSTART:${fmtR(d7)}`,
+      `DTEND:${fmtRE(d7)}`,
       `DTSTAMP:${dtStamp}`,
       `SUMMARY:LDP Scout: ${sumName} deadline in 7 days`,
       `DESCRIPTION:${sumName} (${sumOrg}) deadline is ${dd}/${mm}/${yy}. Apply at ldpscout.com.`,
       'END:VEVENT'
-    ]);
+    );
   }
 
   const lines = [
@@ -4634,8 +4594,7 @@ function downloadICS(item, mode='multi'){
     'PRODID:-//LDP Scout//ldpscout.com//EN',
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
-    ...deadlineEvent,
-    ...reminderEvents.flat(),
+    ...events,
     'END:VCALENDAR'
   ];
 
@@ -4648,7 +4607,7 @@ function downloadICS(item, mode='multi'){
   a.click();
   document.body.removeChild(a);
   setTimeout(() => URL.revokeObjectURL(a.href), 2000);
-  toast('📅 .ics downloaded — open it to import into your calendar');
+  toast('📅 .ics downloaded — open it to add reminders to your calendar');
 }
 
 // ═══════════════ AI FILE PARSING (PDF.js + Mammoth) ═══════════════
