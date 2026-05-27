@@ -792,8 +792,8 @@ input, textarea, select, button { font-family: inherit; }
 
 /* Trust band */
 .lp2-trust{border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
-.lp2-trust-inner{max-width:1180px;margin:0 auto;padding:64px 24px;text-align:center}
-.lp2-trust-line{font-family:var(--serif);font-style:italic;font-size:22px;font-weight:400;color:var(--text);line-height:1.4}
+.lp2-trust-inner{max-width:1180px;margin:0 auto;padding:36px 24px;text-align:center}
+.lp2-trust-line{font-size:14px;font-weight:400;color:var(--text2);line-height:1.6}
 .lp2-trust-sub{font-size:14px;line-height:1.65;color:var(--text2);margin-top:14px}
 
 /* Footer */
