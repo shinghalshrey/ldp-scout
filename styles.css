@@ -730,15 +730,15 @@ input, textarea, select, button { font-family: inherit; }
 /* ═══════════════════════════════════════════════════════════════
    PHASE 14 LANDING — translated from Lovable
    ═══════════════════════════════════════════════════════════════ */
-.lp2-wordmark-wrap{max-width:1180px;margin:0 auto;padding:28px 24px 0}
+.lp2-wordmark-wrap{max-width:1180px;margin:0 auto;padding:18px 24px 0}
 .lp2-wordmark{font-family:var(--serif);font-size:22px;font-weight:500;color:var(--text);text-decoration:none;letter-spacing:-0.01em}
 .lp2-wordmark em{font-style:italic;color:var(--accent);font-weight:500}
-.lp2-hero{max-width:1180px;margin:0 auto;padding:24px 24px 32px;display:grid;grid-template-columns:55fr 45fr;gap:56px;align-items:start}
+.lp2-hero{max-width:1180px;margin:0 auto;padding:14px 24px 24px;display:grid;grid-template-columns:55fr 45fr;gap:56px;align-items:start}
 .lp2-eyebrow{font-family:var(--mono);font-size:11px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:.18em}
-.lp2-title{font-family:var(--serif);font-size:54px;font-weight:400;line-height:1.05;letter-spacing:-0.02em;color:var(--text);margin-top:24px}
+.lp2-title{font-family:var(--serif);font-size:46px;font-weight:400;line-height:1.07;letter-spacing:-0.02em;color:var(--text);margin-top:14px}
 .lp2-title em{font-style:italic;color:var(--accent);font-weight:400}
-.lp2-sub{font-size:16px;line-height:1.6;color:var(--text2);margin-top:22px;max-width:46ch}
-.lp2-form{margin-top:36px;max-width:460px}
+.lp2-sub{font-size:16px;line-height:1.55;color:var(--text2);margin-top:14px;max-width:46ch}
+.lp2-form{margin-top:22px;max-width:460px}
 .lp2-edu-hint{display:inline-flex;align-items:center;gap:8px;font-size:12px;color:var(--text2);margin-bottom:14px}
 .lp2-edu-hint .dot{width:7px;height:7px;border-radius:50%;background:var(--accent)}
 .lp2-form .lp-signup-bar-v2{display:flex;gap:10px;align-items:stretch}
@@ -763,13 +763,13 @@ input, textarea, select, button { font-family: inherit; }
 .lp2-form-stamp{margin-top:10px;display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.12em}
 .lp2-form-stamp .dot{width:7px;height:7px;border-radius:50%;background:var(--accent)}
 .lp2-hero-right{display:flex;flex-direction:column;gap:24px;min-width:0}
-.lp2-figcap{font-family:var(--serif);font-style:italic;font-size:15px;color:var(--text2);margin-bottom:10px}
+.lp2-figcap{font-family:var(--serif);font-style:italic;font-size:19px;color:var(--text2);margin-bottom:10px}
 .lp2-video-wrap{overflow:hidden;border-radius:12px;background:#1a1a14;border:1px solid var(--border);box-shadow:0 1px 2px rgba(24,24,15,.04),0 12px 32px -16px rgba(24,24,15,.18)}
 .lp2-video-wrap video{display:block;width:100%;aspect-ratio:16/9;object-fit:cover;background:#1a1a14}
 .lp2-mock-wrap{overflow:hidden;border-radius:12px;background:var(--bg2);border:1px solid var(--border);box-shadow:0 1px 2px rgba(24,24,15,.04),0 12px 32px -16px rgba(24,24,15,.18);padding:16px}
 
 /* Vertical USP stack — used inside hero right column */
-.lp2-usp-stack{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:28px}
+.lp2-usp-stack{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:18px}
 .lp2-usp-stack > li{display:grid;grid-template-columns:56px 1fr;gap:18px;align-items:start}
 .lp2-usp-stack .lp2-usp-num{font-family:var(--serif);font-style:italic;font-size:36px;font-weight:400;line-height:1;color:var(--accent);margin:0}
 .lp2-usp-stack .lp2-usp-title{font-family:var(--serif);font-style:italic;font-size:18px;font-weight:400;color:var(--text);margin:0 0 6px;line-height:1.3}
@@ -792,12 +792,12 @@ input, textarea, select, button { font-family: inherit; }
 
 /* Trust band */
 .lp2-trust{border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
-.lp2-trust-inner{max-width:1180px;margin:0 auto;padding:36px 24px;text-align:center}
+.lp2-trust-inner{max-width:1180px;margin:0 auto;padding:22px 24px;text-align:center}
 .lp2-trust-line{font-size:14px;font-weight:400;color:var(--text2);line-height:1.6}
 .lp2-trust-sub{font-size:14px;line-height:1.65;color:var(--text2);margin-top:14px}
 
 /* Footer */
-.lp2-foot-inner{max-width:1180px;margin:0 auto;padding:40px 24px 48px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px;align-items:center}
+.lp2-foot-inner{max-width:1180px;margin:0 auto;padding:26px 24px 30px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px;align-items:center}
 .lp2-foot-built{display:flex;flex-direction:column;align-items:flex-start;gap:8px}
 .lp2-foot-built-text{font-family:var(--serif);font-style:italic;font-size:15px;color:var(--text2)}
 .lp2-foot-built-logo{height:22px;width:auto;display:block}
