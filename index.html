@@ -71,10 +71,11 @@
       const sessionKey = Object.keys(localStorage).find(function(k){
         return k.indexOf('sb-') === 0 && k.indexOf('-auth-token') > 0;
       });
-      // Decide which page to activate. Default to 'programs' for signed-in
-      // users with no saved page. For signed-out users, no page is active —
-      // the landing overlay covers the body anyway.
-      let pageId = 'programs';
+      // Decide which page to activate. Default to 'command' for signed-in
+      // users with no saved page (Command Center is the home base). For
+      // signed-out users, no page is active — the landing overlay covers
+      // the body anyway.
+      let pageId = 'command';
       if(sessionKey){
         const saved = localStorage.getItem('ldps_last_page');
         if(saved) pageId = saved;
@@ -656,46 +657,69 @@
     <p class="page-editorial-subline" id="command-subline">Everything you need to know about your LDP pipeline in one place.</p>
   </header>
 
-  <!-- Section A: Pipeline stat cards -->
-  <div class="cc-stat-row" id="cc-stat-row"></div>
+  <!-- Empty / first-run state (shown when pipeline is empty) -->
+  <div id="cc-empty-state" style="display:none"></div>
 
-  <!-- Section B: Pipeline funnel -->
-  <section class="cc-section">
-    <div class="cc-section-head">
-      <h2 class="cc-section-title">Pipeline funnel</h2>
-      <span class="cc-section-meta" id="cc-funnel-total"></span>
-    </div>
-    <div class="cc-funnel-wrap">
-      <div class="cc-funnel-bar" id="cc-funnel-bar" role="img" aria-label="Pipeline funnel"></div>
-      <div class="cc-funnel-legend" id="cc-funnel-legend"></div>
-    </div>
-  </section>
+  <!-- Populated dashboard -->
+  <div id="cc-body">
+    <!-- Section A: Pipeline stat cards -->
+    <div class="cc-stat-row" id="cc-stat-row"></div>
 
-  <!-- Sections C + D: Two columns -->
-  <div class="cc-two-col cc-section">
-    <!-- C: Upcoming deadlines -->
-    <div>
+    <!-- Section B: Pipeline funnel -->
+    <section class="cc-section">
       <div class="cc-section-head">
-        <h2 class="cc-section-title">Upcoming deadlines · 30 days</h2>
-        <a class="cc-section-link" onclick="showPage('deadlines')" href="#">See all →</a>
+        <h2 class="cc-section-title">Pipeline funnel</h2>
+        <span class="cc-section-meta" id="cc-funnel-total"></span>
       </div>
-      <div class="cc-list-card" id="cc-deadlines-list"></div>
-    </div>
-    <!-- D: Next steps -->
-    <div>
-      <div class="cc-section-head">
-        <h2 class="cc-section-title">Next steps · action items</h2>
-        <a class="cc-section-link" onclick="showPage('applications')" href="#">See all →</a>
+      <div class="cc-funnel-wrap">
+        <div class="cc-funnel-bar" id="cc-funnel-bar" role="img" aria-label="Pipeline funnel"></div>
+        <div class="cc-funnel-legend" id="cc-funnel-legend"></div>
       </div>
-      <div class="cc-list-card" id="cc-nextsteps-list"></div>
-    </div>
-  </div>
+    </section>
 
-  <!-- Section E: Quick actions -->
-  <div class="cc-quick-actions">
-    <button class="cc-ghost-btn" onclick="showPage('programs')">Browse Programs →</button>
-    <button class="cc-ghost-btn" onclick="openM('app')">Log an Application →</button>
-    <button class="cc-ghost-btn" onclick="showPage('aifit')">Run AI Fit Scan →</button>
+    <!-- Sections C + D: Two columns -->
+    <div class="cc-two-col cc-section">
+      <!-- C: Upcoming deadlines -->
+      <div>
+        <div class="cc-section-head">
+          <h2 class="cc-section-title">Upcoming deadlines · 30 days</h2>
+          <a class="cc-section-link" onclick="showPage('deadlines')" href="#">See all →</a>
+        </div>
+        <div class="cc-list-card" id="cc-deadlines-list"></div>
+      </div>
+      <!-- D: Next steps -->
+      <div>
+        <div class="cc-section-head">
+          <h2 class="cc-section-title">Next steps · action items</h2>
+          <a class="cc-section-link" onclick="showPage('applications')" href="#">See all →</a>
+        </div>
+        <div class="cc-list-card" id="cc-nextsteps-list"></div>
+      </div>
+    </div>
+
+    <!-- Section F: Where you're aiming (targeting) -->
+    <section class="cc-section">
+      <div class="cc-section-head">
+        <h2 class="cc-section-title">Where you're aiming</h2>
+      </div>
+      <div class="cc-target-grid" id="cc-target-grid"></div>
+    </section>
+
+    <!-- Section G: Networking snapshot -->
+    <section class="cc-section">
+      <div class="cc-section-head">
+        <h2 class="cc-section-title">Networking</h2>
+        <a class="cc-section-link" onclick="showPage('networking')" href="#">Go to Networking →</a>
+      </div>
+      <div class="cc-net-snapshot" id="cc-net-snapshot"></div>
+    </section>
+
+    <!-- Section E: Quick actions -->
+    <div class="cc-quick-actions">
+      <button class="cc-ghost-btn" onclick="showPage('programs')">Browse Programs →</button>
+      <button class="cc-ghost-btn" onclick="openM('app')">Log an Application →</button>
+      <button class="cc-ghost-btn" onclick="showPage('aifit')">Run AI Fit Scan →</button>
+    </div>
   </div>
 </div>
 
@@ -710,6 +734,9 @@
     <p class="page-editorial-subline" id="networking-subline">Track your outreach, follow-ups, and referrals. Every connection counts.</p>
   </header>
 
+  <!-- Overview boxes (4) -->
+  <div class="nt-overview" id="nt-overview"></div>
+
   <!-- Toolbar -->
   <div class="nt-toolbar">
     <div class="nt-search-wrap">
@@ -719,11 +746,32 @@
     <button class="nt-add-btn" onclick="openContactModal(null)">+ Add Contact</button>
   </div>
 
-  <!-- Stats strip -->
-  <div class="nt-stats-strip" id="nt-stats-strip"></div>
-
-  <!-- Contact list -->
-  <div class="nt-contact-list" id="nt-contact-list"></div>
+  <!-- Two-column: filter rail + contact list -->
+  <div class="nt-layout">
+    <aside class="nt-filter-rail" id="nt-filter-rail">
+      <div class="nt-filter-group">
+        <div class="nt-filter-title">Status</div>
+        <div id="nt-filter-status"></div>
+      </div>
+      <div class="nt-filter-group">
+        <div class="nt-filter-title">Company</div>
+        <div id="nt-filter-company"></div>
+      </div>
+      <div class="nt-filter-group">
+        <div class="nt-filter-title">Quick filters</div>
+        <label class="nt-filter-check">
+          <input type="checkbox" id="nt-filter-followup" onchange="renderContacts()" />
+          <span>Needs follow-up</span>
+        </label>
+        <label class="nt-filter-check">
+          <input type="checkbox" id="nt-filter-linked" onchange="renderContacts()" />
+          <span>Linked to an application</span>
+        </label>
+      </div>
+      <button class="nt-filter-clear" onclick="clearContactFilters()">Clear all filters</button>
+    </aside>
+    <div class="nt-contact-list" id="nt-contact-list"></div>
+  </div>
 </div>
 
 </div><!-- /main -->
@@ -961,8 +1009,7 @@
       </div>
       <div class="fg">
         <label>Company / Program</label>
-        <input id="ct-company" class="nt-modal-input" list="ct-prog-datalist" placeholder="Search programs..." />
-        <datalist id="ct-prog-datalist"></datalist>
+        <input id="ct-company" class="nt-modal-input" placeholder="e.g. Amazon, McKinsey, or a program name" />
       </div>
       <div class="fg">
         <label>Role / Title</label>
@@ -990,6 +1037,10 @@
       <div class="fg">
         <label>Last Contacted</label>
         <input id="ct-last-contacted" class="nt-modal-input" type="date" />
+      </div>
+      <div class="fg">
+        <label>Next Follow-up</label>
+        <input id="ct-follow-up" class="nt-modal-input" type="date" />
       </div>
       <div class="fg full">
         <label>Notes</label>

@@ -634,7 +634,7 @@ input, textarea, select, button { font-family: inherit; }
 .ics-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:400;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
 .ics-modal-overlay.open{display:flex}
 .ics-modal-overlay.show{display:flex}
-.ics-modal{background:var(--bg2);border:1px solid var(--border2);border-radius:16px;padding:28px;width:460px;max-width:95vw;box-shadow:var(--shadow-md)}
+.ics-modal{background:var(--bg2);border:1px solid var(--border2);border-radius:16px;padding:28px;width:460px;max-width:95vw;box-shadow:var(--shadow-md);max-height:88vh;overflow-y:auto}
 .ics-modal h3{font-family:var(--serif);font-size:18px;font-weight:400;margin-bottom:6px}
 .ics-modal-sub{font-size:12px;color:var(--text2);line-height:1.65;margin-bottom:16px}
 .ics-options{display:flex;flex-direction:column;gap:10px;margin-bottom:4px}
@@ -2331,4 +2331,178 @@ input, textarea, select, button { font-family: inherit; }
 @media (max-width: 720px) {
   .nt-contact-card { grid-template-columns: 1fr; }
   .nt-contact-right { align-items: flex-start; }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   COMMAND CENTER — first-run, targeting, networking snapshot
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* First-run / empty state */
+.cc-firstrun {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 40px 32px; margin-top: 8px;
+}
+.cc-firstrun-title {
+  font-size: 18px; font-weight: 700; margin: 0 0 6px; color: var(--text);
+}
+.cc-firstrun-sub {
+  font-size: 13px; color: var(--text2); margin: 0 0 24px; max-width: 520px;
+}
+.cc-firstrun-actions {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;
+}
+.cc-firstrun-card {
+  text-align: left; background: var(--bg); border: 1px solid var(--border2);
+  border-radius: 10px; padding: 18px; cursor: pointer; font-family: var(--sans);
+  transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+}
+.cc-firstrun-card:hover {
+  transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,.06);
+  border-color: var(--accent);
+}
+.cc-firstrun-card-title {
+  font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 5px;
+}
+.cc-firstrun-card-sub { font-size: 12px; color: var(--text3); line-height: 1.5; }
+
+/* Targeting grid — 3 mini bar-lists */
+.cc-target-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;
+}
+.cc-target-col {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 18px 20px;
+}
+.cc-target-head {
+  font-size: 11px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.1em; color: var(--text3); margin-bottom: 14px;
+}
+.cc-target-row {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 9px;
+}
+.cc-target-row:last-child { margin-bottom: 0; }
+.cc-target-label {
+  width: 88px; flex-shrink: 0; font-size: 12px; color: var(--text2);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.cc-target-bar-track {
+  flex: 1; height: 8px; background: var(--bg3);
+  border-radius: 20px; overflow: hidden;
+}
+.cc-target-bar {
+  height: 100%; background: var(--accent); border-radius: 20px;
+  transition: width .3s ease;
+}
+.cc-target-count {
+  width: 20px; flex-shrink: 0; text-align: right;
+  font-size: 12px; font-weight: 600; color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.cc-target-empty { font-size: 12px; color: var(--text3); }
+
+/* Networking snapshot line */
+.cc-net-snapshot {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 16px 20px;
+}
+.cc-net-line { font-size: 14px; color: var(--text2); }
+.cc-net-line b { color: var(--text); font-weight: 700; }
+.cc-net-overdue { color: #b91c1c; font-weight: 600; }
+
+@media (max-width: 900px) {
+  .cc-firstrun-actions { grid-template-columns: 1fr; }
+  .cc-target-grid { grid-template-columns: 1fr; }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   NETWORKING TRACKER — overview boxes, filter rail, card refinements
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Overview boxes (4) */
+.nt-overview {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
+  margin-bottom: 24px;
+}
+.nt-box {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 18px 20px;
+}
+.nt-box-num {
+  font-size: 28px; font-weight: 700; line-height: 1.1;
+  letter-spacing: -0.02em; color: var(--text);
+}
+.nt-box-label {
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--text3); font-weight: 600; margin-top: 6px;
+}
+
+/* Two-column layout: filter rail + list */
+.nt-layout {
+  display: grid; grid-template-columns: 220px 1fr; gap: 24px;
+  align-items: start;
+}
+.nt-filter-rail {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 18px; position: sticky; top: 16px;
+}
+.nt-filter-group { margin-bottom: 20px; }
+.nt-filter-title {
+  font-size: 11px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.1em; color: var(--text3); margin-bottom: 10px;
+}
+.nt-filter-pill {
+  display: flex; align-items: center; justify-content: space-between;
+  width: 100%; gap: 8px; margin-bottom: 5px;
+  padding: 6px 10px; border-radius: 6px;
+  background: var(--bg); border: 1px solid var(--border);
+  font-size: 12px; color: var(--text2); font-family: var(--sans);
+  cursor: pointer; transition: all .12s ease; text-align: left;
+}
+.nt-filter-pill:hover { border-color: var(--border2); color: var(--text); }
+.nt-filter-pill.on {
+  background: var(--accent-bg); border-color: var(--accent); color: var(--accent);
+  font-weight: 600;
+}
+.nt-filter-pill-n {
+  font-size: 11px; font-weight: 600; color: var(--text3);
+  font-variant-numeric: tabular-nums;
+}
+.nt-filter-pill.on .nt-filter-pill-n { color: var(--accent); }
+.nt-filter-check {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12px; color: var(--text2); cursor: pointer; margin-bottom: 8px;
+}
+.nt-filter-check input { cursor: pointer; accent-color: var(--accent); }
+.nt-filter-empty { font-size: 12px; color: var(--text3); }
+.nt-filter-clear {
+  width: 100%; background: transparent; border: 1px solid var(--border2);
+  color: var(--text2); padding: 8px; border-radius: 6px;
+  font-size: 12px; font-family: var(--sans); cursor: pointer;
+  transition: color .12s, border-color .12s;
+}
+.nt-filter-clear:hover { color: var(--accent); border-color: var(--accent); }
+
+/* Contact card — headline, notes given more width, follow-up chip */
+.nt-contact-headline { display: block; }
+.nt-followup-chip {
+  display: inline-flex; align-items: center;
+  font-size: 11px; font-weight: 500;
+  padding: 2px 8px; border-radius: 20px;
+  background: var(--bg3); color: var(--text2);
+}
+.nt-followup-chip.overdue { background: #fee2e2; color: #b91c1c; }
+
+/* Notes preview — wider, one line, sits above meta */
+.nt-contact-notes {
+  font-size: 12px; color: var(--text2); margin-top: 8px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  max-width: 540px;
+}
+
+@media (max-width: 900px) {
+  .nt-overview { grid-template-columns: repeat(2, 1fr); }
+  .nt-layout { grid-template-columns: 1fr; }
+  .nt-filter-rail { position: static; }
 }

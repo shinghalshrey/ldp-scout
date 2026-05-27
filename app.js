@@ -565,15 +565,19 @@ async function onSignIn(){
   // boot script in <head> already set the correct .active class so the
   // RIGHT page is visible from the first paint — this just triggers the
   // page's render function (which couldn't run until data was loaded).
+  // New users (onboarding not yet done) land on Command Center — it's the
+  // home base and the onboarding flow runs there.
   try {
-    const lastPage = localStorage.getItem('ldps_last_page') || 'programs';
+    const isNewUser = onbShouldShow();
+    const stored    = localStorage.getItem('ldps_last_page');
+    const lastPage  = isNewUser ? 'command' : (stored || 'command');
     if(PAGE_ORDER.includes(lastPage)){
       showPage(lastPage);
     } else {
-      showPage('programs');
+      showPage('command');
     }
   } catch {
-    showPage('programs');
+    showPage('command');
   }
 }
 
@@ -5667,10 +5671,50 @@ if(pcEl) pcEl.textContent=progs.length;
 // ═══════════════════════════════════════════════════════════════════
 
 function renderCommandCenter(){
+  const emptyEl = document.getElementById('cc-empty-state');
+  const bodyEl  = document.getElementById('cc-body');
+  if(!bodyEl) return;
+
+  // First-run / empty state — no apps AND no contacts
+  const isEmpty = (!Array.isArray(apps) || apps.length === 0)
+               && (!Array.isArray(contacts) || contacts.length === 0);
+
+  if(isEmpty){
+    if(bodyEl)  bodyEl.style.display = 'none';
+    if(emptyEl){
+      emptyEl.style.display = 'block';
+      emptyEl.innerHTML = `
+        <div class="cc-firstrun">
+          <h2 class="cc-firstrun-title">Let's build your LDP pipeline</h2>
+          <p class="cc-firstrun-sub">Your command center fills up as you track programs, deadlines and networking. Start with one of these:</p>
+          <div class="cc-firstrun-actions">
+            <button class="cc-firstrun-card" onclick="showPage('programs')">
+              <div class="cc-firstrun-card-title">Browse Programs →</div>
+              <div class="cc-firstrun-card-sub">Explore the catalog and save targets to your pipeline.</div>
+            </button>
+            <button class="cc-firstrun-card" onclick="showPage('aifit')">
+              <div class="cc-firstrun-card-title">Run an AI Fit Scan →</div>
+              <div class="cc-firstrun-card-sub">Upload your résumé to see which LDPs fit you best.</div>
+            </button>
+            <button class="cc-firstrun-card" onclick="showPage('networking')">
+              <div class="cc-firstrun-card-title">Track Networking →</div>
+              <div class="cc-firstrun-card-sub">Log alumni and recruiter conversations as you make them.</div>
+            </button>
+          </div>
+        </div>`;
+    }
+    return;
+  }
+
+  if(emptyEl) emptyEl.style.display = 'none';
+  if(bodyEl)  bodyEl.style.display = 'block';
+
   _renderCCStats();
   _renderCCFunnel();
   _renderCCDeadlines();
   _renderCCNextSteps();
+  _renderCCTargeting();
+  _renderCCNetSnapshot();
 }
 
 function _renderCCStats(){
@@ -5715,13 +5759,11 @@ function _renderCCFunnel(){
   const totalCount = apps.length;
   if(total) total.textContent = `${totalCount} total tracked`;
 
-  // Build funnel bar — each segment flex proportional to count (min 0.3 so 0-count segs still visible)
   bar.innerHTML = STAGES.map(s => {
     const n = counts[s.key] || 0;
     const flex = Math.max(0.3, n);
     const txt  = n > 0 ? n : '';
-    const style = `flex:${flex};background:${s.color}`;
-    return `<div class="cc-funnel-seg" style="${style}" title="${s.label}: ${n}">${txt}</div>`;
+    return `<div class="cc-funnel-seg" style="flex:${flex};background:${s.color}" title="${s.label}: ${n}">${txt}</div>`;
   }).join('');
 
   legend.innerHTML = STAGES.map(s =>
@@ -5764,8 +5806,7 @@ function _renderCCDeadlines(){
     const d = new Date(yr, mo-1, dy);
     const daysLeft = Math.round((d - today) / 86400000);
     const dateStr  = d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
-    let pillClass = 'cc-pill-amber';
-    if(daysLeft <= 7) pillClass = 'cc-pill-coral';
+    const pillClass = daysLeft <= 7 ? 'cc-pill-coral' : 'cc-pill-amber';
     const label = daysLeft === 0 ? 'Today' : `${daysLeft} day${daysLeft!==1?'s':''} left`;
     return `<div class="cc-list-row">
       <div class="cc-list-main">
@@ -5806,6 +5847,78 @@ function _renderCCNextSteps(){
   }).join('');
 }
 
+// Tally a free-text field across the pipeline. Splits on common separators
+// (· , / ;) so messy values like "EU · UAE · India" become 3 entries.
+function _ccTally(field){
+  const counts = {};
+  apps.forEach(a => {
+    if(a.status === 'rejected') return;
+    const raw = (a[field]||'').trim();
+    if(!raw) return;
+    raw.split(/[·,/;]+/).map(s=>s.trim()).filter(Boolean).forEach(v => {
+      counts[v] = (counts[v]||0) + 1;
+    });
+  });
+  return Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+}
+
+function _renderCCTargeting(){
+  const grid = document.getElementById('cc-target-grid');
+  if(!grid) return;
+
+  const dims = [
+    {label:'Geographies', field:'geo'},
+    {label:'Sectors',     field:'sector'},
+    {label:'Functions',   field:'fn'},
+  ];
+
+  grid.innerHTML = dims.map(dim => {
+    const tally = _ccTally(dim.field);
+    if(tally.length === 0){
+      return `<div class="cc-target-col">
+        <div class="cc-target-head">${dim.label}</div>
+        <div class="cc-target-empty">Not set on your pipeline yet.</div>
+      </div>`;
+    }
+    const max = tally[0][1];
+    const rows = tally.slice(0,6).map(([name,n]) => {
+      const pct = Math.round((n/max)*100);
+      return `<div class="cc-target-row">
+        <div class="cc-target-label" title="${_esc(name)}">${_esc(name)}</div>
+        <div class="cc-target-bar-track">
+          <div class="cc-target-bar" style="width:${pct}%"></div>
+        </div>
+        <div class="cc-target-count">${n}</div>
+      </div>`;
+    }).join('');
+    return `<div class="cc-target-col">
+      <div class="cc-target-head">${dim.label}</div>
+      ${rows}
+    </div>`;
+  }).join('');
+}
+
+function _renderCCNetSnapshot(){
+  const el = document.getElementById('cc-net-snapshot');
+  if(!el) return;
+
+  const total     = contacts.length;
+  const companies = new Set(contacts.map(c => (c.company||'').trim().toLowerCase()).filter(Boolean)).size;
+  const referrals = contacts.filter(c => c.status === 'referral_received').length;
+  const overdue   = contacts.filter(_isContactOverdue).length;
+
+  if(total === 0){
+    el.innerHTML = `<div class="cc-empty">No contacts tracked yet. Start logging your outreach in the Networking tab.</div>`;
+    return;
+  }
+
+  let line = `<b>${total}</b> contact${total!==1?'s':''} · <b>${companies}</b> compan${companies!==1?'ies':'y'} · <b>${referrals}</b> referral${referrals!==1?'s':''}`;
+  if(overdue > 0){
+    line += ` · <span class="cc-net-overdue">${overdue} need${overdue!==1?'':'s'} follow-up</span>`;
+  }
+  el.innerHTML = `<div class="cc-net-line">${line}</div>`;
+}
+
 
 // ═══════════════════════════════════════════════════════════════════
 // NETWORKING TRACKER
@@ -5824,6 +5937,25 @@ const CONTACT_STATUSES = [
 ];
 const STATUS_BY_KEY = Object.fromEntries(CONTACT_STATUSES.map(s=>[s.key,s]));
 
+// "Active" = conversation is genuinely in-flight.
+const ACTIVE_STATUSES = ['reached_out','responded','call_scheduled'];
+
+// A contact "needs follow-up" if it has a follow_up_date that is today or
+// in the past. Passive surfacing — no server reminder, computed on render.
+function _isContactOverdue(c){
+  if(!c.follow_up_date) return false;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const [yr,mo,dy] = c.follow_up_date.split('-').map(Number);
+  const d = new Date(yr, mo-1, dy);
+  return d <= today;
+}
+
+// Parse a YYYY-MM-DD string to a local Date (avoids UTC-midnight IST bug).
+function _ymdToDate(str){
+  const [yr,mo,dy] = str.split('-').map(Number);
+  return new Date(yr, mo-1, dy);
+}
+
 async function loadUserContacts(){
   if(!currentUser){ contacts = []; return; }
   try {
@@ -5831,16 +5963,16 @@ async function loadUserContacts(){
     if(error) throw error;
     contacts = (data||[]).map(r=>({
       id: r.id,
-      full_name:    r.full_name,
-      company:      r.company||'',
-      program_id:   r.program_id||null,
-      role_title:   r.role_title||'',
-      linkedin_url: r.linkedin_url||'',
-      email:        r.email||'',
-      status:       r.status||'identified',
+      full_name:     r.full_name,
+      company:       r.company||'',
+      role_title:    r.role_title||'',
+      linkedin_url:  r.linkedin_url||'',
+      email:         r.email||'',
+      status:        r.status||'identified',
       last_contacted:r.last_contacted||'',
-      notes:        r.notes||'',
-      related_app_id: r.related_app_id||null,
+      follow_up_date:r.follow_up_date||'',
+      notes:         r.notes||'',
+      related_app_id:r.related_app_id||null,
     }));
   } catch(e){
     console.warn('loadUserContacts failed:',e);
@@ -5848,31 +5980,98 @@ async function loadUserContacts(){
   }
 }
 
+// Networking filter state
+const _ntFilters = { status:new Set(), company:new Set() };
+
+function clearContactFilters(){
+  _ntFilters.status.clear();
+  _ntFilters.company.clear();
+  const fu = document.getElementById('nt-filter-followup');
+  const lk = document.getElementById('nt-filter-linked');
+  if(fu) fu.checked = false;
+  if(lk) lk.checked = false;
+  const s = document.getElementById('nt-search');
+  if(s) s.value = '';
+  renderContacts();
+}
+
+function _toggleNtFilter(dim, value){
+  const set = _ntFilters[dim];
+  if(set.has(value)) set.delete(value);
+  else set.add(value);
+  renderContacts();
+}
+
+function _renderNtFilterRail(){
+  // Status filters — count per status across ALL contacts
+  const statusEl = document.getElementById('nt-filter-status');
+  if(statusEl){
+    statusEl.innerHTML = CONTACT_STATUSES.map(s => {
+      const n = contacts.filter(c=>c.status===s.key).length;
+      const on = _ntFilters.status.has(s.key);
+      return `<button class="nt-filter-pill${on?' on':''}" onclick="_toggleNtFilter('status','${s.key}')">
+        <span>${s.label}</span><span class="nt-filter-pill-n">${n}</span>
+      </button>`;
+    }).join('');
+  }
+  // Company filters — unique companies, sorted by frequency
+  const companyEl = document.getElementById('nt-filter-company');
+  if(companyEl){
+    const counts = {};
+    contacts.forEach(c => {
+      const co = (c.company||'').trim();
+      if(co) counts[co] = (counts[co]||0)+1;
+    });
+    const sorted = Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+    if(sorted.length === 0){
+      companyEl.innerHTML = `<div class="nt-filter-empty">No companies yet</div>`;
+    } else {
+      companyEl.innerHTML = sorted.map(([co,n]) => {
+        const on = _ntFilters.company.has(co);
+        return `<button class="nt-filter-pill${on?' on':''}" onclick="_toggleNtFilter('company',${JSON.stringify(co).replace(/"/g,'&quot;')})">
+          <span>${_esc(co)}</span><span class="nt-filter-pill-n">${n}</span>
+        </button>`;
+      }).join('');
+    }
+  }
+}
+
 function renderContacts(){
   const listEl  = document.getElementById('nt-contact-list');
-  const statsEl = document.getElementById('nt-stats-strip');
+  const overEl  = document.getElementById('nt-overview');
   if(!listEl) return;
 
-  const q = (document.getElementById('nt-search')?.value||'').toLowerCase();
-  const filtered = contacts.filter(c => {
-    if(!q) return true;
-    return (c.full_name+c.company+c.role_title+c.notes).toLowerCase().includes(q);
-  });
-
-  // Stats strip
-  if(statsEl){
-    const total    = contacts.length;
-    const active   = contacts.filter(c=>['reached_out','responded','call_scheduled'].includes(c.status)).length;
-    const referrals= contacts.filter(c=>c.status==='referral_received').length;
-    const awaiting = contacts.filter(c=>c.status==='reached_out').length;
-    statsEl.innerHTML = `
-      <div class="nt-stat"><b>${total}</b> total contacts</div>
-      <div class="nt-stat"><b>${active}</b> active conversations</div>
-      <div class="nt-stat"><b>${referrals}</b> referrals received</div>
-      <div class="nt-stat"><b>${awaiting}</b> awaiting response</div>`;
+  // Overview boxes (4) — computed from ALL contacts
+  if(overEl){
+    const total     = contacts.length;
+    const active    = contacts.filter(c=>ACTIVE_STATUSES.includes(c.status)).length;
+    const companies = new Set(contacts.map(c=>(c.company||'').trim().toLowerCase()).filter(Boolean)).size;
+    const referrals = contacts.filter(c=>c.status==='referral_received').length;
+    overEl.innerHTML = `
+      <div class="nt-box"><div class="nt-box-num">${total}</div><div class="nt-box-label">Total contacts</div></div>
+      <div class="nt-box"><div class="nt-box-num">${active}</div><div class="nt-box-label">Active conversations</div></div>
+      <div class="nt-box"><div class="nt-box-num">${companies}</div><div class="nt-box-label">Companies reached</div></div>
+      <div class="nt-box"><div class="nt-box-num">${referrals}</div><div class="nt-box-label">Referrals received</div></div>`;
   }
 
-  // Empty state
+  // Filter rail (rebuilt each render so counts stay live)
+  _renderNtFilterRail();
+
+  // Apply filters
+  const q = (document.getElementById('nt-search')?.value||'').toLowerCase();
+  const followupOnly = document.getElementById('nt-filter-followup')?.checked;
+  const linkedOnly   = document.getElementById('nt-filter-linked')?.checked;
+
+  const filtered = contacts.filter(c => {
+    if(q && !(c.full_name+c.company+c.role_title+c.notes).toLowerCase().includes(q)) return false;
+    if(_ntFilters.status.size && !_ntFilters.status.has(c.status)) return false;
+    if(_ntFilters.company.size && !_ntFilters.company.has((c.company||'').trim())) return false;
+    if(followupOnly && !_isContactOverdue(c)) return false;
+    if(linkedOnly && !c.related_app_id) return false;
+    return true;
+  });
+
+  // Empty states
   if(filtered.length === 0){
     if(contacts.length === 0){
       listEl.innerHTML = `
@@ -5882,7 +6081,8 @@ function renderContacts(){
           <button class="nt-add-btn" onclick="openContactModal(null)">+ Add Contact</button>
         </div>`;
     } else {
-      listEl.innerHTML = `<div class="nt-empty-state"><p>No contacts match your search.</p></div>`;
+      listEl.innerHTML = `<div class="nt-empty-state"><p>No contacts match your filters.</p>
+        <button class="cc-ghost-btn" onclick="clearContactFilters()">Clear filters</button></div>`;
     }
     return;
   }
@@ -5890,28 +6090,38 @@ function renderContacts(){
   listEl.innerHTML = filtered.map(c => {
     const st = STATUS_BY_KEY[c.status] || {label:c.status, pillClass:'cc-pill-grey'};
     const lastStr = c.last_contacted
-      ? (() => {
-          const [yr,mo,dy] = c.last_contacted.split('-').map(Number);
-          return 'Last contacted: ' + new Date(yr,mo-1,dy).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
-        })()
+      ? 'Last contacted ' + _ymdToDate(c.last_contacted).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})
       : 'Not yet contacted';
+
+    // Follow-up chip
+    let followChip = '';
+    if(c.follow_up_date){
+      const fd = _ymdToDate(c.follow_up_date);
+      const fdStr = fd.toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+      followChip = _isContactOverdue(c)
+        ? `<span class="nt-followup-chip overdue">⚑ Follow up — due ${fdStr}</span>`
+        : `<span class="nt-followup-chip">⚑ Follow up ${fdStr}</span>`;
+    }
+
     const liLink = c.linkedin_url
-      ? `<a class="nt-li-link" href="${_esc(c.linkedin_url)}" target="_blank" rel="noopener" title="LinkedIn">in</a>`
+      ? `<a class="nt-li-link" href="${_esc(c.linkedin_url)}" target="_blank" rel="noopener" title="LinkedIn" onclick="event.stopPropagation()">in</a>`
       : '';
     const notesHtml = c.notes ? `<div class="nt-contact-notes">${_esc(c.notes)}</div>` : '';
+
     return `
       <article class="nt-contact-card" onclick="openContactModal(${c.id})">
         <div class="nt-contact-main">
-          <div>
+          <div class="nt-contact-headline">
             <span class="nt-contact-name">${_esc(c.full_name)}</span>
             ${c.company ? `<span class="nt-contact-company">${_esc(c.company)}</span>` : ''}
           </div>
           ${c.role_title ? `<div class="nt-contact-role">${_esc(c.role_title)}</div>` : ''}
+          ${notesHtml}
           <div class="nt-contact-meta">
             <span class="nt-last">${lastStr}</span>
+            ${followChip}
             ${liLink}
           </div>
-          ${notesHtml}
         </div>
         <div class="nt-contact-right">
           <select class="nt-status-select" onclick="event.stopPropagation()" onchange="quickUpdateContactStatus(${c.id}, this.value)">
@@ -5926,6 +6136,7 @@ function renderContacts(){
 async function quickUpdateContactStatus(id, newStatus){
   const c = contacts.find(x=>x.id===id);
   if(!c) return;
+  const prev = c.status;
   c.status = newStatus;
   renderContacts();
   try {
@@ -5933,6 +6144,8 @@ async function quickUpdateContactStatus(id, newStatus){
     if(error) throw error;
   } catch(e){
     console.warn('quickUpdateContactStatus failed:',e);
+    c.status = prev;          // revert optimistic change
+    renderContacts();
     toast('Failed to save status — please try again.');
   }
 }
@@ -5942,29 +6155,23 @@ function openContactModal(id){
   const overlay = document.getElementById('contact-modal-overlay');
   if(!overlay) return;
 
-  // Populate related-app dropdown
+  // Populate related-app dropdown (free of the old datalist)
   const appSel = document.getElementById('ct-app-id');
   if(appSel){
     appSel.innerHTML = '<option value="">— None —</option>' +
-      apps.filter(a=>a.status!=='rejected').map(a=>`<option value="${a.id}">${_esc(a.name)}</option>`).join('');
+      apps.filter(a=>a.status!=='rejected')
+          .map(a=>`<option value="${a.id}">${_esc(a.name)}</option>`).join('');
   }
 
-  // Populate programs datalist
-  const dl = document.getElementById('ct-prog-datalist');
-  if(dl && typeof progs !== 'undefined'){
-    dl.innerHTML = progs.slice(0,200).map(p=>`<option value="${_esc(p.company+' — '+p.program_name)}"></option>`).join('');
-  }
-
-  const titleEl = document.getElementById('contact-modal-title');
+  const titleEl   = document.getElementById('contact-modal-title');
   const deleteBtn = document.getElementById('ct-delete-btn');
-  const errEl = document.getElementById('ct-err');
+  const errEl     = document.getElementById('ct-err');
   if(errEl) errEl.style.display = 'none';
 
   if(id){
-    // Edit mode
     const c = contacts.find(x=>x.id===id);
     if(!c) return;
-    if(titleEl) titleEl.textContent = 'Edit Contact';
+    if(titleEl)   titleEl.textContent = 'Edit Contact';
     if(deleteBtn) deleteBtn.style.display = 'inline-flex';
     document.getElementById('ct-name').value          = c.full_name||'';
     document.getElementById('ct-company').value       = c.company||'';
@@ -5973,14 +6180,14 @@ function openContactModal(id){
     document.getElementById('ct-email').value         = c.email||'';
     document.getElementById('ct-status').value        = c.status||'identified';
     document.getElementById('ct-last-contacted').value= c.last_contacted||'';
+    document.getElementById('ct-follow-up').value     = c.follow_up_date||'';
     document.getElementById('ct-notes').value         = c.notes||'';
     if(appSel) appSel.value = c.related_app_id||'';
   } else {
-    // Add mode
-    if(titleEl) titleEl.textContent = 'Add Contact';
+    if(titleEl)   titleEl.textContent = 'Add Contact';
     if(deleteBtn) deleteBtn.style.display = 'none';
-    ['ct-name','ct-company','ct-role','ct-linkedin','ct-email','ct-last-contacted','ct-notes'].forEach(id=>{
-      const el = document.getElementById(id); if(el) el.value='';
+    ['ct-name','ct-company','ct-role','ct-linkedin','ct-email','ct-last-contacted','ct-follow-up','ct-notes'].forEach(eid=>{
+      const el = document.getElementById(eid); if(el) el.value='';
     });
     const statusEl = document.getElementById('ct-status');
     if(statusEl) statusEl.value = 'identified';
@@ -6018,6 +6225,7 @@ async function saveContact(){
     email:          document.getElementById('ct-email')?.value.trim()||null,
     status:         document.getElementById('ct-status')?.value||'identified',
     last_contacted: document.getElementById('ct-last-contacted')?.value||null,
+    follow_up_date: document.getElementById('ct-follow-up')?.value||null,
     notes:          document.getElementById('ct-notes')?.value.trim()||null,
     related_app_id: relatedAppId||null,
     updated_at:     new Date().toISOString(),
@@ -6028,12 +6236,26 @@ async function saveContact(){
       const {error} = await sb.from('user_contacts').update(row).eq('id',_editingContactId).eq('user_id',currentUser.id);
       if(error) throw error;
       const idx = contacts.findIndex(c=>c.id===_editingContactId);
-      if(idx>=0) contacts[idx] = {...contacts[idx], ...row, id:_editingContactId};
+      if(idx>=0){
+        contacts[idx] = {
+          ...contacts[idx],
+          full_name:row.full_name, company:row.company||'', role_title:row.role_title||'',
+          linkedin_url:row.linkedin_url||'', email:row.email||'', status:row.status,
+          last_contacted:row.last_contacted||'', follow_up_date:row.follow_up_date||'',
+          notes:row.notes||'', related_app_id:row.related_app_id||null,
+        };
+      }
       toast('Contact updated.');
     } else {
       const {data,error} = await sb.from('user_contacts').insert(row).select('id').single();
       if(error) throw error;
-      contacts.unshift({...row, id:data.id});
+      contacts.unshift({
+        id:data.id,
+        full_name:row.full_name, company:row.company||'', role_title:row.role_title||'',
+        linkedin_url:row.linkedin_url||'', email:row.email||'', status:row.status,
+        last_contacted:row.last_contacted||'', follow_up_date:row.follow_up_date||'',
+        notes:row.notes||'', related_app_id:row.related_app_id||null,
+      });
       toast('Contact saved.');
     }
     closeContactModal();
