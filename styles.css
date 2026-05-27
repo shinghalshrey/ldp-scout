@@ -1358,16 +1358,11 @@ input, textarea, select, button { font-family: inherit; }
     border-style: solid;
   }
 
-  /* Task 23: two-row topbar on phones. Row 1 = brand + topbar-right (sign-out
-     etc.), Row 2 = all 5 nav tabs as equal-width chips with shortened labels.
-     No horizontal scroll, no two-line wrap. The full label stays in the DOM
-     (font-size:0 hides it visually but screen readers still see it); a
-     ::before pseudo-element paints the short label from data-short.
-     Why ::before and not ::after: .nav-tab.needs-attention::after (line ~668,
-     non-media) already paints the coral pulse dot. Re-using ::after for the
-     label would let .needs-attention's higher specificity win the `content`
-     property, blanking out the label on any tab with an alert. ::before keeps
-     both pseudo-elements free to do their own job. */
+  /* Task 23 / updated: with 7 nav tabs, equal-width chips no longer fit on a
+     375px phone (labels overlapped — "Networking"/"Deadlines" collided).
+     Switched to a horizontal-scroll strip: tabs sized to their own content,
+     swipe to reach the rest. Full labels restored (data-short no longer
+     needed — kept on the elements but unused on mobile now). */
   .brand-name { display: none !important; }
   .topbar {
     flex-wrap: wrap;
@@ -1381,23 +1376,24 @@ input, textarea, select, button { font-family: inherit; }
     order: 3;
     flex-basis: 100%;
     width: 100%;
-    overflow: visible;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;             /* Firefox — hide scrollbar */
     mask-image: none;
     -webkit-mask-image: none;
-    justify-content: space-between;
+    justify-content: flex-start;
     gap: 4px;
+    flex-wrap: nowrap;
   }
+  .nav-tabs::-webkit-scrollbar { display: none; }  /* Chrome/Safari */
   .nav-tab {
-    flex: 1 1 0;
-    min-width: 0;
-    padding: 6px 4px;
-    font-size: 0;
+    flex: 0 0 auto;                    /* size to content, do not shrink */
+    min-width: max-content;
+    padding: 7px 12px;
+    font-size: 12px;
     text-align: center;
     white-space: nowrap;
-  }
-  .nav-tab::before {
-    content: attr(data-short);
-    font-size: 11px;
   }
 
   /* Sign Out button on the right of the topbar was wrapping to two lines
