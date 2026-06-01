@@ -2316,6 +2316,20 @@ input, textarea, select, button { font-family: inherit; }
   transition: background .15s, color .15s; text-decoration: none;
 }
 .nt-email-link:hover { background: var(--accent); color: #fff; }
+/* Task F: subtle badge showing the application a contact is linked to */
+.ct-linked-program {
+  font-size: 11px;
+  color: var(--text3);
+  background: var(--bg3);
+  padding: 2px 8px;
+  border-radius: 4px;
+  display: inline-block;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+}
 .nt-contact-notes {
   font-size: 12px; color: var(--text3); margin-top: 10px;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;

@@ -6150,6 +6150,7 @@ function _renderCCNetSnapshot(){
 let contacts = [];  // loaded from Supabase user_contacts
 let _editingContactId = null;
 let _taskCDEmailCount = null;   // Task CD: last-logged count, so the diagnostic logs only on change
+let _taskFLinkedCount = null;   // Task F: last-logged count of contacts linked to an application
 
 const CONTACT_STATUSES = [
   {key:'identified',       label:'Identified',       pillClass:'cc-pill-grey'},
@@ -6272,6 +6273,13 @@ function renderContacts(){
     console.log('[TaskCD] contacts with email:', _emailCount);
   }
 
+  // Task F diagnostic — how many contacts are linked to an application.
+  const _linkedCount = contacts.filter(c => c.related_app_id).length;
+  if(_linkedCount !== _taskFLinkedCount){
+    _taskFLinkedCount = _linkedCount;
+    console.log('[TaskF] contacts with linked app:', _linkedCount);
+  }
+
   // Overview boxes (4) — computed from ALL contacts
   if(overEl){
     const total     = contacts.length;
@@ -6342,6 +6350,12 @@ function renderContacts(){
       ? `<a class="nt-email-link" href="mailto:${_esc(c.email)}" title="${_esc(c.email)}" onclick="event.stopPropagation()">✉</a>`
       : '';
     const notesHtml = c.notes ? `<div class="nt-contact-notes">${_esc(c.notes)}</div>` : '';
+    // Task F: if this contact is linked to an application, show which one. Look it up from
+    // the already-loaded `apps` array; if the app was deleted (no match), show nothing.
+    const linkedApp = c.related_app_id ? apps.find(a => a.id === c.related_app_id) : null;
+    const linkedBadge = linkedApp
+      ? `<span class="ct-linked-program" title="Linked application">📋 ${_esc(linkedApp.name || linkedApp.program_name || 'Linked application')}</span>`
+      : '';
 
     return `
       <article class="nt-contact-card" onclick="openContactModal(${c.id})">
@@ -6355,6 +6369,7 @@ function renderContacts(){
           <div class="nt-contact-meta">
             <span class="nt-last">${lastStr}</span>
             ${followChip}
+            ${linkedBadge}
             ${liLink}
             ${emailLink}
           </div>
