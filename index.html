@@ -304,7 +304,8 @@
           </div>
         </div>
 
-        <!-- GEOGRAPHY — collapsible. Task 19.3 will replace with continent drill-down. -->
+        <!-- GEOGRAPHY — collapsible. Task E: two-level continent → country picker.
+             Pills are built dynamically from programs' continents[]/countries[] arrays. -->
         <div class="prog-side-section prog-side-acc" data-prog-section="geography">
           <button class="prog-side-head" type="button" onclick="toggleFilterSection('geography')">
             <span class="al-sidebar-label">Geography</span>
@@ -312,12 +313,10 @@
             <span class="prog-side-chev">▾</span>
           </button>
           <div class="prog-side-body">
-            <div class="prog-pill-stack">
-              <button class="fpill on" data-geo="all"     onclick="setF('geo',this)">All</button>
-              <button class="fpill"    data-geo="europe"  onclick="setF('geo',this)">Europe</button>
-              <button class="fpill"    data-geo="uae"     onclick="setF('geo',this)">UAE / Gulf</button>
-              <button class="fpill"    data-geo="global"  onclick="setF('geo',this)">Global</button>
-            </div>
+            <!-- Continent pills (always visible) -->
+            <div class="prog-pill-stack" id="geo-continent-pills"></div>
+            <!-- Country sub-row (appears only when exactly one continent is selected) -->
+            <div class="prog-pill-stack geo-country-row" id="geo-country-pills" style="display:none"></div>
           </div>
         </div>
 

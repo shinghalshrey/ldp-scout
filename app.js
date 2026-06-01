@@ -462,7 +462,7 @@ async function fetchProgramsFromSupabase() {
 
     const { data, error } = await sb
       .from('programs')
-      .select('id, company, program_name, industry, function, location, geo, status, deadline, dlnote, visa, url, tags, notes, program_type, duration, description, eligibility, work_experience, target_degree, source_url, last_verified_at, is_active_cycle, locations, language_required')
+      .select('id, company, program_name, industry, function, location, geo, continents, countries, status, deadline, dlnote, visa, url, tags, notes, program_type, duration, description, eligibility, work_experience, target_degree, source_url, last_verified_at, is_active_cycle, locations, language_required')
       .order('id', { ascending: true });
 
     if (error) {
@@ -481,6 +481,9 @@ async function fetchProgramsFromSupabase() {
       name:     row.program_name || '',
       org:      row.company || '',
       geo:      row.geo || '',
+      // Task E: multi-level geography — continents[]/countries[] supersede the coarse geo column.
+      continents: Array.isArray(row.continents) ? row.continents : [],
+      countries:  Array.isArray(row.countries)  ? row.countries  : [],
       loc:      row.location || '',
       fn:       row['function'] || '',  // bracket: 'function' is a JS reserved word
       sector:   row.industry || '',
@@ -2195,7 +2198,10 @@ let eId   = {prog:null,alumni:null,app:null};
 // Phase 10: filter state — each dimension is a Set of selected values.
 // Empty Set = no filter (equivalent to "All"). asc/ast remain single-value for Alumni.
 let F = {
-  geo:    new Set(),
+  // Task E: two-level geography. `geo` (coarse, single-value) is retired in favour of
+  // continents[] (top level) + countries[] (drill-down when exactly 1 continent is picked).
+  continents: new Set(),
+  countries:  new Set(),
   fn:     new Set(),
   sector: new Set(),   // Task 19.2 — Sector filter (sidebar pills)
   st:     new Set(),
@@ -2811,6 +2817,129 @@ function _syncFilterPills(dim){
   });
 }
 
+// ═══════════════ Task E — multi-level geography filter (continent → country) ═══════════════
+// Canonical display order. Only continents present in the loaded data get a pill.
+const CONTINENT_ORDER = ['Europe','North America','Asia','Middle East','Global','South America','Africa','Oceania'];
+let _taskEGeoSig = null;   // last-logged dataset signature, so the diagnostic logs once per data load
+
+// Does a program belong under a given continent pill? A program matches its own
+// continents, and "Global" programs surface under EVERY continent (available globally).
+function _continentMatch(p, continent){
+  const cs = p.continents || [];
+  if(cs.includes(continent)) return true;
+  if(continent !== 'Global' && cs.includes('Global')) return true;
+  return false;
+}
+
+// Geography filter predicate, shared by the catalog list and user-added rows.
+//  - No continent selected → pass (geography not filtering).
+//  - Continent(s) selected → program's continents must overlap, OR program is Global.
+//  - Country(ies) selected → program's countries must overlap (AND with continent).
+function _geoPass(p){
+  if(F.continents.size){
+    const cs = p.continents || [];
+    const ok = cs.some(c => F.continents.has(c)) || cs.includes('Global');
+    if(!ok) return false;
+  }
+  if(F.countries.size){
+    const cn = p.countries || [];
+    if(!cn.some(c => F.countries.has(c))) return false;
+  }
+  return true;
+}
+
+// Build the continent pills (always) and the country sub-row (only when exactly one
+// continent is selected). Counts reflect what the user would actually see for that pill.
+function renderGeoFilter(){
+  const contEl = document.getElementById('geo-continent-pills');
+  if(!contEl) return;
+  const countryEl = document.getElementById('geo-country-pills');
+
+  // Distinct continents present across all loaded programs.
+  const present = new Set();
+  progs.forEach(p => (p.continents || []).forEach(c => { if(c) present.add(c); }));
+
+  // Diagnostics — log once per distinct dataset signature (not on every render).
+  const distinctCountries = new Set();
+  progs.forEach(p => (p.countries || []).forEach(c => { if(c) distinctCountries.add(c); }));
+  const sig = [...present].sort().join('|') + '##' + distinctCountries.size;
+  if(sig !== _taskEGeoSig){
+    _taskEGeoSig = sig;
+    console.log('[TaskE] geo filter — continents:', present.size, 'countries:', distinctCountries.size);
+  }
+
+  // If the data has no continents at all, hide the whole geography filter.
+  if(present.size === 0){
+    contEl.innerHTML = '';
+    if(countryEl){ countryEl.innerHTML = ''; countryEl.style.display = 'none'; }
+    return;
+  }
+
+  // Canonical order first, then any unexpected continents appended alphabetically.
+  const ordered = CONTINENT_ORDER.filter(c => present.has(c));
+  [...present].filter(c => !ordered.includes(c)).sort().forEach(c => ordered.push(c));
+
+  let html = `<button class="fpill${F.continents.size === 0 ? ' on' : ''}" data-continent="all" onclick="toggleContinent(this)">All</button>`;
+  ordered.forEach(c => {
+    const n = progs.filter(p => _continentMatch(p, c)).length;
+    const on = F.continents.has(c) ? ' on' : '';
+    html += `<button class="fpill${on}" data-continent="${esc(c)}" onclick="toggleContinent(this)">${esc(c)} <span class="fpill-count">(${n})</span></button>`;
+  });
+  contEl.innerHTML = html;
+
+  if(!countryEl) return;
+
+  // Country drill-down: only when exactly one continent is selected.
+  if(F.continents.size === 1){
+    const sel = [...F.continents][0];
+    const matching = progs.filter(p => _continentMatch(p, sel));
+    const countrySet = new Set();
+    matching.forEach(p => (p.countries || []).forEach(cn => { if(cn) countrySet.add(cn); }));
+    const countries = [...countrySet].sort();
+    if(countries.length){
+      let chtml = `<div class="geo-country-label">Countries in ${esc(sel)}</div>`;
+      countries.forEach(cn => {
+        const n = matching.filter(p => (p.countries || []).includes(cn)).length;
+        const on = F.countries.has(cn) ? ' on' : '';
+        chtml += `<button class="fpill fpill-country${on}" data-country="${esc(cn)}" onclick="toggleCountry(this)">${esc(cn)} <span class="fpill-count">(${n})</span></button>`;
+      });
+      countryEl.innerHTML = chtml;
+      countryEl.style.display = '';
+    } else {
+      countryEl.innerHTML = '';
+      countryEl.style.display = 'none';
+    }
+  } else {
+    // 0 or 2+ continents selected → no country row (too many to show / ambiguous).
+    countryEl.innerHTML = '';
+    countryEl.style.display = 'none';
+  }
+}
+
+function toggleContinent(btn){
+  const val = btn.getAttribute('data-continent');
+  if(val === 'all'){
+    F.continents.clear();
+    F.countries.clear();
+  } else if(F.continents.has(val)){
+    F.continents.delete(val);
+  } else {
+    F.continents.add(val);
+  }
+  // Country pills only make sense for a single continent; drop them otherwise.
+  if(F.continents.size !== 1) F.countries.clear();
+  _persistFilterState();
+  renderPrograms();   // re-renders the geo filter (counts + active states) and the table
+}
+
+function toggleCountry(btn){
+  const val = btn.getAttribute('data-country');
+  if(F.countries.has(val)) F.countries.delete(val);
+  else                     F.countries.add(val);
+  _persistFilterState();
+  renderPrograms();
+}
+
 // Clickable stat cards — toggle membership in the status filter Set
 function statClick(status){
   if(F.st.has(status)){
@@ -2847,14 +2976,15 @@ function fitClick(){
 }
 
 function clearAll(){
-  F.geo.clear(); F.fn.clear(); F.sector.clear(); F.st.clear();
+  F.continents.clear(); F.countries.clear(); F.fn.clear(); F.sector.clear(); F.st.clear();
   F.sortKey = null; F.sortDir = 'asc';
   window._fitOnly = false;
   window._visaOnly = false;
   window._verifiedOnly = false;
   const vp = document.getElementById('visa-pill'); if(vp) vp.classList.remove('on');
   const verp = document.getElementById('verified-pill'); if(verp) verp.classList.remove('on');
-  ['geo','fn','sector','st'].forEach(_syncFilterPills);
+  ['fn','sector','st'].forEach(_syncFilterPills);
+  renderGeoFilter();   // Task E: continent/country pills are dynamic, re-render to reset
   const ps = document.getElementById('prog-search'); if(ps) ps.value = '';
   // Also clear the shared pipeline filter — "Clear filters" should mean ALL filters off.
   // This is a SHARED state with the Deadlines page; that's the documented design.
@@ -2888,7 +3018,8 @@ function _persistFilterState(){
   try {
     const ps = document.getElementById('prog-search');
     const state = {
-      geo:    [...F.geo],
+      continents: [...F.continents],   // Task E
+      countries:  [...F.countries],    // Task E
       fn:     [...F.fn],
       sector: [...F.sector],   // Task 19.2
       st:     [...F.st],
@@ -2908,7 +3039,8 @@ function _restoreFilterState(){
     const raw = localStorage.getItem('ldps_prog_filters');
     if(!raw) return;
     const s = JSON.parse(raw);
-    F.geo    = new Set(Array.isArray(s.geo)    ? s.geo    : []);
+    F.continents = new Set(Array.isArray(s.continents) ? s.continents : []);   // Task E
+    F.countries  = new Set(Array.isArray(s.countries)  ? s.countries  : []);   // Task E
     F.fn     = new Set(Array.isArray(s.fn)     ? s.fn     : []);
     F.sector = new Set(Array.isArray(s.sector) ? s.sector : []);   // Task 19.2
     F.st     = new Set(Array.isArray(s.st)     ? s.st     : []);
@@ -2921,7 +3053,8 @@ function _restoreFilterState(){
     if(ps && typeof s.search === 'string') ps.value = s.search;
     const vp = document.getElementById('visa-pill'); if(vp) vp.classList.toggle('on', window._visaOnly);
     const verp = document.getElementById('verified-pill'); if(verp) verp.classList.toggle('on', window._verifiedOnly);
-    ['geo','fn','sector','st'].forEach(_syncFilterPills);
+    ['fn','sector','st'].forEach(_syncFilterPills);
+    renderGeoFilter();   // Task E: rebuild continent/country pills to reflect restored state
   } catch {}
 }
 
@@ -3044,6 +3177,8 @@ function renderPrograms(){
   _refreshProgramsCounts();
   // Task 19.2 — keep sidebar active-filter count badges in sync with F state.
   _refreshSidebarBadges();
+  // Task E — rebuild the continent/country geography pills (counts + active states).
+  renderGeoFilter();
   const q=(document.getElementById('prog-search')||{}).value?.toLowerCase()||'';
   // Visa filter disclaimer — case-by-case sponsorship caveat
   const _vn=document.getElementById('visa-note'); if(_vn) _vn.style.display = window._visaOnly ? 'block' : 'none';
@@ -3051,7 +3186,7 @@ function renderPrograms(){
   _persistFilterState();
   let list=progs.filter(p=>{
     // Multi-select: an empty Set = no filter active = pass everything for that dimension.
-    if(F.geo.size    && !F.geo.has(p.geo))       return false;
+    if(!_geoPass(p)) return false;   // Task E: continent + country (AND) geography filter
     if(F.fn.size     && !F.fn.has(p.fn))         return false;
     if(F.sector.size && !F.sector.has(p.sector)) return false;   // Task 19.2
     if(F.st.size     && !F.st.has(p.status))     return false;
@@ -3122,7 +3257,7 @@ function renderPrograms(){
   const _uaAll = _userAddedRows();                       // unfiltered — drives the Total count
   const _catalogOnlyFilter = F.st.size || window._fitOnly || window._verifiedOnly;
   let _uaRows = _catalogOnlyFilter ? [] : _uaAll.filter(p => {
-    if(F.geo.size    && !F.geo.has(p.geo))       return false;
+    if(!_geoPass(p)) return false;   // Task E
     if(F.fn.size){
       const pfn = (p.fn||'').toLowerCase().trim();
       if(![...F.fn].some(v => v.toLowerCase() === pfn)) return false;
@@ -3198,7 +3333,7 @@ function renderPrograms(){
   const fitActive=window._fitOnly?'sc-active':'';
   const pipelineActive=_pipelineFilter?'sc-active':'';
   const pipelineCount = _pipelineCount();
-  const anyFilterActive = F.geo.size>0 || F.fn.size>0 || F.sector.size>0 || F.st.size>0 || window._fitOnly || window._visaOnly || window._verifiedOnly || _pipelineFilter || q.length>0;
+  const anyFilterActive = F.continents.size>0 || F.countries.size>0 || F.fn.size>0 || F.sector.size>0 || F.st.size>0 || window._fitOnly || window._visaOnly || window._verifiedOnly || _pipelineFilter || q.length>0;
 
   document.getElementById('prog-stats').innerHTML=`
     <div class="stat-card sc-total ${anyFilterActive?'sc-active':''}" onclick="clearAll()" title="Click to clear all filters">
@@ -3840,7 +3975,7 @@ function _restoreSidebarSections(){
 function _refreshSidebarBadges(){
   const map = {
     quickfilters: () => (window._visaOnly ? 1 : 0) + (window._verifiedOnly ? 1 : 0),
-    geography:    () => F.geo.size,
+    geography:    () => F.continents.size + F.countries.size,
     function:     () => F.fn.size,
     sector:       () => F.sector.size,
     status:       () => F.st.size,
