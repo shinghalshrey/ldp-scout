@@ -2107,7 +2107,10 @@ async function onbNext(){
 async function onbSkip(){
   await saveUserProfile({ onboarding_skipped_at: new Date().toISOString() });
   onbClose();
-  showPage('programs');
+  // Task CD (Fix C): skipping onboarding lands on the Command Center home dashboard
+  // (first-run cards), not the Programs table.
+  console.log('[TaskCD] onbSkip landing:', 'command');
+  showPage('command');
 }
 
 async function onbComplete(){
@@ -6146,6 +6149,7 @@ function _renderCCNetSnapshot(){
 
 let contacts = [];  // loaded from Supabase user_contacts
 let _editingContactId = null;
+let _taskCDEmailCount = null;   // Task CD: last-logged count, so the diagnostic logs only on change
 
 const CONTACT_STATUSES = [
   {key:'identified',       label:'Identified',       pillClass:'cc-pill-grey'},
@@ -6261,6 +6265,13 @@ function renderContacts(){
   const overEl  = document.getElementById('nt-overview');
   if(!listEl) return;
 
+  // Task CD (Fix D) diagnostic — how many contacts have an email on file.
+  const _emailCount = contacts.filter(c => (c.email||'').trim()).length;
+  if(_emailCount !== _taskCDEmailCount){
+    _taskCDEmailCount = _emailCount;
+    console.log('[TaskCD] contacts with email:', _emailCount);
+  }
+
   // Overview boxes (4) — computed from ALL contacts
   if(overEl){
     const total     = contacts.length;
@@ -6326,6 +6337,10 @@ function renderContacts(){
     const liLink = c.linkedin_url
       ? `<a class="nt-li-link" href="${_esc(c.linkedin_url)}" target="_blank" rel="noopener" title="LinkedIn" onclick="event.stopPropagation()">in</a>`
       : '';
+    // Task CD (Fix D): show the contact's email (if any) as a clickable mailto link.
+    const emailLink = c.email
+      ? `<a class="nt-email-link" href="mailto:${_esc(c.email)}" title="${_esc(c.email)}" onclick="event.stopPropagation()">✉</a>`
+      : '';
     const notesHtml = c.notes ? `<div class="nt-contact-notes">${_esc(c.notes)}</div>` : '';
 
     return `
@@ -6341,6 +6356,7 @@ function renderContacts(){
             <span class="nt-last">${lastStr}</span>
             ${followChip}
             ${liLink}
+            ${emailLink}
           </div>
         </div>
         <div class="nt-contact-right">
