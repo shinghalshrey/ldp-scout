@@ -82,3 +82,38 @@ console.log('[TaskE] geo filter — continents:', <distinct continents>, 'countr
 ## Out of scope (untouched)
 No Supabase data changes; the `geo` column itself is not modified. This is frontend-only —
 reading the new arrays and filtering on them.
+
+---
+
+# Task E2 — Country pills now only show countries in the selected continent
+
+## Bug
+Multi-continent programs carry countries from several regions (e.g. a program tagged
+`continents: ['Europe','Asia']`, `countries: ['UK','India','Hong Kong']`). The country
+drill-down collected countries from *every* program that matched the continent — including
+those multi-region programs and Global programs — so selecting **Europe** showed out-of-region
+pills like Argentina, Brazil, Canada and Hong Kong.
+
+## Fix (`app.js`)
+- Added a `COUNTRY_TO_CONTINENT` constant (next to `CONTINENT_ORDER`) mapping each known
+  country to its continent.
+- In `renderGeoFilter()`, the country drill-down now:
+  1. Collects candidate countries only from programs that **explicitly** list the selected
+     continent in `continents[]` (Global programs are excluded from the drill-down).
+  2. Keeps only countries where `COUNTRY_TO_CONTINENT[country] === selectedContinent`.
+     Countries absent from the map are not shown (they can't be placed in a continent).
+- Each country pill's count = programs that have the selected continent in `continents[]`
+  **AND** the country in `countries[]`, so every shown pill has ≥1 program.
+
+## Diagnostics
+```js
+console.log('[TaskE2] country pills for', selectedContinent, ':', visibleCountries.length, 'countries shown');
+```
+
+## Verification
+`node --check` passes. Offline check with a multi-continent program
+(`['Europe','Asia']` → `['UK','India','Hong Kong']`) confirms:
+- **Europe** → Germany, Spain, UK only (India/Hong Kong correctly excluded).
+- **Asia** → India, Hong Kong.
+- **North America** → Canada (a Global-only `USA` is excluded).
+- Counts correct in every case.

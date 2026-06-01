@@ -2822,6 +2822,36 @@ function _syncFilterPills(dim){
 const CONTINENT_ORDER = ['Europe','North America','Asia','Middle East','Global','South America','Africa','Oceania'];
 let _taskEGeoSig = null;   // last-logged dataset signature, so the diagnostic logs once per data load
 
+// Task E2 — maps a country to the continent it geographically belongs to. Multi-continent
+// programs carry countries from several regions, so when drilling into a single continent we
+// use this to keep only the countries that actually belong to it (e.g. hide Brazil/Canada/
+// Hong Kong from the Europe country row). Countries absent from this map are not shown.
+const COUNTRY_TO_CONTINENT = {
+  // Europe
+  'Spain':'Europe','Germany':'Europe','France':'Europe','UK':'Europe',
+  'Ireland':'Europe','Netherlands':'Europe','Switzerland':'Europe','Italy':'Europe',
+  'Denmark':'Europe','Belgium':'Europe','Sweden':'Europe','Austria':'Europe',
+  'Finland':'Europe','Norway':'Europe','Portugal':'Europe','Poland':'Europe',
+  'Czech Republic':'Europe','Hungary':'Europe','Romania':'Europe','Greece':'Europe',
+  'Liechtenstein':'Europe','Latvia':'Europe','Luxembourg':'Europe',
+  // North America
+  'USA':'North America','Canada':'North America','Mexico':'North America',
+  // Asia
+  'India':'Asia','Singapore':'Asia','Japan':'Asia','China':'Asia',
+  'South Korea':'Asia','Hong Kong':'Asia','Taiwan':'Asia','Thailand':'Asia',
+  'Malaysia':'Asia',
+  // Middle East
+  'UAE':'Middle East','Saudi Arabia':'Middle East','Qatar':'Middle East',
+  'Israel':'Middle East','Turkey':'Middle East',
+  // South America
+  'Brazil':'South America','Argentina':'South America','Colombia':'South America',
+  'Chile':'South America',
+  // Africa
+  'South Africa':'Africa','Nigeria':'Africa','Kenya':'Africa',
+  // Oceania
+  'Australia':'Oceania','New Zealand':'Oceania',
+};
+
 // Does a program belong under a given continent pill? A program matches its own
 // continents, and "Global" programs surface under EVERY continent (available globally).
 function _continentMatch(p, continent){
@@ -2892,14 +2922,19 @@ function renderGeoFilter(){
   // Country drill-down: only when exactly one continent is selected.
   if(F.continents.size === 1){
     const sel = [...F.continents][0];
-    const matching = progs.filter(p => _continentMatch(p, sel));
+    // Strict continent membership — Global programs are excluded from the country drill-down,
+    // and (Task E2) only countries that geographically belong to `sel` are kept, so a
+    // multi-continent program's out-of-region countries don't leak into this row.
+    const inContinent = progs.filter(p => (p.continents || []).includes(sel));
     const countrySet = new Set();
-    matching.forEach(p => (p.countries || []).forEach(cn => { if(cn) countrySet.add(cn); }));
-    const countries = [...countrySet].sort();
+    inContinent.forEach(p => (p.countries || []).forEach(cn => { if(cn) countrySet.add(cn); }));
+    const countries = [...countrySet].filter(cn => COUNTRY_TO_CONTINENT[cn] === sel).sort();
+    console.log('[TaskE2] country pills for', sel, ':', countries.length, 'countries shown');
     if(countries.length){
       let chtml = `<div class="geo-country-label">Countries in ${esc(sel)}</div>`;
       countries.forEach(cn => {
-        const n = matching.filter(p => (p.countries || []).includes(cn)).length;
+        // Count = programs with `sel` in continents[] AND `cn` in countries[].
+        const n = inContinent.filter(p => (p.countries || []).includes(cn)).length;
         const on = F.countries.has(cn) ? ' on' : '';
         chtml += `<button class="fpill fpill-country${on}" data-country="${esc(cn)}" onclick="toggleCountry(this)">${esc(cn)} <span class="fpill-count">(${n})</span></button>`;
       });
