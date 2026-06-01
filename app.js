@@ -3155,13 +3155,15 @@ function renderPrograms(){
 
   if(_uaRows.length) list = [..._uaRows, ...list];
 
+  const _dbgDl={dates:0,rolling:0,dash:0};   // Task B diagnostics
   document.getElementById('prog-list').innerHTML=list.length===0
     ?'<div class="empty">No programs match your filters. <button onclick="clearAll()" style="background:none;border:none;color:var(--blue);cursor:pointer;text-decoration:underline">Clear all filters</button></div>'
     :list.map(p=>{
       if(p._userAdded) return _userAddedRowHTML(p);   // Task 27B
       const [bc,bl]=sm[p.status]||['b-closed','—'];
       const rv=resolveProgramView(p);   // Task 27A.2: user's deadline wins on the Programs table + reminder too
-      const dl=rv.deadline?new Date(rv.deadline).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):(p.dlnote||'—');
+      const dl=deadlineLabel(p, rv.deadline);   // Task B: never leak p.dlnote into the deadline column
+      if(dl==='—') _dbgDl.dash++; else if(dl==='Rolling') _dbgDl.rolling++; else _dbgDl.dates++;
       // Task 19.2.1 — program meta (FULL TIME · 2 YEARS) and description
       // were removed from the table row. They made rows visually uneven.
       // Task 19.2.2 — "+ Details" disclosure also removed. The program-name
@@ -3187,6 +3189,7 @@ function renderPrograms(){
         </div>
       </div>`;
     }).join('');
+  console.log('[TaskB] deadline cells — dates:', _dbgDl.dates, 'rolling:', _dbgDl.rolling, 'dash:', _dbgDl.dash);
 
   // Stats — Task 19.2 layout: TOTAL · ✦ AI FIT · OPEN · ROLLING · ★ MY PIPELINE
   const open=progs.filter(p=>p.status==='open').length;
@@ -3295,19 +3298,24 @@ function _aiTierMobile(p){
   return `<div class="pmc-aifit-cta" onclick="showPage('aifit')" title="Scan your résumé to see your fit for this program">✦ Scan résumé to see your fit</div>`;
 }
 
+// Task B — single source of truth for what shows in a *deadline* position.
+// Never render arbitrary p.dlnote (a notes field) as if it were a deadline.
+//  1. real date → formatted date   2. rolling → "Rolling"   3. else → "—"
+function deadlineLabel(p, resolvedDate){
+  const d = resolvedDate || p.deadline;
+  if(d){
+    const dt = new Date(d);
+    if(!isNaN(dt.getTime())) return dt.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+  }
+  if(p.status === 'rolling' || /rolling/i.test(p.dlnote || '')) return 'Rolling';
+  return '—';
+}
+
 function _deadlineLineMobile(p, resolvedDeadline){
-  const dl = resolvedDeadline || p.deadline;   // Task 27A.2: user's deadline wins
-  if(dl){
-    const d = new Date(dl);
-    if(!isNaN(d.getTime())){
-      const fmt = d.toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'});
-      return `<span class="pmc-meta-item"><span class="pmc-icon">⏰</span>${esc(fmt)}</span>`;
-    }
-  }
-  if(p.dlnote){
-    return `<span class="pmc-meta-item"><span class="pmc-icon">⏰</span>${esc(p.dlnote)}</span>`;
-  }
-  return '<span class="pmc-meta-item"><span class="pmc-icon">⏰</span>Rolling</span>';
+  // Task B: only show a ⏰ row for a real date or "Rolling". Never p.dlnote text.
+  const label = deadlineLabel(p, resolvedDeadline);   // Task 27A.2: user's deadline wins
+  if(label === '—') return '';
+  return `<span class="pmc-meta-item"><span class="pmc-icon">⏰</span>${esc(label)}</span>`;
 }
 
 function _mobileCardHTML(p){
@@ -3941,9 +3949,9 @@ function renderAlumniSearch(){
     const initial = (p.org||'?').charAt(0).toUpperCase();
 
     // Tags row
-    const dlText = p.deadline
-      ? `<span><strong>Deadline:</strong> ${new Date(p.deadline).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</span>`
-      : (p.dlnote ? `<span><strong>Deadline:</strong> ${p.dlnote}</span>` : '');
+    // Task B: never render p.dlnote text as a deadline; omit the span when there's nothing real to show.
+    const dlLabel = deadlineLabel(p);
+    const dlText = dlLabel === '—' ? '' : `<span><strong>Deadline:</strong> ${dlLabel}</span>`;
 
     return `<div class="al-card">
       <div class="al-card-logo">${initial}</div>
