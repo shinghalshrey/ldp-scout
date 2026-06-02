@@ -604,6 +604,7 @@ function onSignOut(){
   _scanLoadedOnce = false;
   _deadlinesView = false;
   _netSubview = 'contacts';
+  _progSubview = 'browse';
   showLanding();
   // Clear UI (null-guard — these elements may not exist before sign-in)
   const kb = document.getElementById('app-kanban');
@@ -1353,7 +1354,7 @@ function renderFitBanner(){
   if(!resumeText){
     mount.innerHTML = `<div class="fit-prompt-banner" onclick="openProgramsScan()" title="Open the AI Fit Scan panel">
       <div class="fpb-icon">✦</div>
-      <div class="fpb-text"><strong>Fit column powered by AI.</strong> Upload your résumé on the AI Fit Scan tab to get personalised tier rankings, gap analysis, and coaching across all programs — results sync back here automatically.</div>
+      <div class="fpb-text"><strong>Fit column powered by AI.</strong> Open the <strong>✦ AI Fit Scan</strong> view and upload your résumé to get personalised tier rankings, gap analysis, and coaching across all programs — results sync back here automatically.</div>
       <div class="fpb-cta">Scan My Résumé →</div>
     </div>`;
     return;
@@ -1413,10 +1414,10 @@ function renderProgressStrip(){
 
 function updateFitTabIndicator(){
   // Task TC — the AI Fit nav tab is gone; the attention cue now lives on the
-  // "Scan résumé" button in the Programs action bar. Coral pulsing dot when the
-  // user is signed in but hasn't uploaded a résumé yet.
-  const scanBtn = document.getElementById('prog-scan-btn');
-  if(scanBtn) scanBtn.classList.toggle('needs-attention', !resumeText && !!currentUser);
+  // "✦ AI Fit Scan" sub-view pill on the Programs page. Coral pulsing dot when
+  // the user is signed in but hasn't uploaded a résumé yet.
+  const scanPill = document.getElementById('prog-subpill-scan');
+  if(scanPill) scanPill.classList.toggle('needs-attention', !resumeText && !!currentUser);
 }
 
 // ─── PHASE 4: GUIDED PRODUCT TOURS ───
@@ -1438,10 +1439,11 @@ const TOURS = {
     {target:'.nt-add-btn',      title:'Log a new contact',         body:'Add alumni, recruiters, anyone in your network. Track each one from first message all the way to a referral.'}
   ],
   programs: [
+    {target:'#prog-subnav',        title:'Browse or scan',        body:'Two views in one tab. "Browse Programs" is the catalog table below. "✦ AI Fit Scan" uploads your résumé and tier-ranks every program against it — the results sync straight back into the AI Fit column here.'},
     {target:'#prog-stats',         title:'Pipeline at a glance',  body:'Snapshot of all tracked LDPs by status — open, rolling, watch-list, and closed. Updates as you filter below.'},
-    {target:'.prog-actions',       title:'Scan, deadlines & calendar', body:'Everything lives here now. "Scan résumé" runs the AI Fit analysis inline. "Deadlines view" sorts by date and shows only dated/rolling programs. "Export calendar" downloads your pipeline deadlines as an .ics file.'},
+    {target:'.prog-actions',       title:'Deadlines & calendar',  body:'"Deadlines view" sorts by date and shows only dated/rolling programs. "Export calendar" downloads your pipeline deadlines as a single .ics file.'},
     {target:'.prog-sidebar',       title:'Filter and search',     body:'Use the sidebar to narrow the list. Expand any section: Quick Filters (Visa), Geography, Function, Sector, or App Cycle. Search matches program names, firms, and keywords. Active filters appear in the stat row above.'},
-    {target:'.thead',              title:'Sortable columns',      body:'Click any column header to sort. The AI Fit column is powered by the Scan résumé button once you upload a résumé.'},
+    {target:'.thead',              title:'Sortable columns',      body:'Click any column header to sort. The AI Fit column is powered by the AI Fit Scan sub-view once you upload a résumé.'},
     {target:'.prow:first-child',   title:'Open program details + add to pipeline',  body:'Click any row to open full details. Use the Stage dropdown at the right to add a program to your pipeline at any stage — Shortlisted, Networking, Drafting, Applied, Interview, Offer.'}
   ],
   aifit: [
@@ -1955,8 +1957,6 @@ async function loadAndRenderLastScan(){
 function renderQuotaExhausted(used){
   document.getElementById('aifit-view-pre').style.display = 'none';
   document.getElementById('aifit-view-post').style.display = 'block';
-  const _qp = document.getElementById('programs-scan-panel');   // Task TC — reveal inline panel
-  if(_qp) _qp.style.display = 'block';
   const usedSafe = (typeof used === 'number') ? used : SCAN_QUOTA_CLIENT;
   document.getElementById('aifit-results-container').innerHTML = `
     <div style="max-width:520px;margin:40px auto;text-align:center;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);padding:32px;box-shadow:var(--shadow-md)">
@@ -2805,7 +2805,7 @@ function showPage(id){
   // and lazily renders the merged Alumni Finder when that sub-view is opened.
   ({
     command: renderCommandCenter,
-    programs: ()=>{ _restoreSidebarSections(); renderPrograms(); _hydrateLastScanOnce(); },
+    programs: ()=>{ _restoreSidebarSections(); _progSubview='browse'; _applyProgramsSubview(); renderPrograms(); _hydrateLastScanOnce(); },
     applications: renderApplications,
     networking: _applyNetworkingSubview,
   })[id]?.();
@@ -2842,6 +2842,10 @@ let _deadlinesView = false;
 let _scanLoadedOnce = false;
 // Networking sub-view: 'contacts' (default) or 'alumni' (the merged finder).
 let _netSubview = 'contacts';
+// Task TC.2 — Programs sub-view: 'browse' (catalog table, default) or 'scan'
+// (the AI Fit résumé scanner). Pills at the top of the Programs page switch
+// between them, mirroring the Networking page.
+let _progSubview = 'browse';
 
 // Fire-and-forget hydration of the most recent scan into #programs-scan-panel.
 // loadAndRenderLastScan() reveals the panel (via renderAIResults) only when a
@@ -2852,42 +2856,54 @@ function _hydrateLastScanOnce(){
   try { loadAndRenderLastScan(); } catch(e){ /* non-blocking */ }
 }
 
-// Open the AI Fit Scan panel on the Programs page (replaces the old AI Fit tab).
-// Keeps prior results visible if we already have them; otherwise shows the
-// résumé-upload (pre-scan) UI. Always scrolls the panel into view.
+// Switch the Programs page between its two sub-views: 'browse' (table) and
+// 'scan' (AI Fit résumé scanner). Mirrors setNetworkingSubview().
+function setProgramsSubview(view){
+  _progSubview = (view === 'scan') ? 'scan' : 'browse';
+  _applyProgramsSubview();
+}
+
+function _applyProgramsSubview(){
+  const isScan = _progSubview === 'scan';
+  const bv = document.getElementById('prog-subview-browse');
+  const sv = document.getElementById('prog-subview-scan');
+  const bp = document.getElementById('prog-subpill-browse');
+  const sp = document.getElementById('prog-subpill-scan');
+  if(bv) bv.style.display = isScan ? 'none' : 'block';
+  if(sv) sv.style.display = isScan ? 'block' : 'none';
+  if(bp){ bp.classList.toggle('on', !isScan); bp.setAttribute('aria-selected', String(!isScan)); }
+  if(sp){ sp.classList.toggle('on',  isScan); sp.setAttribute('aria-selected', String(isScan)); }
+  if(isScan){
+    // Show prior results if we have them, else the upload UI.
+    const pre  = document.getElementById('aifit-view-pre');
+    const post = document.getElementById('aifit-view-post');
+    const resultsEl = document.getElementById('aifit-results-container');
+    const hasResults = !!(resultsEl && resultsEl.children.length > 0);
+    if(pre)  pre.style.display  = hasResults ? 'none'  : 'block';
+    if(post) post.style.display = hasResults ? 'block' : 'none';
+    applyPagePersonalization('aifit');   // personalize the pre-scan headline
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+}
+
+// Open the AI Fit Scan sub-view on the Programs page (replaces the old AI Fit
+// tab). Navigates to Programs first if needed.
 function openProgramsScan(){
   const onPrograms = document.getElementById('page-programs')?.classList.contains('active');
   if(!onPrograms) showPage('programs');
-  const panel = document.getElementById('programs-scan-panel');
-  if(!panel) return;
-  panel.style.display = 'block';
-  const pre  = document.getElementById('aifit-view-pre');
-  const post = document.getElementById('aifit-view-post');
-  const resultsEl = document.getElementById('aifit-results-container');
-  const hasResults = !!(resultsEl && resultsEl.children.length > 0);
-  if(hasResults){
-    if(pre)  pre.style.display = 'none';
-    if(post) post.style.display = 'block';
-  } else {
-    if(post) post.style.display = 'none';
-    if(pre)  pre.style.display = 'block';
-  }
-  applyPagePersonalization('aifit');   // personalize the pre-scan headline
-  setTimeout(() => panel.scrollIntoView({ behavior:'smooth', block:'start' }), 60);
+  setProgramsSubview('scan');
 }
 
-// Reveal the scan panel and scroll to it without changing pre/post state —
-// used right after a scan completes (renderAIResults already set the post view).
+// Show the scan results — used right after a scan completes (renderAIResults
+// already set the post view); just flips to the scan sub-view.
 function revealScanResults(){
-  const panel = document.getElementById('programs-scan-panel');
-  if(!panel) return;
-  panel.style.display = 'block';
-  setTimeout(() => panel.scrollIntoView({ behavior:'smooth', block:'start' }), 80);
+  setProgramsSubview('scan');
 }
 
+// Back-compat alias — anything still calling closeProgramsScan() returns to the
+// table view.
 function closeProgramsScan(){
-  const panel = document.getElementById('programs-scan-panel');
-  if(panel) panel.style.display = 'none';
+  setProgramsSubview('browse');
 }
 
 // Deadlines view toggle (Programs action bar). Replaces the old Deadlines tab.
@@ -5573,13 +5589,12 @@ function renderAIResults(result, meta){
   // Sync results to programs table (for Fit column)
   syncAIResultsToPrograms(result);
 
-  // Switch to post-scan view
+  // Switch to post-scan view. Visibility of the scan sub-view itself is owned by
+  // setProgramsSubview() — this just swaps the pre/post panes within it, so a
+  // silent hydration on page load fills the results without yanking the user
+  // out of the Browse table.
   document.getElementById('aifit-view-pre').style.display = 'none';
   document.getElementById('aifit-view-post').style.display = 'block';
-  // Task TC — results render into the inline panel on the Programs page; reveal
-  // it so the tier-summary banner is visible above the table.
-  const _scanPanel = document.getElementById('programs-scan-panel');
-  if(_scanPanel) _scanPanel.style.display = 'block';
 
   const pm = {};
   progs.forEach(p => { pm[p.id] = p; });

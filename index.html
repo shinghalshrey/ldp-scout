@@ -285,6 +285,16 @@
      <head> sets it from localStorage.ldps_last_page before paint, preventing
      the flicker where Programs flashed before the saved page loaded. -->
 <div class="page" id="page-programs">
+  <!-- Task TC.2 — sub-view pills (same pattern as the Networking page).
+       "Browse Programs" is the catalog table; "✦ AI Fit Scan" is the résumé
+       scanner. Keeps the table view uncluttered — the scan UI is one click away
+       but never crowds the page. -->
+  <div class="prog-subnav" id="prog-subnav" role="tablist">
+    <button class="prog-subpill on" id="prog-subpill-browse" type="button" role="tab" aria-selected="true" onclick="setProgramsSubview('browse')">Browse Programs</button>
+    <button class="prog-subpill" id="prog-subpill-scan" type="button" role="tab" aria-selected="false" onclick="setProgramsSubview('scan')">✦ AI Fit Scan</button>
+  </div>
+
+  <div id="prog-subview-browse" class="prog-subview">
   <div class="prog-layout">
     <!-- LEFT SIDEBAR -->
     <aside class="prog-sidebar">
@@ -420,86 +430,12 @@
 
       <div id="fit-banner-mount" class="prog-fit-mount"></div>
 
-      <!-- Task TC — AI FIT SCAN PANEL (merged from the old AI Fit Scan tab).
-           Hidden by default. Opened via the "Scan résumé" button below, or
-           revealed automatically when a previous scan's results are loaded.
-           All inner IDs are preserved from the old #page-aifit so the scan
-           logic (runAIAnalysis, loadAndRenderLastScan, quota checks, etc.)
-           works unchanged — only the render target moved into Programs. -->
-      <section id="programs-scan-panel" class="prog-scan-panel" style="display:none">
-        <div class="prog-scan-panel-head">
-          <span class="prog-scan-panel-title">✦ AI Fit Scan</span>
-          <button class="prog-scan-panel-close" type="button" onclick="closeProgramsScan()" title="Hide the scan panel">Close ✕</button>
-        </div>
-
-        <!-- PRE-SCAN: résumé upload (relocated from #page-aifit) -->
-        <div id="aifit-view-pre" class="aifit-pre-scan">
-          <header class="aifit-header">
-            <span class="aifit-eyebrow">LDP SCOUT · AI FIT SCAN</span>
-            <h1 class="aifit-title">Match your resume to top MBA Leadership Development Programs</h1>
-            <p class="aifit-subtitle">Get a tier-ranked fit analysis and gap assessment based on your professional background in seconds.</p>
-          </header>
-
-          <div class="aifit-upload-container">
-            <div class="aifit-upload-box" id="aifit-upload-box">
-              <input type="file" accept=".pdf,.txt,.doc,.docx" onchange="handleFileUpload(event)" id="resume-file-input">
-              <div id="aifit-file-display" style="display:none">
-                <div class="aifit-file-badge">
-                  <span class="aifit-file-dot"></span>
-                  <span class="aifit-file-info" id="aifit-file-info"></span>
-                  <span class="aifit-file-remove" onclick="clearAIFitFile(event)">Remove</span>
-                </div>
-                <p class="aifit-upload-hint">Resume detected and ready for processing.</p>
-              </div>
-              <div id="aifit-empty-display">
-                <div class="aifit-upload-icon"></div>
-                <p class="aifit-upload-prompt">Drop your resume here or click to browse</p>
-                <p class="aifit-upload-hint">PDF, DOCX, or plain text · Max 5 MB</p>
-              </div>
-            </div>
-          </div>
-
-          <div class="aifit-cta-wrap">
-            <button class="aifit-analyze-btn" id="analyze-btn" onclick="runAIAnalysis()" disabled>
-              <span>✦</span> Analyse My Fit
-            </button>
-          </div>
-
-          <div class="aifit-how-it-works">
-            <div class="aifit-step">
-              <span class="aifit-step-num">01. UPLOAD</span>
-              <p class="aifit-step-text">Your resume is parsed via secure private proxy.</p>
-            </div>
-            <div class="aifit-step">
-              <span class="aifit-step-num">02. MAP</span>
-              <p class="aifit-step-text">AI evaluates your profile against active LDPs.</p>
-            </div>
-            <div class="aifit-step">
-              <span class="aifit-step-num">03. STRATEGIZE</span>
-              <p class="aifit-step-text">Review gap analysis and personalized coaching.</p>
-            </div>
-          </div>
-
-          <footer class="aifit-privacy">
-            <p class="aifit-privacy-text">Your resume is processed via secure proxy, never stored, and never shared.</p>
-          </footer>
-        </div>
-
-        <!-- POST-SCAN RESULTS VIEW -->
-        <div id="aifit-view-post" class="aifit-post-scan" style="display:none">
-          <div class="aifit-post-container">
-            <!-- Summary strip + (collapsible) full results injected by renderAIResults() -->
-            <div id="aifit-results-container"></div>
-          </div>
-        </div>
-      </section>
-
       <div class="prog-meta-row">
         <div id="prog-meta" class="results-meta prog-meta"></div>
-        <!-- Task TC — Programs action bar: Scan résumé (AI Fit), Deadlines view
-             toggle + calendar export (merged from Deadlines tab), Add program. -->
+        <!-- Task TC — Programs action bar: Deadlines view toggle + calendar
+             export (merged from Deadlines tab), Add program. The AI Fit scan
+             now lives in its own sub-view pill above, not here. -->
         <div class="prog-actions">
-          <button id="prog-scan-btn" class="prog-action-btn prog-action-accent" type="button" onclick="openProgramsScan()" title="Scan your résumé for AI fit across all programs">✦ Scan résumé</button>
           <button id="prog-deadlines-toggle" class="prog-action-btn" type="button" onclick="toggleDeadlinesView()" title="Sort by deadline and show only dated / rolling programs">📅 Deadlines view</button>
           <button id="prog-ics-export" class="prog-action-btn" type="button" onclick="exportMyPipelineDeadlines()" title="Download all deadlines from your pipeline as a single calendar (.ics) file">⬇ Export calendar</button>
           <a class="prog-request-link" href="javascript:void(0)" onclick="openM('app')" title="Add a program that isn't in the catalog to your pipeline">+ Add new program</a>
@@ -529,6 +465,81 @@
       <!-- Task 19.2.1 — bottom blue info-card removed. The "Tour this page →"
            link is now inline in the eyebrow at the top, in editorial typography. -->
     </main>
+  </div>
+  </div><!-- /#prog-subview-browse -->
+
+  <!-- ─── SUB-VIEW: AI Fit Scan (résumé scanner, merged from the old tab) ───
+       All inner IDs are preserved from the old #page-aifit so the scan logic
+       (runAIAnalysis, loadAndRenderLastScan, quota checks, renderAIResults)
+       works unchanged — only the render host moved. -->
+  <div id="prog-subview-scan" class="prog-subview" style="display:none">
+    <section id="programs-scan-panel" class="prog-scan-panel">
+      <div class="prog-scan-panel-head">
+        <span class="prog-scan-panel-title">✦ AI Fit Scan</span>
+        <button class="prog-scan-panel-close" type="button" onclick="setProgramsSubview('browse')" title="Back to the programs table">← Back to programs</button>
+      </div>
+
+      <!-- PRE-SCAN: résumé upload -->
+      <div id="aifit-view-pre" class="aifit-pre-scan">
+        <header class="aifit-header">
+          <span class="aifit-eyebrow">LDP SCOUT · AI FIT SCAN</span>
+          <h1 class="aifit-title">Match your resume to top MBA Leadership Development Programs</h1>
+          <p class="aifit-subtitle">Get a tier-ranked fit analysis and gap assessment based on your professional background in seconds.</p>
+        </header>
+
+        <div class="aifit-upload-container">
+          <div class="aifit-upload-box" id="aifit-upload-box">
+            <input type="file" accept=".pdf,.txt,.doc,.docx" onchange="handleFileUpload(event)" id="resume-file-input">
+            <div id="aifit-file-display" style="display:none">
+              <div class="aifit-file-badge">
+                <span class="aifit-file-dot"></span>
+                <span class="aifit-file-info" id="aifit-file-info"></span>
+                <span class="aifit-file-remove" onclick="clearAIFitFile(event)">Remove</span>
+              </div>
+              <p class="aifit-upload-hint">Resume detected and ready for processing.</p>
+            </div>
+            <div id="aifit-empty-display">
+              <div class="aifit-upload-icon"></div>
+              <p class="aifit-upload-prompt">Drop your resume here or click to browse</p>
+              <p class="aifit-upload-hint">PDF, DOCX, or plain text · Max 5 MB</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="aifit-cta-wrap">
+          <button class="aifit-analyze-btn" id="analyze-btn" onclick="runAIAnalysis()" disabled>
+            <span>✦</span> Analyse My Fit
+          </button>
+        </div>
+
+        <div class="aifit-how-it-works">
+          <div class="aifit-step">
+            <span class="aifit-step-num">01. UPLOAD</span>
+            <p class="aifit-step-text">Your resume is parsed via secure private proxy.</p>
+          </div>
+          <div class="aifit-step">
+            <span class="aifit-step-num">02. MAP</span>
+            <p class="aifit-step-text">AI evaluates your profile against active LDPs.</p>
+          </div>
+          <div class="aifit-step">
+            <span class="aifit-step-num">03. STRATEGIZE</span>
+            <p class="aifit-step-text">Review gap analysis and personalized coaching.</p>
+          </div>
+        </div>
+
+        <footer class="aifit-privacy">
+          <p class="aifit-privacy-text">Your resume is processed via secure proxy, never stored, and never shared.</p>
+        </footer>
+      </div>
+
+      <!-- POST-SCAN RESULTS VIEW -->
+      <div id="aifit-view-post" class="aifit-post-scan" style="display:none">
+        <div class="aifit-post-container">
+          <!-- Summary strip + (collapsible) full results injected by renderAIResults() -->
+          <div id="aifit-results-container"></div>
+        </div>
+      </div>
+    </section>
   </div>
 </div>
 

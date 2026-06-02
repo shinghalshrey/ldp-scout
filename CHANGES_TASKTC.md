@@ -129,6 +129,29 @@ Deadlines view: 44 rows, 0 with "—", sorted 30 Jun → 15 Jul → 1 Aug → �
   `.aifit-fullresults-toggle` / `.aifit-full-results`; `.net-subnav` / `.net-subpill` /
   `.net-subview*`; mobile rules; updated nav-tab count comment.
 
+---
+
+## Task TC.2 — Programs page declutter (follow-up)
+The first cut placed the AI Fit scan as an always-present panel inside the
+Programs table view, which felt cluttered. Reworked to the same **sub-view pill**
+pattern used on Networking:
+
+- Added **`#prog-subnav`** pills at the top of `#page-programs`:
+  **"Browse Programs"** (the catalog table, default) and **"✦ AI Fit Scan"** (the
+  scanner). The browse content is wrapped in `#prog-subview-browse`; the scan panel
+  moved into `#prog-subview-scan`. Switched by `setProgramsSubview('browse'|'scan')`
+  → `_applyProgramsSubview()` (state `_progSubview`, reset to `browse` on each
+  Programs entry and on sign-out).
+- Removed the "Scan résumé" button from the action bar (the pill replaces it). The
+  panel's header button is now **"← Back to programs"**.
+- `openProgramsScan()` / `revealScanResults()` now just flip to the scan sub-view;
+  `renderAIResults()` no longer force-reveals a panel (so silent hydration on page
+  load fills results without yanking the user off the table). The fit-attention
+  coral dot moved to the `#prog-subpill-scan` pill.
+- Shared the pill CSS across both pages (`.net-subnav, .prog-subnav` /
+  `.net-subpill, .prog-subpill`). Programs tour + fit-banner copy updated to point
+  at the "AI Fit Scan" view instead of the old tab/button.
+
 ## Diagnostics
 ```
 [TaskTC] nav tabs: 5
