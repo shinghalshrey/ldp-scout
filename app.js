@@ -19,6 +19,15 @@ const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
 let currentUser = null;
 let userProfile = null;
 
+// Task H — instrumentation. Surface unhandled async errors (e.g. failed Supabase
+// calls) in both the console and Sentry (the Sentry loader in index.html auto-hooks
+// window.onerror / unhandledrejection once it loads).
+window.addEventListener('unhandledrejection', function(event) {
+  console.error('[LDPScout] Unhandled promise rejection:', event.reason);
+});
+console.log('[TaskH] Clarity project: x0qag8w613');
+console.log('[TaskH] Sentry loader: active');
+
 // ═══════════════ TASK 19 — PERSONALIZATION HELPERS ═══════════════
 // All page headers + topbar + profile modal read userProfile.full_name
 // via getFirstName(). When full_name is empty/null, pages fall back to
@@ -2737,9 +2746,13 @@ function showPage(id){
     setTimeout(()=>{ const el=document.getElementById('lp-email'); if(el) el.focus(); },150);
     return;
   }
+  // Task H (B2): guard against an unknown page id so we don't throw and leave the UI
+  // half-switched. Bail before mutating any DOM if the target page doesn't exist.
+  const el = document.getElementById('page-'+id);
+  if(!el){ console.warn('[nav] unknown page:', id); return; }
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
-  document.getElementById('page-'+id).classList.add('active');
+  el.classList.add('active');
   const idx=PAGE_ORDER.indexOf(id);
   const tabs=document.querySelectorAll('.nav-tab');
   if(idx>=0&&tabs[idx]) tabs[idx].classList.add('active');
@@ -4130,10 +4143,10 @@ function renderAlumniSearch(){
       <div class="al-card-logo">${initial}</div>
       <div class="al-card-body">
         <div class="al-card-row1">
-          <div class="al-card-title">${p.url?`<a href="${p.url}" target="_blank" rel="noopener noreferrer">${p.name}</a>`:p.name}</div>
+          <div class="al-card-title">${p.url?`<a href="${esc(p.url)}" target="_blank" rel="noopener noreferrer">${esc(p.name)}</a>`:esc(p.name)}</div>
           <span class="al-card-status ${statusCls}">${statusLbl}</span>
         </div>
-        <div class="al-card-meta">${p.org} · ${p.loc || p.geo || ''}</div>
+        <div class="al-card-meta">${esc(p.org)} · ${esc(p.loc || p.geo || '')}</div>
         <div class="al-card-tags">
           <span><strong>Type:</strong> ${cap(p.fn)} · ${cap(p.sector)}</span>
           ${dlText}
@@ -4365,8 +4378,8 @@ function renderApplications(){
           <div class="apct">${esc(a.name)}</div>
           <div class="apco">${esc(a.org||'')}${a.geo?' · '+esc(a.geo):''}</div>
           ${ptypeBadge}
-          ${a.next?`<div class="apnx">→ ${a.next}</div>`:''}
-          ${a.contact?`<div style="font-size:10px;color:var(--text3);margin-top:4px">👤 ${a.contact}</div>`:''}
+          ${a.next?`<div class="apnx">→ ${esc(a.next)}</div>`:''}
+          ${a.contact?`<div style="font-size:10px;color:var(--text3);margin-top:4px">👤 ${esc(a.contact)}</div>`:''}
           ${a.deadline?`<div class="apdl">Due: ${new Date(a.deadline).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</div>`:''}
           ${daysBadge}
         </div>`;

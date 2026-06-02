@@ -631,15 +631,17 @@ input, textarea, select, button { font-family: inherit; }
 .dl-nudge-info{background:var(--blue-bg);color:var(--blue);border:1px solid rgba(26,79,168,.18)}
 
 /* ICS CHOICE MODAL */
-.ics-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:400;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+/* Task H (W1) — ALL .ics-modal-overlay modals (contact, set-password, profile, ICS export)
+   are opened from inside the authed app and must sit ABOVE the landing (700), onboarding
+   (600) and onboarding-wizard (800) overlays. At the old base z-index of 400 they could open
+   *underneath* one of those full-screen overlays, which then intercepts clicks on the modal —
+   the symptom Task F2 first found on the contact modal's "Related Application" dropdown. The
+   mandatory post-OTP set-password modal was especially at risk (it can appear while the
+   landing overlay is still mounted). Lifting the shared base z-index above every other overlay
+   fixes all of them at once, so the former #contact-modal-overlay{z-index:900} rule is gone. */
+.ics-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:900;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
 .ics-modal-overlay.open{display:flex}
 .ics-modal-overlay.show{display:flex}
-/* Task F2 — the contact modal is opened from inside the authed app and must sit ABOVE the
-   landing (700), onboarding (600) and onboarding-wizard (800) overlays. At the base z-index
-   of 400 it could open *underneath* one of those full-screen overlays, which then intercepts
-   clicks on the modal — most visibly on the bottom-most field, the "Related Application"
-   <select>, so its native dropdown never opened. Lift it above every other overlay. */
-#contact-modal-overlay{z-index:900}
 .ics-modal{background:var(--bg2);border:1px solid var(--border2);border-radius:16px;padding:28px;width:460px;max-width:95vw;box-shadow:var(--shadow-md);max-height:88vh;overflow-y:auto}
 .ics-modal h3{font-family:var(--serif);font-size:18px;font-weight:400;margin-bottom:6px}
 .ics-modal-sub{font-size:12px;color:var(--text2);line-height:1.65;margin-bottom:16px}
