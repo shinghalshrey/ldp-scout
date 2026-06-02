@@ -559,8 +559,8 @@ async function onSignIn(){
   await fetchProgramsFromSupabase();
   // Task 19.2.2 — Hydrate progs[].aiTier from saved scan history BEFORE
   // first renderPrograms(). Without this, the AI Fit column shows "Scan
-  // résumé" placeholders on every page refresh until the user navigates
-  // to the AI Fit page (which then triggers loadAndRenderLastScan and
+  // résumé" placeholders on every page refresh until the user opens the
+  // scan panel (Task TC — which then triggers loadAndRenderLastScan and
   // syncs the data back). Silent hydration here means the data is
   // immediately reflected in the Programs table on load.
   await hydrateAITierFromHistory();
@@ -600,6 +600,10 @@ function onSignOut(){
   resumeLastScanAt = null;   // Phase 7
   // Task 19.2.3: clear last-page so next signin doesn't restore previous user's tab
   try { localStorage.removeItem('ldps_last_page'); } catch {}
+  // Task TC — reset per-session UI state so the next user starts clean.
+  _scanLoadedOnce = false;
+  _deadlinesView = false;
+  _netSubview = 'contacts';
   showLanding();
   // Clear UI (null-guard — these elements may not exist before sign-in)
   const kb = document.getElementById('app-kanban');
@@ -674,7 +678,10 @@ function updateAuthUI() {
     }
     // Phase 16 (P3): Profile button replaces the standalone Set/Change password
     // button — the unified profile modal covers name, school, and password.
-    if (profileBtn) profileBtn.style.display = 'inline-block';
+    // Task TC: the topbar Profile button is now superseded by the "Profile"
+    // nav tab (which also calls openProfileModal). Keep it hidden to avoid two
+    // identical entry points, but leave the element + handler intact.
+    if (profileBtn) profileBtn.style.display = 'none';
     // Keep the legacy Set-password button hidden but functional (in case any
     // older code paths still call openSetPasswordModal).
     if (setPwBtn) setPwBtn.style.display = 'none';
@@ -1344,7 +1351,7 @@ function renderFitBanner(){
 
   // State 1: no resume — original CTA
   if(!resumeText){
-    mount.innerHTML = `<div class="fit-prompt-banner" onclick="showPage('aifit')" title="Go to AI Fit Scan">
+    mount.innerHTML = `<div class="fit-prompt-banner" onclick="openProgramsScan()" title="Open the AI Fit Scan panel">
       <div class="fpb-icon">✦</div>
       <div class="fpb-text"><strong>Fit column powered by AI.</strong> Upload your résumé on the AI Fit Scan tab to get personalised tier rankings, gap analysis, and coaching across all programs — results sync back here automatically.</div>
       <div class="fpb-cta">Scan My Résumé →</div>
@@ -1356,7 +1363,7 @@ function renderFitBanner(){
 
   // Edge case: resume exists but never scanned (last_scan_at null) — prompt to run first scan
   if(days === null){
-    mount.innerHTML = `<div class="fit-prompt-banner stale" onclick="showPage('aifit')" title="Run your first AI fit scan">
+    mount.innerHTML = `<div class="fit-prompt-banner stale" onclick="openProgramsScan()" title="Run your first AI fit scan">
       <div class="fpb-icon">✦</div>
       <div class="fpb-text"><strong>Your résumé is on file — but you haven't scanned it yet.</strong> Run an AI fit scan to populate tier rankings across all tracked programs.</div>
       <div class="fpb-cta">Run Scan →</div>
@@ -1366,7 +1373,7 @@ function renderFitBanner(){
 
   // State 2: scan is stale (>30 days)
   if(days > FIT_BANNER_STALE_DAYS){
-    mount.innerHTML = `<div class="fit-prompt-banner stale" onclick="showPage('aifit')" title="Re-run AI fit scan">
+    mount.innerHTML = `<div class="fit-prompt-banner stale" onclick="openProgramsScan()" title="Re-run AI fit scan">
       <div class="fpb-icon">✦</div>
       <div class="fpb-text"><strong>Your scan is ${days} days old.</strong> Re-run to refresh fit scores — programs change, and so does your résumé.</div>
       <div class="fpb-cta">Re-scan →</div>
@@ -1405,14 +1412,11 @@ function renderProgressStrip(){
 }
 
 function updateFitTabIndicator(){
-  // Coral pulsing dot on AI Fit tab when no resume on file.
-  // Selector matches the inline onclick="showPage('aifit')" tab.
-  document.querySelectorAll('.nav-tab').forEach(tab => {
-    const onclickAttr = tab.getAttribute('onclick') || '';
-    if(onclickAttr.includes("showPage('aifit')")){
-      tab.classList.toggle('needs-attention', !resumeText && !!currentUser);
-    }
-  });
+  // Task TC — the AI Fit nav tab is gone; the attention cue now lives on the
+  // "Scan résumé" button in the Programs action bar. Coral pulsing dot when the
+  // user is signed in but hasn't uploaded a résumé yet.
+  const scanBtn = document.getElementById('prog-scan-btn');
+  if(scanBtn) scanBtn.classList.toggle('needs-attention', !resumeText && !!currentUser);
 }
 
 // ─── PHASE 4: GUIDED PRODUCT TOURS ───
@@ -1428,14 +1432,16 @@ const TOURS = {
     {target:'.cc-quick-actions', title:'Jump back in',              body:'Shortcuts to the things you do most — browse programs, log an application, or run an AI fit scan.'}
   ],
   networking: [
+    {target:'#net-subnav',      title:'Two views in one place',    body:'"My Contacts" tracks the people you’re already talking to. "Find Alumni" (formerly its own tab) helps you discover alumni at your target programs and draft LinkedIn outreach.'},
     {target:'#nt-overview',     title:'Your outreach at a glance', body:'Total contacts, active conversations, unique companies reached, and referrals landed.'},
     {target:'.nt-filter-rail',  title:'Filter your contacts',      body:'Narrow by status or company, or surface everyone who needs a follow-up so no conversation goes cold.'},
     {target:'.nt-add-btn',      title:'Log a new contact',         body:'Add alumni, recruiters, anyone in your network. Track each one from first message all the way to a referral.'}
   ],
   programs: [
     {target:'#prog-stats',         title:'Pipeline at a glance',  body:'Snapshot of all tracked LDPs by status — open, rolling, watch-list, and closed. Updates as you filter below.'},
+    {target:'.prog-actions',       title:'Scan, deadlines & calendar', body:'Everything lives here now. "Scan résumé" runs the AI Fit analysis inline. "Deadlines view" sorts by date and shows only dated/rolling programs. "Export calendar" downloads your pipeline deadlines as an .ics file.'},
     {target:'.prog-sidebar',       title:'Filter and search',     body:'Use the sidebar to narrow the list. Expand any section: Quick Filters (Visa), Geography, Function, Sector, or App Cycle. Search matches program names, firms, and keywords. Active filters appear in the stat row above.'},
-    {target:'.thead',              title:'Sortable columns',      body:'Click any column header to sort. The AI Fit column is powered by the AI Fit Scanner once you upload a résumé.'},
+    {target:'.thead',              title:'Sortable columns',      body:'Click any column header to sort. The AI Fit column is powered by the Scan résumé button once you upload a résumé.'},
     {target:'.prow:first-child',   title:'Open program details + add to pipeline',  body:'Click any row to open full details. Use the Stage dropdown at the right to add a program to your pipeline at any stage — Shortlisted, Networking, Drafting, Applied, Interview, Offer.'}
   ],
   aifit: [
@@ -1833,8 +1839,10 @@ const SCAN_QUOTA_CLIENT = 1;
 // saveScanToHistory(). `null` means "not yet fetched".
 let _scanCount = null;
 
-// Phase 16 (P3): Called by showPage('aifit'). Looks up the user's most recent
-// completed scan in user_scan_history and renders it if found — so users don't
+// Phase 16 (P3): Called once per session by _hydrateLastScanOnce() when the
+// Programs page first renders (Task TC moved the scan UI into #programs-scan-panel).
+// Looks up the user's most recent completed scan in user_scan_history and renders
+// it if found — so users don't
 // have to re-scan every time they come back. Also primes _scanCount so the UI
 // reflects quota state. Safe to call without a résumé: just no-ops if absent.
 //
@@ -1947,6 +1955,8 @@ async function loadAndRenderLastScan(){
 function renderQuotaExhausted(used){
   document.getElementById('aifit-view-pre').style.display = 'none';
   document.getElementById('aifit-view-post').style.display = 'block';
+  const _qp = document.getElementById('programs-scan-panel');   // Task TC — reveal inline panel
+  if(_qp) _qp.style.display = 'block';
   const usedSafe = (typeof used === 'number') ? used : SCAN_QUOTA_CLIENT;
   document.getElementById('aifit-results-container').innerHTML = `
     <div style="max-width:520px;margin:40px auto;text-align:center;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);padding:32px;box-shadow:var(--shadow-md)">
@@ -2118,10 +2128,13 @@ async function onbNext(){
       if(status) status.textContent = 'Analysing fit across all programs…';
       await runAIAnalysis();
       await onbComplete();
-      showPage('aifit');
+      // Task TC — land on Programs and reveal the inline scan results panel
+      // (runAIAnalysis already rendered the post-scan view into it).
+      showPage('programs');
+      revealScanResults();
     } catch(err){
       console.error('Onboarding scan failed:', err);
-      if(status) status.textContent = '⚠ ' + (err.message || 'Scan failed — you can retry from the AI Fit Scan tab.');
+      if(status) status.textContent = '⚠ ' + (err.message || 'Scan failed — you can retry with the Scan résumé button on the Programs tab.');
       nextBtn.disabled = false; nextBtn.style.opacity='1';
       skipBtn.disabled = false; skipBtn.style.opacity='1';
     }
@@ -2574,6 +2587,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
       if(e.target === po) closeProfileModal();
     });
   }
+  // Task TC — confirm the nav was consolidated to 5 tabs.
+  console.log('[TaskTC] nav tabs:', document.querySelectorAll('.nav-tab').length);
 });
 
 // ═══════════════ PHASE 16 (P3): PROFILE MODAL ═══════════════
@@ -2753,7 +2768,13 @@ function _ga(eventName, params){
   } catch(e){ /* swallow */ }
 }
 
-const PAGE_ORDER=['command','programs','aifit','alumni','applications','networking','deadlines','market'];
+// Task TC — consolidated to 5 nav entries. The first four map positionally to
+// the .nav-tab buttons (showPage activates tabs[PAGE_ORDER.indexOf(id)]). The
+// 5th tab, "Profile", opens a modal (openProfileModal) rather than a page, so
+// it is intentionally NOT in PAGE_ORDER. AI Fit, Alumni, Deadlines and Market
+// are no longer standalone pages — their old ids are gone, and any saved
+// ldps_last_page pointing at them falls back to 'command'.
+const PAGE_ORDER=['command','programs','applications','networking'];
 function showPage(id){
   // Hard-gate: must be signed in to access any tab
   if(!currentUser){
@@ -2778,7 +2799,16 @@ function showPage(id){
   // GA: fire a tab_view event on every page switch.
   _ga('tab_view', {tab: id});
 
-  ({command:renderCommandCenter,programs:()=>{_restoreSidebarSections();renderPrograms();},alumni:()=>{initAlumniSchoolDrop();renderAlumniSectorList();renderAlumniSearch();},applications:renderApplications,networking:renderContacts,deadlines:renderDeadlines,aifit:loadAndRenderLastScan,market:renderMarketIntel})[id]?.();
+  // Task TC — dispatch table trimmed to the 4 nav pages. The Programs handler
+  // also hydrates the last AI Fit scan once per session (the scan UI now lives
+  // in #programs-scan-panel). Networking defaults to its "My Contacts" sub-view
+  // and lazily renders the merged Alumni Finder when that sub-view is opened.
+  ({
+    command: renderCommandCenter,
+    programs: ()=>{ _restoreSidebarSections(); renderPrograms(); _hydrateLastScanOnce(); },
+    applications: renderApplications,
+    networking: _applyNetworkingSubview,
+  })[id]?.();
 
   // Task 19 — apply personalization for this page (header text, etc.) AFTER
   // the page's render function runs so any DOM the render function builds is
@@ -2793,12 +2823,121 @@ function showPage(id){
   // - All other pages → fire maybeAutoTour() immediately (with 600ms render-settle delay).
   //   Gated by: not-already-seen (Supabase tours_completed OR localStorage),
   //   no other modal open, 30s stack lock between tours.
-  if(id === 'aifit'){
-    startAifitDwell();
+  // Task TC — the AI Fit dwell-tour was tied to the standalone aifit page,
+  // which no longer exists. All nav pages now fire the standard auto-tour.
+  clearAifitDwell();
+  setTimeout(() => maybeAutoTour(id), 600);
+}
+
+// ═══════════════ TASK TC — TAB CONSOLIDATION HELPERS ═══════════════
+// AI Fit Scan + Deadlines merged into Programs; Alumni Finder merged into the
+// Networking page as a sub-view. These helpers drive the new in-page surfaces.
+
+// Deadlines view: sorts the Programs table by deadline asc and filters to
+// dated/rolling programs only. Read by renderPrograms().
+let _deadlinesView = false;
+// Session guard so the last saved scan is hydrated into the Programs scan panel
+// only once (the Programs page is now the default landing tab — we don't want
+// two Supabase round-trips on every visit). Reset on sign-out.
+let _scanLoadedOnce = false;
+// Networking sub-view: 'contacts' (default) or 'alumni' (the merged finder).
+let _netSubview = 'contacts';
+
+// Fire-and-forget hydration of the most recent scan into #programs-scan-panel.
+// loadAndRenderLastScan() reveals the panel (via renderAIResults) only when a
+// saved scan exists; otherwise the panel stays hidden.
+function _hydrateLastScanOnce(){
+  if(_scanLoadedOnce) return;
+  _scanLoadedOnce = true;
+  try { loadAndRenderLastScan(); } catch(e){ /* non-blocking */ }
+}
+
+// Open the AI Fit Scan panel on the Programs page (replaces the old AI Fit tab).
+// Keeps prior results visible if we already have them; otherwise shows the
+// résumé-upload (pre-scan) UI. Always scrolls the panel into view.
+function openProgramsScan(){
+  const onPrograms = document.getElementById('page-programs')?.classList.contains('active');
+  if(!onPrograms) showPage('programs');
+  const panel = document.getElementById('programs-scan-panel');
+  if(!panel) return;
+  panel.style.display = 'block';
+  const pre  = document.getElementById('aifit-view-pre');
+  const post = document.getElementById('aifit-view-post');
+  const resultsEl = document.getElementById('aifit-results-container');
+  const hasResults = !!(resultsEl && resultsEl.children.length > 0);
+  if(hasResults){
+    if(pre)  pre.style.display = 'none';
+    if(post) post.style.display = 'block';
   } else {
-    clearAifitDwell();   // leaving the aifit page → kill pending dwell timer
-    setTimeout(() => maybeAutoTour(id), 600);
+    if(post) post.style.display = 'none';
+    if(pre)  pre.style.display = 'block';
   }
+  applyPagePersonalization('aifit');   // personalize the pre-scan headline
+  setTimeout(() => panel.scrollIntoView({ behavior:'smooth', block:'start' }), 60);
+}
+
+// Reveal the scan panel and scroll to it without changing pre/post state —
+// used right after a scan completes (renderAIResults already set the post view).
+function revealScanResults(){
+  const panel = document.getElementById('programs-scan-panel');
+  if(!panel) return;
+  panel.style.display = 'block';
+  setTimeout(() => panel.scrollIntoView({ behavior:'smooth', block:'start' }), 80);
+}
+
+function closeProgramsScan(){
+  const panel = document.getElementById('programs-scan-panel');
+  if(panel) panel.style.display = 'none';
+}
+
+// Deadlines view toggle (Programs action bar). Replaces the old Deadlines tab.
+function toggleDeadlinesView(){
+  _deadlinesView = !_deadlinesView;
+  const btn = document.getElementById('prog-deadlines-toggle');
+  if(btn){
+    btn.classList.toggle('on', _deadlinesView);
+    btn.textContent = _deadlinesView ? '✓ Deadlines view' : '📅 Deadlines view';
+  }
+  console.log('[TaskTC] deadlines view:', _deadlinesView);
+  renderPrograms();
+}
+
+// Command Center "Upcoming deadlines · See all →" now lands on Programs with the
+// Deadlines view active (instead of the removed Deadlines page).
+function openProgramsDeadlines(){
+  const onPrograms = document.getElementById('page-programs')?.classList.contains('active');
+  if(!onPrograms) showPage('programs');
+  if(!_deadlinesView){ toggleDeadlinesView(); } else { renderPrograms(); }
+  const tbl = document.querySelector('#page-programs .prog-table-wrap');
+  if(tbl) setTimeout(() => tbl.scrollIntoView({ behavior:'smooth', block:'start' }), 60);
+}
+
+// Networking sub-view switcher: 'contacts' (tracker) | 'alumni' (finder).
+function setNetworkingSubview(view){
+  _netSubview = (view === 'alumni') ? 'alumni' : 'contacts';
+  _applyNetworkingSubview();
+}
+
+function _applyNetworkingSubview(){
+  const isAlumni = _netSubview === 'alumni';
+  const cv = document.getElementById('net-subview-contacts');
+  const av = document.getElementById('net-subview-alumni');
+  const cp = document.getElementById('net-subpill-contacts');
+  const ap = document.getElementById('net-subpill-alumni');
+  if(cv) cv.style.display = isAlumni ? 'none' : 'block';
+  if(av) av.style.display = isAlumni ? 'block' : 'none';
+  if(cp){ cp.classList.toggle('on', !isAlumni); cp.setAttribute('aria-selected', String(!isAlumni)); }
+  if(ap){ ap.classList.toggle('on',  isAlumni); ap.setAttribute('aria-selected', String(isAlumni)); }
+  if(isAlumni){
+    // Same init calls the old standalone Alumni Finder page made on load.
+    initAlumniSchoolDrop();
+    renderAlumniSectorList();
+    renderAlumniSearch();
+    applyPagePersonalization('alumni');
+  } else {
+    renderContacts();
+  }
+  _syncPipelineToggleUI();
 }
 
 // Legacy stub — the new lpSignUp() (defined above in auth section) handles signup.
@@ -3337,6 +3476,16 @@ function renderPrograms(){
     return true;   // pipeline filter: user-added are always in the pipeline → always pass
   });
 
+  // Task TC — "Deadlines view": replaces the old standalone Deadlines page.
+  // Keep only programs whose deadline cell resolves to a real date or "Rolling"
+  // (i.e. deadlineLabel !== '—'). Applied to both catalog + user-added rows so
+  // the meta count below stays accurate; the asc sort happens after the merge.
+  if(_deadlinesView){
+    const _hasRealDeadline = p => deadlineLabel(p, resolveProgramView(p).deadline) !== '—';
+    list    = list.filter(_hasRealDeadline);
+    _uaRows = _uaRows.filter(_hasRealDeadline);
+  }
+
   // Total = catalog + THIS user's user-added rows (per-user: User B, who added nothing, sees only the catalog count).
   const _total = progs.length + _uaAll.length;
   const _shown = list.length + _uaRows.length;
@@ -3355,6 +3504,18 @@ function renderPrograms(){
   }
 
   if(_uaRows.length) list = [..._uaRows, ...list];
+
+  // Task TC — in Deadlines view, force ascending sort by the resolved deadline
+  // (user-entered date wins over catalog). Real dates first, "Rolling"/undated
+  // (Infinity) last. Overrides any column sort while the view is active.
+  if(_deadlinesView){
+    const _dlTime = p => {
+      const d = resolveProgramView(p).deadline || p.deadline;
+      const t = d ? new Date(d).getTime() : NaN;
+      return isNaN(t) ? Number.POSITIVE_INFINITY : t;
+    };
+    list.sort((a,b) => _dlTime(a) - _dlTime(b));
+  }
 
   const _dbgDl={dates:0,rolling:0,dash:0};   // Task B diagnostics
   document.getElementById('prog-list').innerHTML=list.length===0
@@ -3382,7 +3543,7 @@ function renderPrograms(){
         <div class="cell mono" style="font-size:10px;line-height:1.5">${dl}</div>
         <div><span class="badge ${bc}">${bl}</span></div>
         <div>
-          ${p.aiTier ? fitTier(+p.fit||3,p) : `<span onclick="showPage('aifit')" title="Scan your résumé to see your fit for this program" style="cursor:pointer;font-size:10px;color:var(--text3);border-bottom:1px dashed var(--border2)">Scan résumé</span>`}
+          ${p.aiTier ? fitTier(+p.fit||3,p) : `<span onclick="openProgramsScan()" title="Scan your résumé to see your fit for this program" style="cursor:pointer;font-size:10px;color:var(--text3);border-bottom:1px dashed var(--border2)">Scan résumé</span>`}
         </div>
         <div>${renderStageDropdown(p)}</div>
         <div>
@@ -3513,7 +3674,7 @@ function _aiTierMobile(p){
   }
   // No personalized tier for this program — show a CTA to the AI Fit page
   // (mirrors the desktop "Scan résumé" placeholder behavior at app.js:2961).
-  return `<div class="pmc-aifit-cta" onclick="showPage('aifit')" title="Scan your résumé to see your fit for this program">✦ Scan résumé to see your fit</div>`;
+  return `<div class="pmc-aifit-cta" onclick="openProgramsScan()" title="Scan your résumé to see your fit for this program">✦ Scan résumé to see your fit</div>`;
 }
 
 // Task B — single source of truth for what shows in a *deadline* position.
@@ -4499,10 +4660,12 @@ function togglePipelineFilter(){
   try { localStorage.setItem('ldp_pipeline_filter_v1', _pipelineFilter ? '1' : '0'); } catch(e){}
   _syncPipelineToggleUI();
   // Re-render whichever page is currently active. The other page re-syncs on its next render.
+  // Task TC — the pipeline toggle now appears on Programs and on the Networking
+  // page's "Find Alumni" sub-view (Alumni Finder was merged in). The standalone
+  // Deadlines/Alumni pages no longer exist.
   const active = document.querySelector('.page.active');
   if(active?.id === 'page-programs')  renderPrograms();
-  if(active?.id === 'page-deadlines') renderDeadlines();
-  if(active?.id === 'page-alumni')    renderAlumniSearch();   // Task 27D
+  if(active?.id === 'page-networking' && _netSubview === 'alumni') renderAlumniSearch();
 }
 
 // Keep every .pipeline-toggle button in lockstep (called from toggle + render funcs)
@@ -5413,6 +5576,10 @@ function renderAIResults(result, meta){
   // Switch to post-scan view
   document.getElementById('aifit-view-pre').style.display = 'none';
   document.getElementById('aifit-view-post').style.display = 'block';
+  // Task TC — results render into the inline panel on the Programs page; reveal
+  // it so the tier-summary banner is visible above the table.
+  const _scanPanel = document.getElementById('programs-scan-panel');
+  if(_scanPanel) _scanPanel.style.display = 'block';
 
   const pm = {};
   progs.forEach(p => { pm[p.id] = p; });
@@ -5472,7 +5639,13 @@ function renderAIResults(result, meta){
       <button class="aifit-rescan-btn" onclick="rescanAIFit()">Re-scan</button>
     </div>
   </div>`;
-  
+
+  // Task TC — the tier summary bar above stays visible as the banner; the full
+  // results (tiers, gap analysis, coaching) collapse behind a toggle so the
+  // Programs page isn't dominated by the scan output. Default: collapsed.
+  html += `<button class="aifit-fullresults-toggle" id="aifit-fullresults-toggle" type="button" onclick="toggleAIFitFullResults()" aria-expanded="${_aifitFullResultsOpen}">${_aifitFullResultsOpen ? 'Hide full results ▴' : 'View full results ▾'}</button>`;
+  html += `<div id="aifit-full-results" class="aifit-full-results" style="display:${_aifitFullResultsOpen ? 'block' : 'none'}">`;
+
   // Tier sections
   const tierConfigs = [
     {key:'BEST_FIT', label:'Best Fit', badge:'Tier 1', badgeClass:'aifit-tier-badge-best', defaultOpen:true},
@@ -5616,8 +5789,25 @@ function renderAIResults(result, meta){
       </div>
     </div>`;
   }
-  
+
+  html += `</div>`;   // Task TC — close #aifit-full-results wrapper
+
   document.getElementById('aifit-results-container').innerHTML = html;
+}
+
+// Task TC — "View full results" expand toggle. Collapsed by default so only the
+// tier-summary banner shows above the Programs table; expanding reveals the
+// tier lists, gap analysis, and coaching inline. State persists across re-renders.
+let _aifitFullResultsOpen = false;
+function toggleAIFitFullResults(){
+  _aifitFullResultsOpen = !_aifitFullResultsOpen;
+  const wrap = document.getElementById('aifit-full-results');
+  const btn  = document.getElementById('aifit-fullresults-toggle');
+  if(wrap) wrap.style.display = _aifitFullResultsOpen ? 'block' : 'none';
+  if(btn){
+    btn.textContent = _aifitFullResultsOpen ? 'Hide full results ▴' : 'View full results ▾';
+    btn.setAttribute('aria-expanded', String(_aifitFullResultsOpen));
+  }
 }
 
 // Toggle tier open/closed
@@ -6054,7 +6244,7 @@ function renderCommandCenter(){
               <div class="cc-firstrun-card-title">Browse Programs →</div>
               <div class="cc-firstrun-card-sub">Explore the catalog and save targets to your pipeline.</div>
             </button>
-            <button class="cc-firstrun-card" onclick="showPage('aifit')">
+            <button class="cc-firstrun-card" onclick="openProgramsScan()">
               <div class="cc-firstrun-card-title">Run an AI Fit Scan →</div>
               <div class="cc-firstrun-card-sub">Upload your résumé to see which LDPs fit you best.</div>
             </button>

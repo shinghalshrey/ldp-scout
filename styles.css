@@ -1413,11 +1413,12 @@ input, textarea, select, button { font-family: inherit; }
     border-style: solid;
   }
 
-  /* Task 23 / updated: with 7 nav tabs, equal-width chips no longer fit on a
-     375px phone (labels overlapped — "Networking"/"Deadlines" collided).
-     Switched to a horizontal-scroll strip: tabs sized to their own content,
-     swipe to reach the rest. Full labels restored (data-short no longer
-     needed — kept on the elements but unused on mobile now). */
+  /* Task 23 / Task TC: consolidated to 5 nav tabs (Command Center, Programs,
+     My Applications, Networking, Profile). They fit a 375px phone far more
+     comfortably than the old 8, but we keep the horizontal-scroll strip so the
+     layout is robust at the smallest widths and largest font scales: tabs sized
+     to their own content, swipe to reach any that overflow. Full labels shown
+     (data-short kept on the elements but unused on mobile). */
   .brand-name { display: none !important; }
   .topbar {
     flex-wrap: wrap;
@@ -1909,6 +1910,122 @@ input, textarea, select, button { font-family: inherit; }
 .prog-request-link:hover {
   color: var(--accent);
   border-color: var(--accent);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   TASK TC — TAB CONSOLIDATION
+   Programs action bar, embedded AI Fit scan panel, "View full results"
+   toggle, and Networking sub-view pills (Find Alumni merged in).
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Programs action bar: Scan résumé / Deadlines view / Export calendar / Add */
+.prog-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+.prog-action-btn {
+  background: transparent;
+  border: 1px solid var(--border2);
+  color: var(--text2);
+  font-family: var(--sans);
+  font-size: 12.5px;
+  font-weight: 500;
+  padding: 7px 13px;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all .15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  position: relative;
+}
+.prog-action-btn:hover { border-color: var(--accent); color: var(--accent); }
+.prog-action-btn.on { background: var(--accent-bg); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.prog-action-accent { border-color: var(--accent); color: var(--accent); }
+.prog-action-accent:hover { background: var(--accent); color: #fff; }
+/* Reuse the coral attention dot (from the old AI Fit nav tab) on the scan button */
+.prog-action-btn.needs-attention::after {
+  content: ''; position: absolute; top: -2px; right: -2px;
+  width: 8px; height: 8px; border-radius: 50%; background: var(--coral);
+  box-shadow: 0 0 0 0 rgba(192,57,43,.55); animation: nta-pulse 1.6s ease-out infinite; pointer-events: none;
+}
+
+/* AI Fit scan panel embedded at the top of the Programs page */
+.prog-scan-panel {
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-radius: 14px;
+  padding: 18px 20px 24px;
+  margin: 4px 0 18px;
+  box-shadow: var(--shadow);
+}
+.prog-scan-panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.prog-scan-panel-title { font-family: var(--serif); font-size: 15px; color: var(--text); letter-spacing: .01em; }
+.prog-scan-panel-close {
+  background: transparent;
+  border: 1px solid var(--border2);
+  color: var(--text3);
+  font-family: var(--sans);
+  font-size: 12px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all .15s;
+}
+.prog-scan-panel-close:hover { border-color: var(--red, #c0392b); color: var(--red, #c0392b); }
+/* Inside the panel the summary strip shouldn't stick (the panel itself scrolls) */
+.prog-scan-panel .aifit-summary-strip { position: static; margin-bottom: 16px; }
+
+/* "View full results" expand toggle — gates the tier lists / gap / coaching */
+.aifit-fullresults-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: 1px solid var(--border2);
+  color: var(--text2);
+  font-family: var(--sans);
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all .15s;
+  margin-bottom: 18px;
+}
+.aifit-fullresults-toggle:hover { border-color: var(--accent); color: var(--accent); }
+.aifit-full-results { margin-top: 4px; }
+
+/* Networking sub-view pills (My Contacts / Find Alumni) */
+.net-subnav {
+  display: inline-flex;
+  gap: 4px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 4px;
+  margin: 0 0 20px;
+}
+.net-subpill {
+  background: none;
+  border: none;
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text2);
+  padding: 7px 18px;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: all .15s;
+}
+.net-subpill:hover { color: var(--text); }
+.net-subpill.on { background: var(--bg2); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,.08); font-weight: 600; }
+.net-subview-intro { margin: 0 0 18px; }
+.net-subview-title { font-family: var(--serif); font-size: 22px; color: var(--text); margin: 0 0 6px; font-weight: 400; }
+.net-subview-sub { font-size: 13px; color: var(--text2); line-height: 1.55; margin: 0; max-width: 680px; }
+
+@media (max-width: 720px) {
+  .prog-actions { justify-content: flex-start; }
+  .net-subnav { display: flex; width: 100%; }
+  .net-subpill { flex: 1; text-align: center; }
 }
 
 /* ═══════════════════════════════════════════════════════════════════

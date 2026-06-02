@@ -246,15 +246,15 @@
     <div class="brand-mark"><span style="color:#fff;font-size:14px;font-weight:700">L</span></div>
     <div class="brand-name">LDP <span>Scout</span></div>
   </div>
+  <!-- Task TC — consolidated to 5 tabs. AI Fit Scan + Deadlines merged into
+       Programs; Alumni Finder merged into Networking; Market Intel removed.
+       Profile opens the unified profile modal (name/school/password). -->
   <div class="nav-tabs">
-    <button class="nav-tab" data-short="Home" onclick="showPage('command')">Command Center</button>
-    <button class="nav-tab active" data-short="Programs" onclick="showPage('programs')">Programs</button>
-    <button class="nav-tab" data-short="AI Fit" onclick="showPage('aifit')">✦ AI Fit Scan</button>
-    <button class="nav-tab" data-short="Alumni" onclick="showPage('alumni')">Alumni Finder</button>
+    <button class="nav-tab active" data-short="Home" onclick="showPage('command')">Command Center</button>
+    <button class="nav-tab" data-short="Programs" onclick="showPage('programs')">Programs</button>
     <button class="nav-tab" data-short="Apps" onclick="showPage('applications')">My Applications</button>
     <button class="nav-tab" data-short="Networking" onclick="showPage('networking')">Networking</button>
-    <button class="nav-tab" data-short="Deadlines" onclick="showPage('deadlines')">Deadlines</button>
-    <button class="nav-tab" data-short="Market" onclick="showPage('market')">Market Intel</button>
+    <button class="nav-tab" data-short="Profile" onclick="openProfileModal()">Profile</button>
   </div>
   <div class="topbar-right">
     <div class="freshness-badge" id="freshness-badge" title="Per-row verification dates shown on each program">
@@ -420,9 +420,90 @@
 
       <div id="fit-banner-mount" class="prog-fit-mount"></div>
 
+      <!-- Task TC — AI FIT SCAN PANEL (merged from the old AI Fit Scan tab).
+           Hidden by default. Opened via the "Scan résumé" button below, or
+           revealed automatically when a previous scan's results are loaded.
+           All inner IDs are preserved from the old #page-aifit so the scan
+           logic (runAIAnalysis, loadAndRenderLastScan, quota checks, etc.)
+           works unchanged — only the render target moved into Programs. -->
+      <section id="programs-scan-panel" class="prog-scan-panel" style="display:none">
+        <div class="prog-scan-panel-head">
+          <span class="prog-scan-panel-title">✦ AI Fit Scan</span>
+          <button class="prog-scan-panel-close" type="button" onclick="closeProgramsScan()" title="Hide the scan panel">Close ✕</button>
+        </div>
+
+        <!-- PRE-SCAN: résumé upload (relocated from #page-aifit) -->
+        <div id="aifit-view-pre" class="aifit-pre-scan">
+          <header class="aifit-header">
+            <span class="aifit-eyebrow">LDP SCOUT · AI FIT SCAN</span>
+            <h1 class="aifit-title">Match your resume to top MBA Leadership Development Programs</h1>
+            <p class="aifit-subtitle">Get a tier-ranked fit analysis and gap assessment based on your professional background in seconds.</p>
+          </header>
+
+          <div class="aifit-upload-container">
+            <div class="aifit-upload-box" id="aifit-upload-box">
+              <input type="file" accept=".pdf,.txt,.doc,.docx" onchange="handleFileUpload(event)" id="resume-file-input">
+              <div id="aifit-file-display" style="display:none">
+                <div class="aifit-file-badge">
+                  <span class="aifit-file-dot"></span>
+                  <span class="aifit-file-info" id="aifit-file-info"></span>
+                  <span class="aifit-file-remove" onclick="clearAIFitFile(event)">Remove</span>
+                </div>
+                <p class="aifit-upload-hint">Resume detected and ready for processing.</p>
+              </div>
+              <div id="aifit-empty-display">
+                <div class="aifit-upload-icon"></div>
+                <p class="aifit-upload-prompt">Drop your resume here or click to browse</p>
+                <p class="aifit-upload-hint">PDF, DOCX, or plain text · Max 5 MB</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="aifit-cta-wrap">
+            <button class="aifit-analyze-btn" id="analyze-btn" onclick="runAIAnalysis()" disabled>
+              <span>✦</span> Analyse My Fit
+            </button>
+          </div>
+
+          <div class="aifit-how-it-works">
+            <div class="aifit-step">
+              <span class="aifit-step-num">01. UPLOAD</span>
+              <p class="aifit-step-text">Your resume is parsed via secure private proxy.</p>
+            </div>
+            <div class="aifit-step">
+              <span class="aifit-step-num">02. MAP</span>
+              <p class="aifit-step-text">AI evaluates your profile against active LDPs.</p>
+            </div>
+            <div class="aifit-step">
+              <span class="aifit-step-num">03. STRATEGIZE</span>
+              <p class="aifit-step-text">Review gap analysis and personalized coaching.</p>
+            </div>
+          </div>
+
+          <footer class="aifit-privacy">
+            <p class="aifit-privacy-text">Your resume is processed via secure proxy, never stored, and never shared.</p>
+          </footer>
+        </div>
+
+        <!-- POST-SCAN RESULTS VIEW -->
+        <div id="aifit-view-post" class="aifit-post-scan" style="display:none">
+          <div class="aifit-post-container">
+            <!-- Summary strip + (collapsible) full results injected by renderAIResults() -->
+            <div id="aifit-results-container"></div>
+          </div>
+        </div>
+      </section>
+
       <div class="prog-meta-row">
         <div id="prog-meta" class="results-meta prog-meta"></div>
-        <a class="prog-request-link" href="javascript:void(0)" onclick="openM('app')" title="Add a program that isn't in the catalog to your pipeline">+ Add new program</a>
+        <!-- Task TC — Programs action bar: Scan résumé (AI Fit), Deadlines view
+             toggle + calendar export (merged from Deadlines tab), Add program. -->
+        <div class="prog-actions">
+          <button id="prog-scan-btn" class="prog-action-btn prog-action-accent" type="button" onclick="openProgramsScan()" title="Scan your résumé for AI fit across all programs">✦ Scan résumé</button>
+          <button id="prog-deadlines-toggle" class="prog-action-btn" type="button" onclick="toggleDeadlinesView()" title="Sort by deadline and show only dated / rolling programs">📅 Deadlines view</button>
+          <button id="prog-ics-export" class="prog-action-btn" type="button" onclick="exportMyPipelineDeadlines()" title="Download all deadlines from your pipeline as a single calendar (.ics) file">⬇ Export calendar</button>
+          <a class="prog-request-link" href="javascript:void(0)" onclick="openM('app')" title="Add a program that isn't in the catalog to your pipeline">+ Add new program</a>
+        </div>
       </div>
 
       <div class="table-wrap prog-table-wrap">
@@ -452,61 +533,8 @@
 </div>
 
 <!-- ALUMNI PAGE — Phase 11 rebuild -->
-<div class="page" id="page-alumni">
-  <header class="page-editorial-header" id="alumni-header">
-    <div class="page-editorial-eyebrow-row">
-      <div class="page-editorial-eyebrow"><span id="alumni-eyebrow-text">Alumni Finder · LinkedIn discovery</span></div>
-      <a class="page-tour-link" onclick="tourStart('alumni')" title="Walk through this page">Tour this page →</a>
-    </div>
-    <h1 class="page-editorial-h1" id="alumni-h1">Find alumni at your target programs.</h1>
-    <p class="page-editorial-subline" id="alumni-subline">Build the right LinkedIn searches and connection messages to reach the right people inside target programs — before applications open.</p>
-  </header>
-  <!-- Task 19.2.2 — info-card removed. Tour link lives in the header. -->
-
-  <div class="al-layout">
-    <!-- ─── SIDEBAR: school + sector filters + tip ─── -->
-    <aside class="al-sidebar">
-      <div class="al-sidebar-section">
-        <div class="al-sidebar-label">Target school</div>
-        <div style="position:relative" id="alumni-school-wrap">
-          <div style="display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:8px 12px;cursor:pointer" onclick="toggleAlumniSchoolDrop()">
-            <span style="font-size:12px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="alumni-school-display">Select your school</span>
-            <span style="font-size:10px;color:var(--text3);flex-shrink:0">▾</span>
-          </div>
-          <div id="alumni-school-drop" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--bg2);border:1px solid var(--border2);border-radius:10px;box-shadow:var(--shadow-md);z-index:60;overflow:hidden">
-            <div style="padding:8px 10px;border-bottom:1px solid var(--border)">
-              <input id="alumni-school-filter" placeholder="Type to filter..." style="width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;padding:6px 10px;font-size:12px;font-family:var(--sans);outline:none;color:var(--text)" oninput="filterAlumniSchoolDrop()">
-            </div>
-            <div id="alumni-school-opts" style="max-height:220px;overflow-y:auto"></div>
-          </div>
-        </div>
-      </div>
-
-      <div class="al-sidebar-section">
-        <div class="al-sidebar-label">Industry vertical</div>
-        <div class="al-sector-list" id="al-sector-list"></div>
-      </div>
-
-      <div class="al-sidebar-section">
-        <div class="al-pro-tip">
-          <div class="al-pro-tip-title">💡 Pro Tip</div>
-          Warm intros via alumni get higher response rates than cold messages. Always personalize the <code style="font-family:var(--mono);font-size:10px;background:rgba(29,106,69,.12);padding:1px 4px;border-radius:3px">{Their first name}</code> placeholder — generic copy-paste hurts your reply rate.
-        </div>
-      </div>
-    </aside>
-
-    <!-- ─── MAIN: search + card feed ─── -->
-    <main class="al-main">
-      <div class="al-main-head">
-        <h3>Recruiting Feed</h3>
-        <span class="al-main-count" id="alumni-count">—</span>
-        <button class="fpill pipeline-toggle" onclick="togglePipelineFilter()" title="Show only programs in your pipeline">My Pipeline</button>
-      </div>
-      <input class="al-search-input" id="alumni-prog-search" type="text" placeholder="Search companies, programs, sectors..." oninput="renderAlumniSearch()">
-      <div id="alumni-search-rows"></div>
-    </main>
-  </div>
-</div>
+<!-- Task TC — the standalone Alumni Finder page (#page-alumni) was removed.
+     Its markup now lives in the "Find Alumni" sub-view of #page-networking. -->
 
 <!-- APPLICATIONS PAGE -->
 <div class="page" id="page-applications">
@@ -529,91 +557,13 @@
   <div class="kanban" id="app-kanban"></div>
 </div>
 
-<!-- DEADLINES PAGE -->
-<div class="page" id="page-deadlines">
-  <header class="page-editorial-header" id="deadlines-header">
-    <div class="page-editorial-eyebrow-row">
-      <div class="page-editorial-eyebrow"><span id="deadlines-eyebrow-text">90-day horizon · urgency buckets</span></div>
-      <a class="page-tour-link" onclick="tourStart('deadlines')" title="Walk through this page">Tour this page →</a>
-    </div>
-    <h1 class="page-editorial-h1" id="deadlines-h1">Upcoming Deadlines</h1>
-    <p class="page-editorial-subline" id="deadlines-subline">Plan your application sprint: 90-day horizon, urgency buckets, and one-click calendar export.</p>
-  </header>
-  <!-- Task 19.2.2 — info-card removed. Tour link lives in the header. -->
+<!-- Task TC — the standalone Deadlines page (#page-deadlines) was removed.
+     Deadlines now live on the Programs page: the DEADLINE column, the
+     "Deadlines view" toggle (sort-by-deadline + dated/rolling filter), and the
+     "Export calendar" button in the Programs action bar. -->
 
-  <div class="dl-controls">
-    <button class="fpill pipeline-toggle" onclick="togglePipelineFilter()" title="Show only deadlines tied to your application pipeline">My Pipeline</button>
-    <button class="dl-bulk-export" onclick="exportMyPipelineDeadlines()" title="Download all deadlines from your pipeline (My pipeline) as a single ICS file">📅 Export my pipeline to calendar</button>
-  </div>
-
-  <div class="dl-timeline" id="dl-timeline"></div>
-
-  <div class="dl-buckets" id="dl-buckets"></div>
-</div>
-
-<!-- AI FIT PAGE -->
-<div class="page" id="page-aifit">
-  <!-- AI Fit Scan Page — Phase 13 Redesign -->
-  <div id="aifit-view-pre" class="aifit-pre-scan">
-    <header class="aifit-header">
-      <span class="aifit-eyebrow">LDP SCOUT · AI FIT SCAN</span>
-      <h1 class="aifit-title">Match your resume to top MBA Leadership Development Programs</h1>
-      <p class="aifit-subtitle">Get a tier-ranked fit analysis and gap assessment based on your professional background in seconds.</p>
-    </header>
-
-    <div class="aifit-upload-container">
-      <div class="aifit-upload-box" id="aifit-upload-box">
-        <input type="file" accept=".pdf,.txt,.doc,.docx" onchange="handleFileUpload(event)" id="resume-file-input">
-        <div id="aifit-file-display" style="display:none">
-          <div class="aifit-file-badge">
-            <span class="aifit-file-dot"></span>
-            <span class="aifit-file-info" id="aifit-file-info"></span>
-            <span class="aifit-file-remove" onclick="clearAIFitFile(event)">Remove</span>
-          </div>
-          <p class="aifit-upload-hint">Resume detected and ready for processing.</p>
-        </div>
-        <div id="aifit-empty-display">
-          <div class="aifit-upload-icon"></div>
-          <p class="aifit-upload-prompt">Drop your resume here or click to browse</p>
-          <p class="aifit-upload-hint">PDF, DOCX, or plain text · Max 5 MB</p>
-        </div>
-      </div>
-    </div>
-
-    <div class="aifit-cta-wrap">
-      <button class="aifit-analyze-btn" id="analyze-btn" onclick="runAIAnalysis()" disabled>
-        <span>✦</span> Analyse My Fit
-      </button>
-    </div>
-
-    <div class="aifit-how-it-works">
-      <div class="aifit-step">
-        <span class="aifit-step-num">01. UPLOAD</span>
-        <p class="aifit-step-text">Your resume is parsed via secure private proxy.</p>
-      </div>
-      <div class="aifit-step">
-        <span class="aifit-step-num">02. MAP</span>
-        <p class="aifit-step-text">AI evaluates your profile against active LDPs.</p>
-      </div>
-      <div class="aifit-step">
-        <span class="aifit-step-num">03. STRATEGIZE</span>
-        <p class="aifit-step-text">Review gap analysis and personalized coaching.</p>
-      </div>
-    </div>
-
-    <footer class="aifit-privacy">
-      <p class="aifit-privacy-text">Your resume is processed via secure proxy, never stored, and never shared.</p>
-    </footer>
-  </div>
-
-  <!-- POST-SCAN RESULTS VIEW -->
-  <div id="aifit-view-post" class="aifit-post-scan" style="display:none">
-    <div class="aifit-post-container">
-      <!-- Summary strip will be injected here by renderAIFitResults() -->
-      <div id="aifit-results-container"></div>
-    </div>
-  </div>
-</div>
+<!-- Task TC — the standalone AI Fit Scan page (#page-aifit) was removed.
+     Its markup now lives inside #programs-scan-panel on the Programs page. -->
 
 <!-- COMMAND CENTER PAGE -->
 <div class="page" id="page-command">
@@ -652,7 +602,7 @@
       <div>
         <div class="cc-section-head">
           <h2 class="cc-section-title">Upcoming deadlines · 30 days</h2>
-          <a class="cc-section-link" onclick="showPage('deadlines')" href="#">See all →</a>
+          <a class="cc-section-link" onclick="openProgramsDeadlines()" href="#">See all →</a>
         </div>
         <div class="cc-list-card" id="cc-deadlines-list"></div>
       </div>
@@ -687,7 +637,7 @@
     <div class="cc-quick-actions">
       <button class="cc-ghost-btn" onclick="showPage('programs')">Browse Programs →</button>
       <button class="cc-ghost-btn" onclick="openM('app')">Log an Application →</button>
-      <button class="cc-ghost-btn" onclick="showPage('aifit')">Run AI Fit Scan →</button>
+      <button class="cc-ghost-btn" onclick="openProgramsScan()">Run AI Fit Scan →</button>
     </div>
   </div>
 </div>
@@ -703,48 +653,106 @@
     <p class="page-editorial-subline" id="networking-subline">Track your outreach, follow-ups, and referrals. Every connection counts.</p>
   </header>
 
-  <!-- Overview boxes (4) -->
-  <div class="nt-overview" id="nt-overview"></div>
+  <!-- Task TC — sub-view pills. "My Contacts" is the original networking tracker;
+       "Find Alumni" is the Alumni Finder, merged in from its old standalone tab. -->
+  <div class="net-subnav" id="net-subnav" role="tablist">
+    <button class="net-subpill on" id="net-subpill-contacts" type="button" role="tab" aria-selected="true" onclick="setNetworkingSubview('contacts')">My Contacts</button>
+    <button class="net-subpill" id="net-subpill-alumni" type="button" role="tab" aria-selected="false" onclick="setNetworkingSubview('alumni')">Find Alumni</button>
+  </div>
 
-  <!-- Toolbar -->
-  <div class="nt-toolbar">
-    <div class="nt-search-wrap">
-      <input class="nt-search" id="nt-search" type="search" placeholder="Search contacts..." oninput="renderContacts()" />
+  <!-- ─── SUB-VIEW: My Contacts (original networking tracker) ─── -->
+  <div id="net-subview-contacts" class="net-subview">
+    <!-- Overview boxes (4) -->
+    <div class="nt-overview" id="nt-overview"></div>
+
+    <!-- Toolbar -->
+    <div class="nt-toolbar">
+      <div class="nt-search-wrap">
+        <input class="nt-search" id="nt-search" type="search" placeholder="Search contacts..." oninput="renderContacts()" />
+      </div>
+      <div style="flex:1"></div>
+      <button class="nt-add-btn" onclick="openContactModal(null)">+ Add Contact</button>
     </div>
-    <div style="flex:1"></div>
-    <button class="nt-add-btn" onclick="openContactModal(null)">+ Add Contact</button>
+
+    <!-- Two-column: filter rail + contact list -->
+    <div class="nt-layout">
+      <aside class="nt-filter-rail" id="nt-filter-rail">
+        <div class="nt-filter-group">
+          <div class="nt-filter-title">Status</div>
+          <div id="nt-filter-status"></div>
+        </div>
+        <div class="nt-filter-group">
+          <div class="nt-filter-title">Company</div>
+          <div id="nt-filter-company"></div>
+        </div>
+        <div class="nt-filter-group">
+          <div class="nt-filter-title">Quick filters</div>
+          <label class="nt-filter-check">
+            <input type="checkbox" id="nt-filter-followup" onchange="renderContacts()" />
+            <span>Needs follow-up</span>
+          </label>
+          <label class="nt-filter-check">
+            <input type="checkbox" id="nt-filter-linked" onchange="renderContacts()" />
+            <span>Linked to an application</span>
+          </label>
+        </div>
+        <button class="nt-filter-clear" onclick="clearContactFilters()">Clear all filters</button>
+      </aside>
+      <div class="nt-contact-list" id="nt-contact-list"></div>
+    </div>
   </div>
 
-  <!-- Two-column: filter rail + contact list -->
-  <div class="nt-layout">
-    <aside class="nt-filter-rail" id="nt-filter-rail">
-      <div class="nt-filter-group">
-        <div class="nt-filter-title">Status</div>
-        <div id="nt-filter-status"></div>
-      </div>
-      <div class="nt-filter-group">
-        <div class="nt-filter-title">Company</div>
-        <div id="nt-filter-company"></div>
-      </div>
-      <div class="nt-filter-group">
-        <div class="nt-filter-title">Quick filters</div>
-        <label class="nt-filter-check">
-          <input type="checkbox" id="nt-filter-followup" onchange="renderContacts()" />
-          <span>Needs follow-up</span>
-        </label>
-        <label class="nt-filter-check">
-          <input type="checkbox" id="nt-filter-linked" onchange="renderContacts()" />
-          <span>Linked to an application</span>
-        </label>
-      </div>
-      <button class="nt-filter-clear" onclick="clearContactFilters()">Clear all filters</button>
-    </aside>
-    <div class="nt-contact-list" id="nt-contact-list"></div>
-  </div>
-</div>
+  <!-- ─── SUB-VIEW: Find Alumni (relocated from the old #page-alumni) ─── -->
+  <div id="net-subview-alumni" class="net-subview" style="display:none">
+    <div class="net-subview-intro">
+      <h2 class="net-subview-title" id="alumni-h1">Find alumni at your target programs.</h2>
+      <p class="net-subview-sub" id="alumni-subline">Build the right LinkedIn searches and connection messages to reach the right people inside target programs — before applications open.</p>
+    </div>
 
-<div class="page" id="page-market">
-  <!-- renderMarketIntel() fills this at runtime -->
+    <div class="al-layout">
+      <!-- ─── SIDEBAR: school + sector filters + tip ─── -->
+      <aside class="al-sidebar">
+        <div class="al-sidebar-section">
+          <div class="al-sidebar-label">Target school</div>
+          <div style="position:relative" id="alumni-school-wrap">
+            <div style="display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:8px 12px;cursor:pointer" onclick="toggleAlumniSchoolDrop()">
+              <span style="font-size:12px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="alumni-school-display">Select your school</span>
+              <span style="font-size:10px;color:var(--text3);flex-shrink:0">▾</span>
+            </div>
+            <div id="alumni-school-drop" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--bg2);border:1px solid var(--border2);border-radius:10px;box-shadow:var(--shadow-md);z-index:60;overflow:hidden">
+              <div style="padding:8px 10px;border-bottom:1px solid var(--border)">
+                <input id="alumni-school-filter" placeholder="Type to filter..." style="width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;padding:6px 10px;font-size:12px;font-family:var(--sans);outline:none;color:var(--text)" oninput="filterAlumniSchoolDrop()">
+              </div>
+              <div id="alumni-school-opts" style="max-height:220px;overflow-y:auto"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="al-sidebar-section">
+          <div class="al-sidebar-label">Industry vertical</div>
+          <div class="al-sector-list" id="al-sector-list"></div>
+        </div>
+
+        <div class="al-sidebar-section">
+          <div class="al-pro-tip">
+            <div class="al-pro-tip-title">💡 Pro Tip</div>
+            Warm intros via alumni get higher response rates than cold messages. Always personalize the <code style="font-family:var(--mono);font-size:10px;background:rgba(29,106,69,.12);padding:1px 4px;border-radius:3px">{Their first name}</code> placeholder — generic copy-paste hurts your reply rate.
+          </div>
+        </div>
+      </aside>
+
+      <!-- ─── MAIN: search + card feed ─── -->
+      <main class="al-main">
+        <div class="al-main-head">
+          <h3>Recruiting Feed</h3>
+          <span class="al-main-count" id="alumni-count">—</span>
+          <button class="fpill pipeline-toggle" onclick="togglePipelineFilter()" title="Show only programs in your pipeline">My Pipeline</button>
+        </div>
+        <input class="al-search-input" id="alumni-prog-search" type="text" placeholder="Search companies, programs, sectors..." oninput="renderAlumniSearch()">
+        <div id="alumni-search-rows"></div>
+      </main>
+    </div>
+  </div>
 </div>
 
 </div><!-- /main -->
@@ -853,7 +861,7 @@
   <!-- STEP 3: Resume -->
   <div class="onb-panel" id="onb-panel-3" style="display:none">
     <div class="mtitle">Upload your résumé (optional)</div>
-    <div class="onb-sub">Get an instant AI fit score across all tracked programs. You can always do this later from the AI Fit Scan tab.</div>
+    <div class="onb-sub">Get an instant AI fit score across all tracked programs. You can always do this later with the <strong>Scan résumé</strong> button on the Programs tab.</div>
     <div class="upload-zone" id="onb-upload-zone" style="margin-top:18px;padding:28px">
       <input type="file" accept=".pdf,.txt,.doc,.docx" onchange="onbHandleFileSelect(event)" id="onb-resume-file-input">
       <span class="uz-icon">📄</span>
