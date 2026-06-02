@@ -1948,30 +1948,17 @@ input, textarea, select, button { font-family: inherit; }
   box-shadow: 0 0 0 0 rgba(192,57,43,.55); animation: nta-pulse 1.6s ease-out infinite; pointer-events: none;
 }
 
-/* AI Fit scan panel embedded at the top of the Programs page */
-.prog-scan-panel {
-  background: var(--bg2);
-  border: 1px solid var(--border2);
-  border-radius: 14px;
-  padding: 18px 20px 24px;
-  margin: 4px 0 18px;
-  box-shadow: var(--shadow);
-}
-.prog-scan-panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
-.prog-scan-panel-title { font-family: var(--serif); font-size: 15px; color: var(--text); letter-spacing: .01em; }
-.prog-scan-panel-close {
-  background: transparent;
-  border: 1px solid var(--border2);
-  color: var(--text3);
-  font-family: var(--sans);
-  font-size: 12px;
-  padding: 5px 11px;
-  border-radius: 999px;
-  cursor: pointer;
-  transition: all .15s;
-}
-.prog-scan-panel-close:hover { border-color: var(--red, #c0392b); color: var(--red, #c0392b); }
-/* Inside the panel the summary strip shouldn't stick (the panel itself scrolls) */
+/* AI Fit Scan sub-view — flush in the page like the Networking sub-views (no
+   nested card). The scan content provides its own layout/spacing. */
+.prog-scan-panel { background: transparent; border: none; box-shadow: none; padding: 0; margin: 0; }
+/* The standalone-page styles for the scan views carried a full-height grey
+   backdrop + heavy padding (designed when AI Fit was its own page). Inside the
+   sub-view that produced a giant empty box below collapsed results — neutralise
+   them so the view sizes to its content, consistent with Browse Programs. */
+.prog-scan-panel .aifit-pre-scan  { padding: 8px 0 32px; }
+.prog-scan-panel .aifit-post-scan { padding: 0; background: transparent; min-height: 0; }
+.prog-scan-panel .aifit-post-container { padding: 0; }
+/* Summary strip shouldn't stick inside the page flow */
 .prog-scan-panel .aifit-summary-strip { position: static; margin-bottom: 16px; }
 
 /* "View full results" expand toggle — gates the tier lists / gap / coaching */
@@ -2236,17 +2223,29 @@ input, textarea, select, button { font-family: inherit; }
 /* ─── AI Fit program name links ────────────────────────────────────
    Tier-card program names become clickable when p.url exists. Same
    underline-on-hover treatment as the Programs table row links. */
+/* Task TC.3 — make tier-card program links obviously clickable (users weren't
+   realising they could click through to the program page). Accent colour +
+   solid underline + a trailing ↗ external-link glyph. */
+.aifit-program-name { overflow: visible; white-space: normal; }
 .aifit-program-name-link {
-  color: inherit;
+  color: var(--accent);
   text-decoration: none;
-  border-bottom: 1px solid var(--border2);
+  border-bottom: 1px solid var(--accent);
   padding-bottom: 1px;
   transition: color .15s, border-color .15s;
 }
-.aifit-program-name-link:hover {
-  color: var(--accent);
-  border-color: var(--accent);
+.aifit-program-name-link::after {
+  content: '↗';
+  font-size: 10px;
+  margin-left: 3px;
+  vertical-align: 1px;
+  opacity: .65;
 }
+.aifit-program-name-link:hover {
+  color: var(--accent2);
+  border-color: var(--accent2);
+}
+.aifit-program-name-link:hover::after { opacity: 1; }
 
 
 /* ═══════════════════════════════════════════════════════════════════
