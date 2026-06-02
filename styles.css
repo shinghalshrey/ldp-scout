@@ -1120,6 +1120,33 @@ input, textarea, select, button { font-family: inherit; }
 }
 .prog-search-input:focus { border-color: var(--accent); }
 .prog-search-input::placeholder { color: var(--text3); }
+/* Task AB (B) — feature discoverability hints */
+.feat-hint {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--text3, #8A9E98);
+  background: var(--bg2, #f5f0e8);
+  padding: 8px 16px;
+  border-radius: 8px;
+  margin: 8px 0;
+}
+.feat-hint-text { flex: 1; line-height: 1.4; }
+.feat-hint-x {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: var(--text3, #8A9E98);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: color .12s, background .12s;
+}
+.feat-hint-x:hover { color: var(--text); background: rgba(0,0,0,.06); }
+
 .prog-pill-stack { display: flex; flex-direction: column; gap: 6px; }
 .prog-pill-stack .fpill {
   text-align: left;

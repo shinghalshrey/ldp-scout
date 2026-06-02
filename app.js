@@ -1713,13 +1713,28 @@ async function saveApplicationToDB(app){
 }
 
 async function deleteApplicationFromDB(id){
-  if(!currentUser) return;
+  if(!currentUser) return false;
+  // Task A: contacts may reference this application via user_contacts.related_app_id
+  // (FK user_contacts_related_app_id_fkey). If we DELETE the application while a
+  // contact still points at it, the constraint rejects the delete — the card vanished
+  // from the DOM optimistically and then reappeared on reload. Unlink first.
+  console.log('[TaskA] deleting app:', id, '— unlinking contacts first');
   try {
+    const { error: unlinkErr } = await sb.from('user_contacts')
+      .update({ related_app_id: null })
+      .eq('related_app_id', id)
+      .eq('user_id', currentUser.id);
+    if(unlinkErr) throw unlinkErr;
+    // Keep the in-memory contacts in sync so the Networking UI drops the link immediately.
+    contacts.forEach(c => { if(c.related_app_id === id) c.related_app_id = null; });
+
     const { error } = await sb.from('user_applications').delete().eq('id', id).eq('user_id', currentUser.id);
     if(error) throw error;
+    return true;
   } catch(e){
-    console.error('deleteApplicationFromDB failed:', e);
-    toast('Could not delete from cloud — please refresh.');
+    console.error('[deleteApp] failed:', e);
+    toast('Could not delete — please try again.');
+    return false;
   }
 }
 
@@ -3435,6 +3450,23 @@ function renderPrograms(){
     renderProgramsMobile(list);
   }
 
+  // Task B2: explain the "+ Add new program" link to users who haven't added one yet.
+  // Static (no ✕) — it auto-hides once the user has ≥1 manually-added program.
+  const addProgShow = _userAddedRows().length === 0;
+  _featHintShown.addProgram = _renderFeatHint('hint-addprogram',
+    document.querySelector('.prog-request-link'), 'afterend',
+    "Can't find your program? Add it manually and track it in your pipeline.",
+    addProgShow, null);
+
+  // Task B3: nudge users with a pipeline toward the "★ My Pipeline" filter. Shown once
+  // (when they have ≥1 app and the filter is off), dismissed on ✕ or on first use of the filter.
+  const pipelineShow = apps.length >= 1 && !_pipelineFilter && !_featHintDismissed('ldp_pipeline_hint_dismissed');
+  _featHintShown.pipeline = _renderFeatHint('hint-pipeline',
+    document.getElementById('prog-stats'), 'afterend',
+    'Filter to see only programs in your pipeline',
+    pipelineShow, 'ldp_pipeline_hint_dismissed');
+
+  _logFeatHints();
 }
 
 // ═══════════════ MOBILE CARD VIEW (Task 21.1) ═══════════════
@@ -3959,11 +3991,13 @@ async function setProgramStage(progId, newStage){
   if(newStage === '__remove'){
     if(!existing) return;
     if(!confirm(`Remove "${p.org}" from your pipeline?`)) return;
-    await deleteApplicationFromDB(existing.id);
+    const ok = await deleteApplicationFromDB(existing.id);
+    if(!ok) return;   // delete failed (error toast already shown) — keep the card
     apps = apps.filter(a => a.id !== existing.id);
     renderApplications();
     renderProgressStrip();
     renderPrograms();
+    if(typeof renderContacts === 'function') renderContacts();   // reflect any unlinked contacts
     toast(`Removed ${p.org} from your pipeline`);
     return;
   }
@@ -4288,6 +4322,7 @@ async function dropApp(e, stage){
   const app = apps.find(a => String(a.id) === String(appId));
   if(!app)                  return;            // ghost drag — ignore
   if(app.status === stage)  return;            // dropped on same column — no-op
+  _dismissFeatHint('ldp_kanban_hint_dismissed');   // Task B1: user performed a drag → hint learned
   _dropInFlight = true;
   const prevStatus = app.status;
   app.status = stage;
@@ -4303,6 +4338,49 @@ async function dropApp(e, stage){
     toast('Could not save — change reverted');
   } finally {
     _dropInFlight = false;
+  }
+}
+
+// ═══════════════ Task AB (B) — feature discoverability hints ═══════════════
+// Small dismissible callouts that teach hidden features (drag-to-move, add-program,
+// pipeline filter). Rendered idempotently — removed and re-added on each render so they
+// never duplicate and always reflect current dismissal/eligibility state.
+let _featHintShown = { kanban:false, addProgram:false, pipeline:false };
+let _featHintSig = '';
+function _featHintDismissed(key){
+  try { return localStorage.getItem(key) === '1'; } catch { return false; }
+}
+function _dismissFeatHint(key){
+  try { localStorage.setItem(key, '1'); } catch {}
+}
+// Inject (or remove) a hint anchored relative to `anchor`. `dismissKey` adds a ✕ that
+// persists dismissal. Hint text is static (no user input) so innerHTML is safe.
+function _renderFeatHint(id, anchor, position, html, show, dismissKey){
+  const prev = document.getElementById(id);
+  if(prev) prev.remove();
+  if(!show || !anchor) return false;
+  const wrap = document.createElement('div');
+  wrap.id = id;
+  wrap.className = 'feat-hint';
+  const x = dismissKey
+    ? `<button type="button" class="feat-hint-x" aria-label="Dismiss hint" title="Dismiss">✕</button>`
+    : '';
+  wrap.innerHTML = `<span class="feat-hint-text">${html}</span>${x}`;
+  if(dismissKey){
+    wrap.querySelector('.feat-hint-x').addEventListener('click', e => {
+      e.stopPropagation();
+      _dismissFeatHint(dismissKey);
+      wrap.remove();
+    });
+  }
+  anchor.insertAdjacentElement(position, wrap);
+  return true;
+}
+function _logFeatHints(){
+  const sig = JSON.stringify(_featHintShown);
+  if(sig !== _featHintSig){
+    _featHintSig = sig;
+    console.log('[TaskB] hints shown:', _featHintShown);
   }
 }
 
@@ -4333,6 +4411,9 @@ function renderApplications(){
         <button class="empty-state-cta" onclick="openM('app')">+ Log your first application</button>
         <div><button class="empty-state-secondary" onclick="showPage('programs')">Browse all programs first →</button></div>
       </div>`;
+    // No apps → ensure any stale kanban hint is cleared.
+    _featHintShown.kanban = _renderFeatHint('hint-kanban', null, 'beforebegin', '', false, 'ldp_kanban_hint_dismissed');
+    _logFeatHints();
     return;
   }
 
@@ -4387,6 +4468,15 @@ function renderApplications(){
       <div class="kcol-drop-hint">Drop here to move to <strong>${s.label}</strong></div>
     </div>`;
   }).join('');
+
+  // Task B1: one-time drag hint for new users (1–3 apps). Dismissable via ✕ and
+  // auto-dismissed after the first successful drag (see dropApp).
+  const kanbanShow = apps.length >= 1 && apps.length <= 3 && !_featHintDismissed('ldp_kanban_hint_dismissed');
+  _featHintShown.kanban = _renderFeatHint('hint-kanban',
+    document.getElementById('app-kanban'), 'beforebegin',
+    '💡 Drag cards between columns to update your application stage',
+    kanbanShow, 'ldp_kanban_hint_dismissed');
+  _logFeatHints();
 }
 
 // ═══════════════ DEADLINES ═══════════════
@@ -4405,6 +4495,7 @@ try { _pipelineFilter = localStorage.getItem('ldp_pipeline_filter_v1') === '1'; 
 
 function togglePipelineFilter(){
   _pipelineFilter = !_pipelineFilter;
+  _dismissFeatHint('ldp_pipeline_hint_dismissed');   // Task B3: filter used → hint no longer needed
   try { localStorage.setItem('ldp_pipeline_filter_v1', _pipelineFilter ? '1' : '0'); } catch(e){}
   _syncPipelineToggleUI();
   // Re-render whichever page is currently active. The other page re-syncs on its next render.
@@ -5859,10 +5950,12 @@ function delA(id){if(confirm('Remove this contact?')){alum=alum.filter(a=>a.id!=
 function editAp(id){openM('app',apps.find(a=>String(a.id)===String(id))||{});}
 async function delCurrentApp(){
   if(eId.app && confirm('Delete this application?')){
-    await deleteApplicationFromDB(eId.app);
+    const ok = await deleteApplicationFromDB(eId.app);
+    if(!ok) return;   // delete failed (error toast already shown) — leave it in place
     apps = apps.filter(a=>a.id!==eId.app);
     closeM('app');
     renderApplications();
+    if(typeof renderContacts === 'function') renderContacts();   // reflect any unlinked contacts
     toast('Application deleted');
   }
 }
