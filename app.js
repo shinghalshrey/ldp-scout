@@ -6453,12 +6453,20 @@ function openContactModal(id){
   // Task J (Fix 3): helper text under the Related Application select telling users they must
   // add programs to My Applications first. Injected once (idempotent) so this stays in app.js
   // rather than the static markup, and never duplicates across re-opens of the modal.
-  if(appSel && appSel.parentElement && !appSel.parentElement.querySelector('.ct-app-hint')){
-    const hint = document.createElement('small');
-    hint.className = 'ct-app-hint';
-    hint.style.cssText = 'color:var(--text3,#8A9E98);font-size:11px;margin-top:4px;display:block;';
-    hint.textContent = 'Add programs to My Applications first to link contacts here.';
-    appSel.insertAdjacentElement('afterend', hint);
+  if(appSel && appSel.parentElement){
+    let hint = appSel.parentElement.querySelector('.ct-app-hint');
+    if(!hint){
+      hint = document.createElement('small');
+      hint.className = 'ct-app-hint';
+      hint.style.cssText = 'font-size:11px;margin-top:4px;display:block;';
+      hint.textContent = 'Add programs to My Applications first to link contacts here.';
+      appSel.insertAdjacentElement('afterend', hint);
+    }
+    // Task I (Fix): when the dropdown has NO real application options (only the "— None —"
+    // entry), the hint is actionable → warn in red; once apps exist, keep it muted. Set on
+    // every open so it reflects the current applications state, not just first injection.
+    const hasApps = appSel.options.length > 1;
+    hint.style.color = hasApps ? 'var(--text3, #8A9E98)' : 'var(--warn, #C0562A)';
   }
 
   const titleEl   = document.getElementById('contact-modal-title');
