@@ -6413,6 +6413,9 @@ function openContactModal(id){
       apps.filter(a=>a.status!=='rejected')
           .map(a=>`<option value="${a.id}">${_esc(a.name)}</option>`).join('');
   }
+  // Task F2 diagnostic — confirm the Related Application dropdown is populated and enabled.
+  console.log('[TaskF2] Related App dropdown — options count:', appSel ? appSel.options.length : 0,
+              'disabled:', appSel ? appSel.disabled : null);
 
   const titleEl   = document.getElementById('contact-modal-title');
   const deleteBtn = document.getElementById('ct-delete-btn');
