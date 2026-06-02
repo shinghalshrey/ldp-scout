@@ -5115,21 +5115,54 @@ Schema:
       .map(([tier, items]) => `${tier}: ${(items||[]).length} programs`)
       .join(' · ');
 
-    const gapSys = `You are an expert MBA career advisor. Given the resume and which LDP tiers the candidate landed in, produce a gap analysis and tailored resume suggestions.
+    // Task J (Fix 2): rewrite the gap-analysis system prompt. Ground the analysis in the
+    // candidate's actual top-fit programs and forbid suggesting fabricated experience.
+    const gapSys = `You are an expert MBA career advisor. The candidate has been matched against LDP programs and you have their top-fit programs with requirements. Produce a gap analysis and coaching grounded in these SPECIFIC programs.
 
-GAP ANALYSIS — rate each dimension as Strong (clear evidence) | Medium (some evidence) | Weak (gap):
+GAP ANALYSIS — rate each dimension as Strong | Medium | Weak based on how the resume aligns with the TARGET PROGRAMS' actual requirements:
 leadership_evidence | international_exposure | operations_depth | quantitative_rigor | cross_functional | entrepreneurial_impact
 
-Each dimension needs: rating (one of the three labels), evidence (specific resume quote or paraphrase, <20 words), tip (one actionable improvement, <25 words).
+Each dimension needs:
+- rating: Strong (clear evidence matching target program needs), Medium (some evidence), or Weak (real gap vs what target programs require)
+- evidence: specific resume quote or paraphrase (<20 words) — or "Not found in resume" if genuinely absent
+- tip: one actionable improvement (<30 words) that references a specific target program by name
 
-SUGGESTIONS: Exactly 6 specific resume/positioning improvements. Each names which 1-3 programs it most helps and has a priority (high/medium/low).
+CRITICAL RULES:
+1. GROUND every gap rating in the TARGET PROGRAMS' actual requirements. Do not flag gaps that the target programs don't require.
+2. NEVER suggest fabricating, inventing, or adding experience the candidate does not have. Only suggest how to REFRAME, REPOSITION, or BETTER HIGHLIGHT existing experience. If the candidate genuinely lacks something, say "Consider gaining experience in X" — don't say "Add X to your resume."
+3. Tips must be HONEST. If a dimension is Weak, acknowledge it and suggest real steps (courses, projects, volunteering) — never suggest misrepresenting credentials.
 
-CRITICAL: Respond ONLY with raw valid JSON. No markdown, no preamble.
+SUGGESTIONS: Exactly 6 specific resume/positioning improvements. Each must:
+- Reference 1-3 specific target programs by name
+- Only suggest reframing EXISTING experience or concrete next steps to build missing skills
+- Have a priority (high/medium/low) and a body (<50 words)
+
+Respond ONLY with raw valid JSON. No markdown, no preamble.
 
 Schema:
-{"gap_analysis":{"leadership_evidence":{"rating":"Strong","evidence":"string","tip":"string"},"international_exposure":{...},"operations_depth":{...},"quantitative_rigor":{...},"cross_functional":{...},"entrepreneurial_impact":{...}},"suggestions":[{"title":"string","body":"<40 word improvement","priority":"high","helps_programs":"Program A, Program B"}]}`;
+{"gap_analysis":{"leadership_evidence":{"rating":"Strong","evidence":"string","tip":"string"},"international_exposure":{...},"operations_depth":{...},"quantitative_rigor":{...},"cross_functional":{...},"entrepreneurial_impact":{...}},"suggestions":[{"title":"string","body":"<50 word improvement referencing specific programs","priority":"high","helps_programs":"Program A, Program B"}]}`;
 
-    const gapUsr = `RESUME:\n${resumeSnippet}\n\nTIER CONTEXT: ${tierContext}\nPROFILE SUMMARY: ${tierParsed.profile_summary || 'N/A'}`;
+    // Task J (Fix 1): give Call 2 the actual top-fit programs (names + requirements), not just
+    // tier counts, so the gap analysis is grounded rather than generic/hallucinated.
+    const topTierIds = [];
+    for (const tier of ['BEST_FIT','STRONG_FIT','ACHIEVABLE']) {
+      const items = tierParsed.tiers?.[tier] || [];
+      for (const item of items) {
+        const id = typeof item === 'object' ? item.id : item;
+        topTierIds.push(id);
+      }
+    }
+    const topPrograms = topTierIds
+      .map(id => progs.find(p => p.id === id))
+      .filter(Boolean)
+      .slice(0, 15)  // cap to avoid token bloat
+      .map(p => `${p.name} (${p.org}) — Eligibility: ${trunc(p.eligibility||'Not specified',120)} | Work exp: ${p.work_experience||'Not specified'} | Target degree: ${p.target_degree||'Not specified'}`)
+      .join('\n');
+
+    const gapUsr = `RESUME:\n${resumeSnippet}\n\nTIER CONTEXT: ${tierContext}\nPROFILE SUMMARY: ${tierParsed.profile_summary || 'N/A'}\n\nTARGET PROGRAMS (your top matches — base your analysis on these):\n${topPrograms}`;
+
+    console.log('[TaskJ] gap analysis — top programs sent:', topPrograms.split('\n').length,
+                'total chars:', gapUsr.length);
 
     const gapRes = await callProxy({
       model:'claude-sonnet-4-5',
@@ -6416,6 +6449,17 @@ function openContactModal(id){
   // Task F2 diagnostic — confirm the Related Application dropdown is populated and enabled.
   console.log('[TaskF2] Related App dropdown — options count:', appSel ? appSel.options.length : 0,
               'disabled:', appSel ? appSel.disabled : null);
+
+  // Task J (Fix 3): helper text under the Related Application select telling users they must
+  // add programs to My Applications first. Injected once (idempotent) so this stays in app.js
+  // rather than the static markup, and never duplicates across re-opens of the modal.
+  if(appSel && appSel.parentElement && !appSel.parentElement.querySelector('.ct-app-hint')){
+    const hint = document.createElement('small');
+    hint.className = 'ct-app-hint';
+    hint.style.cssText = 'color:var(--text3,#8A9E98);font-size:11px;margin-top:4px;display:block;';
+    hint.textContent = 'Add programs to My Applications first to link contacts here.';
+    appSel.insertAdjacentElement('afterend', hint);
+  }
 
   const titleEl   = document.getElementById('contact-modal-title');
   const deleteBtn = document.getElementById('ct-delete-btn');
