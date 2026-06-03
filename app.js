@@ -392,7 +392,7 @@ async function initAuth() {
         const ctx = _otpContext;
         if(force){
           console.log('[auth] post-OTP routing decision:', { context: ctx, fresh_has_password: null, force: true });
-          console.log('[auth] mandatory password setup shown for:', currentUser?.email);
+          console.log('[auth] mandatory password setup shown (current user)');
           lpShowSetPasswordStep('after_otp', { force: true });
           return;
         }
@@ -412,7 +412,7 @@ async function initAuth() {
         const freshHasPassword = freshUser?.user_metadata?.has_password === true;
         console.log('[auth] post-OTP routing decision:', { context: ctx, fresh_has_password: freshHasPassword });
         if(!freshHasPassword){
-          console.log('[auth] mandatory password setup shown for:', freshUser?.email);
+          console.log('[auth] mandatory password setup shown (fresh user)');
           lpShowSetPasswordStep('after_otp');
           return;
         }
@@ -798,7 +798,7 @@ async function _sendOtpForContext(email, context){
       msg.style.display = 'block';
       return false;
     }
-    console.log('[auth] OTP sent to:', email, 'context:', context);
+    console.log('[auth] OTP sent, context:', context);
     _otpEmail = email;
     _otpContext = context;
     document.getElementById('lp-otp-email-display').textContent = email;
@@ -854,7 +854,7 @@ async function lpSignUp(){
     btn.textContent = 'Sign Up';
     return;
   }
-  console.log('[auth] signup attempt:', email, 'account_exists:', status.account_exists);
+  console.log('[auth] signup attempt — account_exists:', status.account_exists);
 
   if(status.account_exists){
     msg.textContent = 'You already have an account. Use Sign In.';
@@ -909,7 +909,7 @@ async function lpSignIn(){
     btn.textContent = 'Sign In';
     return;
   }
-  console.log('[auth] signin attempt:', email, 'account_exists:', status.account_exists, 'has_password:', status.has_password);
+  console.log('[auth] signin attempt — account_exists:', status.account_exists, 'has_password:', status.has_password);
 
   if(!status.account_exists){
     msg.textContent = 'No account found. Use Sign Up to create one.';
@@ -1017,7 +1017,7 @@ async function lpResendOTP(){
       msg.textContent = error.message;
       msg.classList.add('err');
     } else {
-      console.log('[auth] OTP sent to:', _otpEmail, 'context:', _otpContext + ' (resend)');
+      console.log('[auth] OTP sent, context:', _otpContext + ' (resend)');
       msg.innerHTML = '✓ New code sent to <strong>'+_otpEmail+'</strong>. Check your inbox.';
       msg.classList.add('ok');
       document.getElementById('lp-otp-input').value = '';
@@ -1091,7 +1091,7 @@ async function lpSignInWithPassword(){
     //   - Account has no password yet (legacy): auto-redirect to OTP flow with
     //     forced mandatory password setup afterwards.
     if(_pwHasPassword){
-      console.error('[auth] password signin failed:', email);
+      console.error('[auth] password signin failed');
       msg.textContent = signIn.error.message || 'Incorrect password. Try again or use "Forgot password?".';
       msg.classList.add('err');
       msg.style.display = 'block';
@@ -1100,7 +1100,7 @@ async function lpSignInWithPassword(){
       return;
     }
 
-    console.error('[auth] password signin failed, redirecting to OTP:', email);
+    console.error('[auth] password signin failed, redirecting to OTP');
     window._ldp_forceSetPassword = true;
     btn.textContent = 'Sending code…';
     const ok = await _sendOtpForContext(email, 'password_fallback');
@@ -3447,7 +3447,7 @@ function _userAddedRowHTML(p){
   // Task PERF2 — match the catalog row's name-link style (dark text + subtle underline,
   // accent on hover) instead of the default blue browser link.
   const nameHtml = `<div class="pname">${p.url
-    ? `<a href="${esc(p.url)}" target="_blank" rel="noopener noreferrer" style="color:var(--text);text-decoration:none;border-bottom:1px solid var(--border2);padding-bottom:1px" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--text)'">${esc(p.name)}</a>`
+    ? `<a href="${esc(safeUrl(p.url))}" target="_blank" rel="noopener noreferrer" style="color:var(--text);text-decoration:none;border-bottom:1px solid var(--border2);padding-bottom:1px" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--text)'">${esc(p.name)}</a>`
     : esc(p.name)}</div>`;
   return `<div class="prow">
     <div>
@@ -3479,7 +3479,7 @@ function _userAddedCardHTML(p){
       <div class="pmc-head">
         <div class="pmc-logo">${esc(_initials(p.org))}</div>
         <div class="pmc-title-wrap">
-          <div class="pmc-title">${p.url ? `<a href="${esc(p.url)}" target="_blank" rel="noopener noreferrer" style="color:var(--text);text-decoration:none;border-bottom:1px solid var(--border2)">${esc(p.name)}</a>` : esc(p.name)}</div>
+          <div class="pmc-title">${p.url ? `<a href="${esc(safeUrl(p.url))}" target="_blank" rel="noopener noreferrer" style="color:var(--text);text-decoration:none;border-bottom:1px solid var(--border2)">${esc(p.name)}</a>` : esc(p.name)}</div>
           <div class="pmc-org">${esc(p.org||'')}</div>
         </div>
       </div>
@@ -3660,7 +3660,7 @@ function renderPrograms(){
       // name. If p.url is missing the name renders as plain text (no link).
       return `<div class="prow">
         <div>
-          <div class="pname">${p.url?`<a href="${esc(p.url)}" target="_blank" rel="noopener noreferrer" style="color:var(--text);text-decoration:none;border-bottom:1px solid var(--border2);padding-bottom:1px" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--text)'">${esc(p.name)}</a>`:esc(p.name)}</div>
+          <div class="pname">${p.url?`<a href="${esc(safeUrl(p.url))}" target="_blank" rel="noopener noreferrer" style="color:var(--text);text-decoration:none;border-bottom:1px solid var(--border2);padding-bottom:1px" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--text)'">${esc(p.name)}</a>`:esc(p.name)}</div>
           <div class="porg">${esc(p.org)}${p.visa?` <span style="font-size:10px;color:var(--teal);font-weight:600;margin-left:4px">✓ Visa</span>`:''}</div>
           <div class="tags">${(p.tags||[]).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}${verifiedBadge(p)}<button class="row-edit-btn" onclick="openEditModalForProgram(${p.id})" title="Log application / edit notes, deadline…">✏️</button></div>
         </div>
@@ -3829,7 +3829,7 @@ function _mobileCardHTML(p){
   const inactive = p.is_active_cycle === false;
   const rv = resolveProgramView(p);   // Task 27A.2: user's deadline wins on mobile cards + reminder
   const nameHtml = p.url
-    ? `<a href="${esc(p.url)}" target="_blank" rel="noopener noreferrer">${esc(p.name)}</a>`
+    ? `<a href="${esc(safeUrl(p.url))}" target="_blank" rel="noopener noreferrer">${esc(p.name)}</a>`
     : esc(p.name);
 
   // Reminder icon — only show when there's an actual deadline date to fire on
@@ -4508,7 +4508,7 @@ function renderAlumniSearch(){
       <div class="al-card-logo">${initial}</div>
       <div class="al-card-body">
         <div class="al-card-row1">
-          <div class="al-card-title">${p.url?`<a href="${esc(p.url)}" target="_blank" rel="noopener noreferrer">${esc(p.name)}</a>`:esc(p.name)}</div>
+          <div class="al-card-title">${p.url?`<a href="${esc(safeUrl(p.url))}" target="_blank" rel="noopener noreferrer">${esc(p.name)}</a>`:esc(p.name)}</div>
           <span class="al-card-status ${statusCls}">${statusLbl}</span>
         </div>
         <div class="al-card-meta">${esc(p.org)} · ${esc(p.loc || p.geo || '')}</div>
@@ -5682,36 +5682,10 @@ function extractJSON(raw, label){
   }
 }
 
-function showApiKeyPrompt(){
-  document.getElementById('aifit-view-pre').style.display = 'none';
-  document.getElementById('aifit-view-post').style.display = 'block';
-  document.getElementById('aifit-results-container').innerHTML=`
-    <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);padding:28px;max-width:520px;margin:0 auto;text-align:center;box-shadow:var(--shadow-md)">
-      <div style="font-size:28px;margin-bottom:12px">🔑</div>
-      <div style="font-family:var(--serif);font-size:18px;margin-bottom:8px">API Key Required</div>
-      <div style="font-size:13px;color:var(--text2);line-height:1.65;margin-bottom:20px">
-        To run the AI scanner, you need an Anthropic API key. Get one free at 
-        <a href="https://console.anthropic.com" target="_blank" style="color:var(--blue)">console.anthropic.com</a> 
-        — a typical analysis costs ~$0.01.
-      </div>
-      <input id="api-key-input" type="password" placeholder="sk-ant-..." 
-        style="width:100%;padding:10px 13px;border:1px solid var(--border2);border-radius:8px;font-family:var(--mono);font-size:12px;background:var(--bg3);outline:none;margin-bottom:12px">
-      <button onclick="setApiKey()" 
-        style="width:100%;padding:11px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--sans)">
-        Save Key &amp; Analyse →
-      </button>
-      <div style="font-size:10px;color:var(--text3);margin-top:10px">Your key is stored only in this browser session — never saved permanently.</div>
-    </div>`;
-}
-
-function setApiKey(){
-  const key=document.getElementById('api-key-input').value.trim();
-  if(!key||!key.startsWith('sk-')){alert('Please enter a valid Anthropic API key (starts with sk-)');return;}
-  window.LDP_API_KEY=key;
-  sessionStorage.setItem('ldp_key',key);
-  toast('Key saved ✓ — running analysis...');
-  setTimeout(()=>runAIAnalysis(),300);
-}
+// Task SEC — removed the dead "bring-your-own-API-key" path (showApiKeyPrompt /
+// setApiKey). It was never reached (the scan always uses the JWT-authenticated Vercel
+// proxy, which holds the key server-side) and it persisted a user's Anthropic key in
+// sessionStorage — an unnecessary secret-at-rest in the browser.
 
 function syncAIResultsToPrograms(result){
   // Map tier to fit score
@@ -5913,9 +5887,9 @@ function renderAIResults(result, meta){
               <div class="aifit-program-initial">${initial}</div>
               <div class="aifit-program-info">
                 <div class="aifit-program-name">${p.url
-                  ? `<a href="${esc(p.url)}" target="_blank" rel="noopener noreferrer" class="aifit-program-name-link">${esc(p.name)}</a>`
+                  ? `<a href="${esc(safeUrl(p.url))}" target="_blank" rel="noopener noreferrer" class="aifit-program-name-link">${esc(p.name)}</a>`
                   : esc(p.name)}</div>
-                ${item.reason ? `<div class="aifit-program-reason">${item.reason}</div>` : ''}
+                ${item.reason ? `<div class="aifit-program-reason">${esc(item.reason)}</div>` : ''}
               </div>
             </div>
             <div class="aifit-program-card-right">
@@ -5956,9 +5930,9 @@ function renderAIResults(result, meta){
           return `<div class="aifit-gap-card">
             <div class="aifit-gap-card-header">
               <span class="aifit-gap-label">${meta.label}</span>
-              <span class="aifit-gap-rating ${ratingClass}">${g.rating}</span>
+              <span class="aifit-gap-rating ${ratingClass}">${esc(g.rating)}</span>
             </div>
-            <p class="aifit-gap-tip">${g.tip}</p>
+            <p class="aifit-gap-tip">${esc(g.tip)}</p>
           </div>`;
         }).join('')}
       </div>
@@ -5994,8 +5968,8 @@ function renderAIResults(result, meta){
                 <span class="${dotClass}"></span>
                 <span class="aifit-priority-label">Priority: ${priLabel}</span>
               </div>
-              <h3 class="aifit-coaching-card-title">${s.title}</h3>
-              <p class="aifit-coaching-card-body">${s.body}</p>
+              <h3 class="aifit-coaching-card-title">${esc(s.title)}</h3>
+              <p class="aifit-coaching-card-body">${esc(s.body)}</p>
             </div>
             <div class="aifit-coaching-helps">
               ${helpsTags.map(t => `<span class="aifit-coaching-helps-tag ${t.class}">${t.label}</span>`).join('')}
@@ -6360,6 +6334,13 @@ function esc(v){
   return String(v)
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
     .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+// Task SEC — only allow http(s)/mailto in rendered hrefs; anything else (notably a
+// stored "javascript:" or "data:" URL in a user-added program or contact) collapses to
+// "#" so it can't execute when clicked. Pair with esc() for attribute-quote safety.
+function safeUrl(u){
+  const s = (u == null ? '' : String(u)).trim();
+  return /^(https?:|mailto:)/i.test(s) ? s : '#';
 }
 // Truncate to N chars on a word boundary, append ellipsis if cut.
 function trunc(v, n){
@@ -6933,7 +6914,7 @@ function renderContacts(){
     }
 
     const liLink = c.linkedin_url
-      ? `<a class="nt-li-link" href="${_esc(c.linkedin_url)}" target="_blank" rel="noopener" title="LinkedIn" onclick="event.stopPropagation()">in</a>`
+      ? `<a class="nt-li-link" href="${_esc(safeUrl(c.linkedin_url))}" target="_blank" rel="noopener" title="LinkedIn" onclick="event.stopPropagation()">in</a>`
       : '';
     // Task CD (Fix D): show the contact's email (if any) as a clickable mailto link.
     const emailLink = c.email
