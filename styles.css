@@ -302,7 +302,11 @@ input, textarea, select, button { font-family: inherit; }
 /* KANBAN — 6 columns including Rejected */
 .kanban{display:grid;grid-template-columns:repeat(7,1fr);gap:10px}
 .kcol{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:13px;min-height:220px;box-shadow:var(--shadow);transition:background .12s,border-color .12s}
-.khd{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;margin-bottom:11px;display:flex;align-items:center;justify-content:space-between}
+/* Task PERF3 — freeze each stage header at the top while its column's cards scroll
+   underneath (Excel-style frozen header). Sticks just below the 56px sticky topbar;
+   solid background + full-column width (negative margins span the .kcol 13px padding)
+   so cards never show through. */
+.khd{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;display:flex;align-items:center;justify-content:space-between;position:sticky;top:56px;z-index:5;background:var(--bg2);margin:-13px -13px 11px;padding:13px 13px 9px;border-radius:var(--radius) var(--radius) 0 0;border-bottom:1px solid var(--border)}
 .kct{font-family:var(--mono);font-size:10px;background:var(--bg3);padding:2px 6px;border-radius:8px;color:var(--text3);font-weight:400}
 .apcard{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:6px;cursor:grab;transition:all .1s;user-select:none}
 .apcard:hover{border-color:var(--border2);background:var(--bg4)}
@@ -1487,8 +1491,12 @@ input, textarea, select, button { font-family: inherit; }
   .kanban .kcol .khd {
     font-size: 13px;
     font-weight: 600;
-    margin-bottom: 10px;
-    padding-bottom: 8px;
+    /* Task PERF3 — columns stack on mobile, so don't freeze headers here */
+    position: static;
+    background: transparent;
+    margin: 0 0 10px;
+    padding: 0 0 8px;
+    border-radius: 0;
     border-bottom: 1px solid var(--border);
     display: flex;
     align-items: center;
@@ -2287,10 +2295,11 @@ input, textarea, select, button { font-family: inherit; }
   border-radius: 10px;
   padding: 24px;
 }
-/* Task PERF2 — pipeline funnel as readable per-stage labelled bars (replaces the
-   single cramped segmented bar). */
+/* Task PERF3 — pipeline funnel as a horizontal bar chart with a fixed x-axis.
+   One bar per stage, scaled against a shared axis (min 5, grows in whole steps),
+   with light vertical gridlines + numeric ticks so counts are readable at a glance. */
 .cc-funnel-bar {
-  display: flex; flex-direction: column; gap: 10px; width: 100%;
+  display: flex; flex-direction: column; gap: 9px; width: 100%;
 }
 .cc-funnel-row {
   display: grid; grid-template-columns: 120px 1fr 28px;
@@ -2302,15 +2311,29 @@ input, textarea, select, button { font-family: inherit; }
 }
 .cc-funnel-row-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
 .cc-funnel-row-track {
-  height: 14px; background: var(--bg3); border-radius: 7px; overflow: hidden;
+  position: relative; height: 18px; background: var(--bg3);
+  border-radius: 5px; overflow: hidden;
+  /* vertical gridlines, one every --grid % (set inline to match the axis ticks) */
+  background-image: repeating-linear-gradient(to right,
+    var(--border2) 0, var(--border2) 1px, transparent 1px, transparent var(--grid, 20%));
 }
 .cc-funnel-row-fill {
-  height: 100%; border-radius: 7px; transition: width .3s ease;
+  height: 100%; border-radius: 5px; transition: width .3s ease; min-width: 0;
 }
 .cc-funnel-row-count {
   font-size: 13px; font-weight: 700; color: var(--text); text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 .cc-funnel-row-count-zero { color: var(--text3); font-weight: 600; }
+/* x-axis: empty label/count cells + a tick track aligned under the bars */
+.cc-funnel-axis {
+  display: grid; grid-template-columns: 120px 1fr 28px; gap: 14px; margin-top: 4px;
+}
+.cc-funnel-axis-track { position: relative; height: 14px; }
+.cc-funnel-tick {
+  position: absolute; top: 0; transform: translateX(-50%);
+  font-size: 10px; color: var(--text3); font-variant-numeric: tabular-nums;
+}
 .cc-funnel-legend {
   display: flex; flex-wrap: wrap; gap: 14px 24px; margin-top: 16px;
 }
@@ -2384,7 +2407,8 @@ input, textarea, select, button { font-family: inherit; }
 @media (max-width: 900px) {
   .cc-stat-row { grid-template-columns: repeat(2, 1fr); }
   .cc-two-col  { grid-template-columns: 1fr; }
-  .cc-funnel-row { grid-template-columns: 96px 1fr 24px; gap: 10px; }
+  .cc-funnel-row,
+  .cc-funnel-axis { grid-template-columns: 96px 1fr 24px; gap: 10px; }
 }
 
 

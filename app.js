@@ -6462,21 +6462,31 @@ function _renderCCFunnel(){
   const totalCount = apps.length;
   if(total) total.textContent = `${totalCount} total tracked`;
 
-  // Task PERF2 — the old single segmented bar was hard to read at a glance. Render one
-  // labelled horizontal bar per stage (same visual language as "Where you're aiming"):
-  // stage name + colour dot, a proportional fill, and the count. Bars scale to the
-  // busiest stage so the pipeline shape reads top-to-bottom.
-  const max = Math.max(1, ...STAGES.map(s => counts[s.key] || 0));
-  bar.innerHTML = STAGES.map(s => {
-    const n = counts[s.key] || 0;
-    const pct = n > 0 ? Math.max(Math.round((n / max) * 100), 6) : 0;
+  // Task PERF3 — horizontal bar chart against a fixed x-axis. The axis starts at 5 and
+  // only grows (in whole steps) once a stage exceeds it, so the chart reads consistently
+  // and small pipelines don't look misleadingly "full".
+  const maxCount = Math.max(0, ...STAGES.map(s => counts[s.key] || 0));
+  const step     = Math.max(1, Math.ceil(Math.max(5, maxCount) / 5));   // aim for ~5 gridlines
+  const scaleMax = Math.max(5, Math.ceil(maxCount / step) * step);      // multiple of step, min 5
+  const gridPct  = (step / scaleMax) * 100;                             // gridline spacing
+
+  const rows = STAGES.map(s => {
+    const n   = counts[s.key] || 0;
+    const pct = (n / scaleMax) * 100;
     return `<div class="cc-funnel-row">
       <div class="cc-funnel-row-label"><span class="cc-funnel-row-dot" style="background:${s.color}"></span>${s.label}</div>
-      <div class="cc-funnel-row-track"><div class="cc-funnel-row-fill" style="width:${pct}%;background:${s.color}"></div></div>
+      <div class="cc-funnel-row-track" style="--grid:${gridPct}%"><div class="cc-funnel-row-fill" style="width:${pct}%;background:${s.color}"></div></div>
       <div class="cc-funnel-row-count${n === 0 ? ' cc-funnel-row-count-zero' : ''}">${n}</div>
     </div>`;
   }).join('');
 
+  let ticks = '';
+  for(let t = 0; t <= scaleMax; t += step){
+    ticks += `<span class="cc-funnel-tick" style="left:${(t / scaleMax) * 100}%">${t}</span>`;
+  }
+  const axis = `<div class="cc-funnel-axis"><span></span><div class="cc-funnel-axis-track">${ticks}</div><span></span></div>`;
+
+  bar.innerHTML = rows + axis;
   if(legend) legend.innerHTML = '';   // legend is now folded into the per-row labels
 }
 
