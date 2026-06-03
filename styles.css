@@ -1961,25 +1961,9 @@ input, textarea, select, button { font-family: inherit; }
 /* Summary strip shouldn't stick inside the page flow */
 .prog-scan-panel .aifit-summary-strip { position: static; margin-bottom: 16px; }
 
-/* "View full results" expand toggle — gates the tier lists / gap / coaching */
-.aifit-fullresults-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: transparent;
-  border: 1px solid var(--border2);
-  color: var(--text2);
-  font-family: var(--sans);
-  font-size: 12.5px;
-  font-weight: 600;
-  padding: 8px 16px;
-  border-radius: 999px;
-  cursor: pointer;
-  transition: all .15s;
-  margin-bottom: 18px;
-}
-.aifit-fullresults-toggle:hover { border-color: var(--accent); color: var(--accent); }
-.aifit-full-results { margin-top: 4px; }
+/* Task PERF — removed the "View full results" toggle (.aifit-fullresults-toggle
+   / .aifit-full-results): the tier lists, gap analysis and coaching now render
+   directly below the summary strip instead of behind a click. */
 
 /* Sub-view pills — shared by Networking (My Contacts / Find Alumni) and
    Programs (Browse Programs / AI Fit Scan). Same component, two hosts. */

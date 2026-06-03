@@ -544,19 +544,60 @@ function updateProgramCountInUI(){
 }
 
 async function onSignIn(){
+  // Task PERF — timing diagnostics (see [TaskPERF] logs in console).
+  const _perfStart = performance.now();
+  console.log('[TaskPERF] onSignIn started');
   hideLanding();
-  // Load profile, applications, resume — all from Supabase
+
+  // Task PERF — loadUserProfile() MUST run first and complete before anything
+  // else: updateAuthUI(), personalization, and the onboarding logic all depend
+  // on userProfile being populated.
   await loadUserProfile();
-  await loadUserApplications();
-  await loadUserContacts();
-  await loadUserResume();
+  console.log('[TaskPERF] profile loaded:', Math.round(performance.now() - _perfStart), 'ms');
   // Task 19 — userProfile is now populated; refresh topbar and the active
   // page's header (sign-in path doesn't go through showPage(), which would
-  // otherwise drive personalization).
+  // otherwise drive personalization). Done immediately, before the data batch.
   updateAuthUI();
   _refreshActivePagePersonalization();
-  // Phase 12: refresh programs from Supabase (falls back to localStorage/DP[] if it fails)
-  await fetchProgramsFromSupabase();
+
+  // Task PERF — stale-while-revalidate: paint the catalog-dependent UI from the
+  // cached programs list immediately, so the Programs page count + name
+  // autocomplete are populated before the network fetch returns. The fresh
+  // fetchProgramsFromSupabase() in the parallel batch below overwrites progs[]
+  // and the post-load renderPrograms() reflects any changes. This only
+  // front-loads the localStorage layer — it does NOT change the three-layer
+  // fallback (Supabase → localStorage → hardcoded DP[]).
+  try {
+    const _cachedProgs = localStorage.getItem('ldps_progs');
+    if(_cachedProgs){
+      const _parsed = JSON.parse(_cachedProgs);
+      if(Array.isArray(_parsed) && _parsed.length){
+        progs = _parsed;
+        updateProgramCountInUI();
+        _initProgSuggestionsDatalist();
+        console.log(`[TaskPERF] stale-while-revalidate: served ${progs.length} cached programs`);
+      }
+    }
+  } catch(e){ /* corrupt cache — ignore and let the network fetch repopulate */ }
+
+  // Task PERF — these four fetches are independent (each sets its own
+  // module-level var: apps / contacts / resumeText / progs, each with its own
+  // try/catch), so run them IN PARALLEL instead of sequentially. allSettled
+  // (not all) means one failing fetch can't block the others.
+  const _results = await Promise.allSettled([
+    loadUserApplications(),
+    loadUserContacts(),
+    loadUserResume(),
+    fetchProgramsFromSupabase(),   // Phase 12: falls back to localStorage/DP[] if it fails
+  ]);
+  console.log('[TaskPERF] all data loaded:', Math.round(performance.now() - _perfStart), 'ms');
+  // fetchProgramsFromSupabase() is index 3; it resolves true when fresh rows
+  // arrived. (It completes before any render below, so the post-load
+  // renderPrograms() already reflects the refreshed catalog — this flag is just
+  // for the diagnostics/SWR comment.)
+  const _progsRefreshed = _results[3].status === 'fulfilled' && _results[3].value === true;
+
+  // ── Post-load steps: everything below needs the data above to be present ──
   // Task 19.2.2 — Hydrate progs[].aiTier from saved scan history BEFORE
   // first renderPrograms(). Without this, the AI Fit column shows "Scan
   // résumé" placeholders on every page refresh until the user opens the
@@ -564,6 +605,9 @@ async function onSignIn(){
   // syncs the data back). Silent hydration here means the data is
   // immediately reflected in the Programs table on load.
   await hydrateAITierFromHistory();
+  // Task PERF — this is the stale-while-revalidate "revalidate" render: progs[]
+  // is now the fresh Supabase data (or the cached/DP[] fallback if the fetch
+  // failed), so the Programs table picks up any catalog changes here.
   renderPrograms();
   renderApplications();
   // Phase 2: trigger first-run onboarding if neither timestamp is set
@@ -573,6 +617,8 @@ async function onSignIn(){
   // Phase 7: render onboarding progress strip + AI Fit attention dot
   renderProgressStrip();
   updateFitTabIndicator();
+  renderFitBanner();
+  console.log('[TaskPERF] first render:', Math.round(performance.now() - _perfStart), 'ms', _progsRefreshed ? '(programs refreshed from Supabase)' : '(programs served from cache/fallback)');
   // Task 19.2.3/.4: restore last-active page from localStorage. The HTML
   // boot script in <head> already set the correct .active class so the
   // RIGHT page is visible from the first paint — this just triggers the
@@ -5655,11 +5701,10 @@ function renderAIResults(result, meta){
     </div>
   </div>`;
 
-  // Task TC — the tier summary bar above stays visible as the banner; the full
-  // results (tiers, gap analysis, coaching) collapse behind a toggle so the
-  // Programs page isn't dominated by the scan output. Default: collapsed.
-  html += `<button class="aifit-fullresults-toggle" id="aifit-fullresults-toggle" type="button" onclick="toggleAIFitFullResults()" aria-expanded="${_aifitFullResultsOpen}">${_aifitFullResultsOpen ? 'Hide full results ▴' : 'View full results ▾'}</button>`;
-  html += `<div id="aifit-full-results" class="aifit-full-results" style="display:${_aifitFullResultsOpen ? 'block' : 'none'}">`;
+  // Task PERF — the full results (tier lists, gap analysis, coaching) render
+  // directly below the summary banner. (Removed the "View full results" toggle
+  // and its display:none wrapper — results should just be visible. Individual
+  // tier sections still collapse/expand via toggleAIFitTier.)
 
   // Tier sections
   const tierConfigs = [
@@ -5805,24 +5850,7 @@ function renderAIResults(result, meta){
     </div>`;
   }
 
-  html += `</div>`;   // Task TC — close #aifit-full-results wrapper
-
   document.getElementById('aifit-results-container').innerHTML = html;
-}
-
-// Task TC — "View full results" expand toggle. Collapsed by default so only the
-// tier-summary banner shows above the Programs table; expanding reveals the
-// tier lists, gap analysis, and coaching inline. State persists across re-renders.
-let _aifitFullResultsOpen = false;
-function toggleAIFitFullResults(){
-  _aifitFullResultsOpen = !_aifitFullResultsOpen;
-  const wrap = document.getElementById('aifit-full-results');
-  const btn  = document.getElementById('aifit-fullresults-toggle');
-  if(wrap) wrap.style.display = _aifitFullResultsOpen ? 'block' : 'none';
-  if(btn){
-    btn.textContent = _aifitFullResultsOpen ? 'Hide full results ▴' : 'View full results ▾';
-    btn.setAttribute('aria-expanded', String(_aifitFullResultsOpen));
-  }
 }
 
 // Toggle tier open/closed
