@@ -3084,6 +3084,49 @@ const COUNTRY_TO_CONTINENT = {
   'Australia':'Oceania','New Zealand':'Oceania',
 };
 
+// Task PERF2 — common MBA-hub cities → country, so a user-added program whose
+// geography is typed as a city ("Barcelona") still resolves to a country + continent
+// (Spain → Europe) for the Programs geo filter and the Command Center targeting.
+const CITY_TO_COUNTRY = {
+  'Barcelona':'Spain','Madrid':'Spain','Valencia':'Spain','Seville':'Spain','Bilbao':'Spain',
+  'London':'UK','Manchester':'UK','Edinburgh':'UK',
+  'Paris':'France','Munich':'Germany','Berlin':'Germany','Frankfurt':'Germany','Hamburg':'Germany','Ludwigshafen':'Germany',
+  'Amsterdam':'Netherlands','Rotterdam':'Netherlands','Hilversum':'Netherlands','The Hague':'Netherlands',
+  'Zurich':'Switzerland','Geneva':'Switzerland','Basel':'Switzerland','Schaan':'Liechtenstein',
+  'Milan':'Italy','Rome':'Italy','Turin':'Italy','Dublin':'Ireland','Lisbon':'Portugal','Porto':'Portugal',
+  'Brussels':'Belgium','Copenhagen':'Denmark','Stockholm':'Sweden','Oslo':'Norway','Vienna':'Austria',
+  'Helsinki':'Finland','Warsaw':'Poland','Prague':'Czech Republic','Athens':'Greece','Luxembourg':'Luxembourg','Riga':'Latvia',
+  'Dubai':'UAE','Abu Dhabi':'UAE','Doha':'Qatar','Riyadh':'Saudi Arabia','Tel Aviv':'Israel','Istanbul':'Turkey',
+  'Singapore':'Singapore','Mumbai':'India','Bangalore':'India','Bengaluru':'India','Gurugram':'India','Gurgaon':'India','Delhi':'India','New Delhi':'India',
+  'Tokyo':'Japan','Shanghai':'China','Beijing':'China','Hong Kong':'Hong Kong','Seoul':'South Korea','Taipei':'Taiwan','Bangkok':'Thailand','Kuala Lumpur':'Malaysia',
+  'New York':'USA','San Francisco':'USA','Chicago':'USA','Boston':'USA','Seattle':'USA','Atlanta':'USA','Washington':'USA','Cincinnati':'USA','Dublin, OH':'USA',
+  'Toronto':'Canada','Vancouver':'Canada','Montreal':'Canada','Mexico City':'Mexico',
+  'Sao Paulo':'Brazil','São Paulo':'Brazil','Rio de Janeiro':'Brazil','Bogota':'Colombia','Bogotá':'Colombia','Buenos Aires':'Argentina','Santiago':'Chile',
+  'Sydney':'Australia','Melbourne':'Australia',
+};
+
+// Task PERF2 — turn a free-text geography string ("Barcelona, Europe", "EU / UAE",
+// "Spain") into structured { continents[], countries[] }, reusing the same canonical
+// names the catalog uses. Used to make user-added programs obey the geo filter and to
+// keep the Command Center targeting clean (continent + country, never a bare city).
+function _deriveGeo(text){
+  const continents = new Set(), countries = new Set();
+  if(!text) return { continents:[], countries:[] };
+  const codeMap = { europe:'Europe', eu:'Europe', us:'North America', usa:'North America', america:'North America', uae:'Middle East', gulf:'Middle East', global:'Global', worldwide:'Global', asia:'Asia', latam:'South America' };
+  String(text).split(/[·,/;|]+|\s&\s|\band\b/i).map(s => s.trim()).filter(Boolean).forEach(tok => {
+    const t = tok.replace(/\./g,'').trim();
+    const low = t.toLowerCase();
+    const cont = CONTINENT_ORDER.find(c => c.toLowerCase() === low);
+    if(cont){ continents.add(cont); return; }
+    if(codeMap[low]){ continents.add(codeMap[low]); return; }
+    const country = Object.keys(COUNTRY_TO_CONTINENT).find(cn => cn.toLowerCase() === low);
+    if(country){ countries.add(country); continents.add(COUNTRY_TO_CONTINENT[country]); return; }
+    const city = Object.keys(CITY_TO_COUNTRY).find(ci => ci.toLowerCase() === low);
+    if(city){ const cn = CITY_TO_COUNTRY[city]; countries.add(cn); if(COUNTRY_TO_CONTINENT[cn]) continents.add(COUNTRY_TO_CONTINENT[cn]); return; }
+  });
+  return { continents:[...continents], countries:[...countries] };
+}
+
 // Does a program belong under a given continent pill? A program matches its own
 // continents, and "Global" programs surface under EVERY continent (available globally).
 function _continentMatch(p, continent){
@@ -3359,31 +3402,53 @@ function _userAddedRows(){
       (p.name||'').toLowerCase().trim() === (a.name||'').toLowerCase().trim() &&
       (p.org ||'').toLowerCase().trim() === (a.org ||'').toLowerCase().trim()
     ))
-    .map(a => ({
-      id: 'ua-' + a.id,     // synthetic, namespaced — never collides with catalog ids
-      _userAdded: true,
-      _appId: a.id,
-      name: a.name, org: a.org || '', geo: a.geo || '', loc: a.geo || '',
-      fn: a.fn || '', sector: a.sector || '', url: a.url || '',
-      visa: a.visa === true,   // Task 27B.2: user-set visa flag — feeds _visaOnly filter
-      status: a.status || 'shortlisted',
-      deadline: a.deadline || '',
-      // fields the catalog filter/sort touch — kept present & inert so neither throws
-      // NOTE: visa is set above from a.visa — do NOT repeat it here (duplicate key = last wins)
-      dlnote: '', tags: [], fit: 0, last_verified_at: null, notes: a.notes || '',
-      aiTier: null
-    }));
+    .map(a => {
+      // Task PERF2 — derive structured continents/countries from the free-text geo
+      // so user-added programs obey the Programs geography filter (Europe / Spain / …).
+      const _g = _deriveGeo(a.geo);
+      return {
+        id: 'ua-' + a.id,     // synthetic, namespaced — never collides with catalog ids
+        _userAdded: true,
+        _appId: a.id,
+        name: a.name, org: a.org || '', geo: a.geo || '', loc: a.geo || '',
+        fn: a.fn || '', sector: a.sector || '', url: a.url || '',
+        continents: _g.continents, countries: _g.countries,   // Task PERF2 — feed _geoPass()
+        visa: a.visa === true,   // Task 27B.2: user-set visa flag — feeds _visaOnly filter
+        status: a.status || 'shortlisted',
+        deadline: a.deadline || '',
+        // fields the catalog filter/sort touch — kept present & inert so neither throws
+        // NOTE: visa is set above from a.visa — do NOT repeat it here (duplicate key = last wins)
+        dlnote: '', tags: [], fit: 0, last_verified_at: null, notes: a.notes || '',
+        aiTier: null
+      };
+    });
+}
+
+// Task PERF2 — togglable stage dropdown for a user-added program. Reuses the same
+// stage-dd component + panel as catalog rows; the synthetic 'ua-<appId>' id is routed
+// to the underlying application in toggleStageDropdown()/setProgramStage().
+function _userAddedStageDropdown(p){
+  const meta = STAGE_BY_KEY[p.status] || { label: p.status || '—', color: 'var(--text3)' };
+  return `<button class="stage-dd stage-dd-active" type="button"
+    onclick="toggleStageDropdown(event, '${p.id}')"
+    title="Change stage or remove from pipeline"
+    data-prog-id="${p.id}">
+    <span class="stage-dd-dot" style="background:${meta.color}"></span>
+    <span class="stage-dd-lbl">${esc(meta.label)}</span>
+    <span class="stage-dd-caret">▾</span>
+  </button>`;
 }
 
 // Desktop table row for a user-added program. Mirrors the 9-column .prow grid so it
-// aligns with catalog rows, but: "★ Added by you" badge, "Not scored" fit, static
-// stage badge (no dropdown), reminder only if a deadline exists.
+// aligns with catalog rows, but: "★ Added by you" badge, "Not scored" fit, a togglable
+// stage dropdown, reminder only if a deadline exists.
 function _userAddedRowHTML(p){
   const dl = p.deadline ? new Date(p.deadline).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '—';
-  const stageLbl = (STAGE_BY_KEY[p.status]?.label) || p.status || '—';
-  const nameHtml = p.url
-    ? `<a href="${esc(p.url)}" target="_blank" rel="noopener noreferrer" class="pname">${esc(p.name)}</a>`
-    : `<div class="pname">${esc(p.name)}</div>`;
+  // Task PERF2 — match the catalog row's name-link style (dark text + subtle underline,
+  // accent on hover) instead of the default blue browser link.
+  const nameHtml = `<div class="pname">${p.url
+    ? `<a href="${esc(p.url)}" target="_blank" rel="noopener noreferrer" style="color:var(--text);text-decoration:none;border-bottom:1px solid var(--border2);padding-bottom:1px" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--text)'">${esc(p.name)}</a>`
+    : esc(p.name)}</div>`;
   return `<div class="prow">
     <div>
       ${nameHtml}
@@ -3396,7 +3461,7 @@ function _userAddedRowHTML(p){
     <div class="cell mono" style="font-size:10px;line-height:1.5">${dl}</div>
     <div><span class="badge b-closed">—</span></div>
     <div><span style="font-size:10px;color:var(--text3)" title="User-added programs aren't résumé-scored">Not scored</span></div>
-    <div><span class="badge b-watch">${esc(stageLbl)}</span></div>
+    <div>${_userAddedStageDropdown(p)}</div>
     <div>
       ${p.deadline ? `<button class="ics-btn" onclick="openICSModalForProgram('${p.id}')">📅 Set</button>` : `<span style="font-size:10px;color:var(--text3)">—</span>`}
     </div>
@@ -3414,7 +3479,7 @@ function _userAddedCardHTML(p){
       <div class="pmc-head">
         <div class="pmc-logo">${esc(_initials(p.org))}</div>
         <div class="pmc-title-wrap">
-          <div class="pmc-title">${p.url ? `<a href="${esc(p.url)}" target="_blank" rel="noopener noreferrer">${esc(p.name)}</a>` : esc(p.name)}</div>
+          <div class="pmc-title">${p.url ? `<a href="${esc(p.url)}" target="_blank" rel="noopener noreferrer" style="color:var(--text);text-decoration:none;border-bottom:1px solid var(--border2)">${esc(p.name)}</a>` : esc(p.name)}</div>
           <div class="pmc-org">${esc(p.org||'')}</div>
         </div>
       </div>
@@ -3427,7 +3492,7 @@ function _userAddedCardHTML(p){
         ${p.visa ? '<span class="pmc-chip pmc-visa">✓ Visa</span>' : ''}
       </div>
       <div class="pmc-actions">
-        <div class="pmc-stage-wrap"><span class="badge b-watch">${esc(stageLbl)}</span></div>
+        <div class="pmc-stage-wrap">${_userAddedStageDropdown(p)}</div>
         ${reminderBtn}
         <button class="row-edit-btn" onclick="openEditModalForProgram('${p.id}')" title="Edit this program" style="opacity:0.5;font-size:13px">✏️</button>
       </div>
@@ -4071,6 +4136,8 @@ async function addProgramToApplications(progId, stage){
     name: p.name,
     org: p.org,
     geo: geoLabel,
+    fn: p.fn || '',          // Task PERF2 — carry function/sector so the Command Center
+    sector: p.sector || '',  // "Where you're aiming" tally counts catalog-added programs too
     status: stage,
     date: new Date().toISOString().split('T')[0],
     deadline: p.deadline || '',
@@ -4146,25 +4213,36 @@ function toggleStageDropdown(evt, progId){
   // Close any other open panel first.
   if(existing) existing.remove();
 
-  const p = progs.find(x => x.id === progId);
-  if(!p) return;
-  const inPipe = !!_findAppForProgram(p);
+  // Task PERF2 — resolve both catalog (numeric id) and user-added ('ua-<appId>') rows.
+  const _ua = (typeof progId === 'string' && progId.startsWith('ua-'));
+  let curStatus = null, inPipe = false;
+  if(_ua){
+    const app = apps.find(a => String(a.id) === progId.slice(3));
+    if(!app) return;
+    curStatus = app.status; inPipe = true;   // user-added rows are always in the pipeline
+  } else {
+    const p = progs.find(x => x.id === progId);
+    if(!p) return;
+    const ex = _findAppForProgram(p);
+    curStatus = ex ? ex.status : null; inPipe = !!ex;
+  }
+  const _idArg = _ua ? `'${progId}'` : progId;   // quote synthetic ids inside the inline onclick
 
   const panel = document.createElement('div');
   panel.id = 'stage-dd-panel';
   panel.className = 'stage-dd-panel';
   panel.dataset.progId = String(progId);
   panel.innerHTML = STAGES.map(s => {
-    const isCurrent = inPipe && _findAppForProgram(p)?.status === s.key;
+    const isCurrent = curStatus === s.key;
     return `<div class="stage-dd-opt ${isCurrent ? 'is-current' : ''}"
-      onclick="setProgramStage(${progId}, '${s.key}')">
+      onclick="setProgramStage(${_idArg}, '${s.key}')">
       <span class="stage-dd-dot" style="background:${s.color}"></span>
       <span>${s.label}</span>
       ${isCurrent ? '<span class="stage-dd-check">✓</span>' : ''}
     </div>`;
   }).join('') + (inPipe ? `
     <div class="stage-dd-sep"></div>
-    <div class="stage-dd-opt stage-dd-remove" onclick="setProgramStage(${progId}, '__remove')">
+    <div class="stage-dd-opt stage-dd-remove" onclick="setProgramStage(${_idArg}, '__remove')">
       <span class="stage-dd-dot stage-dd-x">×</span>
       <span>Remove from pipeline</span>
     </div>` : '');
@@ -4207,6 +4285,36 @@ window.addEventListener('resize', _closeAllStageDropdowns);
 //   no existingApp                          → insert (reuses addProgramToApplications)
 async function setProgramStage(progId, newStage){
   _closeAllStageDropdowns();
+
+  // Task PERF2 — user-added row ('ua-<appId>'): operate directly on its application,
+  // which always exists (no "add" branch needed).
+  if(typeof progId === 'string' && progId.startsWith('ua-')){
+    const app = apps.find(a => String(a.id) === progId.slice(3));
+    if(!app) return;
+    const who = app.org || app.name;
+    if(newStage === '__remove'){
+      if(!confirm(`Remove "${who}" from your pipeline?`)) return;
+      const ok = await deleteApplicationFromDB(app.id);
+      if(!ok) return;
+      apps = apps.filter(a => a.id !== app.id);
+      renderApplications();
+      renderProgressStrip();
+      renderPrograms();
+      if(typeof renderContacts === 'function') renderContacts();
+      toast(`Removed ${who} from your pipeline`);
+      return;
+    }
+    if(app.status === newStage) return;   // no-op
+    app.status = newStage;
+    const saved = await saveApplicationToDB(app);
+    if(!saved){ toast('Could not update stage — please try again'); return; }
+    renderApplications();
+    renderProgressStrip();
+    renderPrograms();
+    toast(`Stage updated to ${STAGE_BY_KEY[newStage]?.label || newStage}`);
+    return;
+  }
+
   const p = progs.find(x => x.id === progId);
   if(!p) return;
   const existing = _findAppForProgram(p);
@@ -6346,7 +6454,7 @@ function _renderCCFunnel(){
   const bar    = document.getElementById('cc-funnel-bar');
   const legend = document.getElementById('cc-funnel-legend');
   const total  = document.getElementById('cc-funnel-total');
-  if(!bar || !legend) return;
+  if(!bar) return;
 
   const counts = {};
   STAGES.forEach(s => { counts[s.key] = 0; });
@@ -6354,20 +6462,22 @@ function _renderCCFunnel(){
   const totalCount = apps.length;
   if(total) total.textContent = `${totalCount} total tracked`;
 
+  // Task PERF2 — the old single segmented bar was hard to read at a glance. Render one
+  // labelled horizontal bar per stage (same visual language as "Where you're aiming"):
+  // stage name + colour dot, a proportional fill, and the count. Bars scale to the
+  // busiest stage so the pipeline shape reads top-to-bottom.
+  const max = Math.max(1, ...STAGES.map(s => counts[s.key] || 0));
   bar.innerHTML = STAGES.map(s => {
     const n = counts[s.key] || 0;
-    const flex = Math.max(0.3, n);
-    const txt  = n > 0 ? n : '';
-    return `<div class="cc-funnel-seg" style="flex:${flex};background:${s.color}" title="${s.label}: ${n}">${txt}</div>`;
+    const pct = n > 0 ? Math.max(Math.round((n / max) * 100), 6) : 0;
+    return `<div class="cc-funnel-row">
+      <div class="cc-funnel-row-label"><span class="cc-funnel-row-dot" style="background:${s.color}"></span>${s.label}</div>
+      <div class="cc-funnel-row-track"><div class="cc-funnel-row-fill" style="width:${pct}%;background:${s.color}"></div></div>
+      <div class="cc-funnel-row-count${n === 0 ? ' cc-funnel-row-count-zero' : ''}">${n}</div>
+    </div>`;
   }).join('');
 
-  legend.innerHTML = STAGES.map(s =>
-    `<span class="cc-legend-item">
-      <span class="cc-legend-dot" style="background:${s.color}"></span>
-      ${s.label}
-      <span class="cc-legend-count">${counts[s.key]}</span>
-    </span>`
-  ).join('');
+  if(legend) legend.innerHTML = '';   // legend is now folded into the per-row labels
 }
 
 function _renderCCDeadlines(){
@@ -6442,19 +6552,57 @@ function _renderCCNextSteps(){
   }).join('');
 }
 
-// Tally a free-text field across the pipeline. Splits on common separators
-// (· , / ;) so messy values like "EU · UAE · India" become 3 entries.
+// Task PERF2 — resolve the geography labels for one application as clean continent +
+// country names (never a bare city). Catalog-linked apps borrow the program's
+// structured continents (plus a short country list); user-added apps derive from the
+// free-text geo. Falls back to the raw value so nothing silently vanishes.
+function _appGeoLabels(a){
+  if(a.program_id){
+    const pr = progs.find(p => p.id === a.program_id);
+    if(pr){
+      const cont = Array.isArray(pr.continents) ? pr.continents : [];
+      const cn   = Array.isArray(pr.countries)  ? pr.countries  : [];
+      const out  = [...cont, ...(cn.length && cn.length <= 3 ? cn : [])];
+      if(out.length) return [...new Set(out)];
+    }
+  }
+  const g = _deriveGeo(a.geo);
+  const out = [...g.continents, ...g.countries];
+  if(out.length) return [...new Set(out)];
+  return (a.geo||'').split(/[·,/;|]+/).map(s => s.trim()).filter(Boolean);
+}
+
+// Tally a field across the pipeline for the "Where you're aiming" panel. Geography is
+// resolved to continent + country (see _appGeoLabels); sector/function fall back to the
+// linked catalog program when the app row carries no value of its own. Counts are
+// grouped case-insensitively ("Tech" and "tech" merge) and each program counts at most
+// once per label.
 function _ccTally(field){
-  const counts = {};
+  const counts = {};   // key: lowercased label → { label, n }
   apps.forEach(a => {
     if(a.status === 'rejected') return;
-    const raw = (a[field]||'').trim();
-    if(!raw) return;
-    raw.split(/[·,/;]+/).map(s=>s.trim()).filter(Boolean).forEach(v => {
-      counts[v] = (counts[v]||0) + 1;
+    let vals;
+    if(field === 'geo'){
+      vals = _appGeoLabels(a);
+    } else {
+      let raw = (a[field]||'').trim();
+      if(!raw && a.program_id){
+        const pr = progs.find(p => p.id === a.program_id);
+        if(pr) raw = (pr[field]||'').trim();
+      }
+      if(!raw) return;
+      vals = raw.split(/[·,/;]+/).map(s => s.trim()).filter(Boolean).map(cap);
+    }
+    const seen = new Set();
+    vals.map(v => (v||'').trim()).filter(Boolean).forEach(label => {
+      const key = label.toLowerCase();
+      if(seen.has(key)) return;   // dedupe within a single application
+      seen.add(key);
+      if(!counts[key]) counts[key] = { label, n: 0 };
+      counts[key].n++;
     });
   });
-  return Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+  return Object.entries(counts).map(([, v]) => [v.label, v.n]).sort((a, b) => b[1] - a[1]);
 }
 
 function _renderCCTargeting(){
