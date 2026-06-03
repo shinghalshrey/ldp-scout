@@ -61,7 +61,7 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,300;1,9..144,400&family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,300;1,9..144,400&family=DM+Mono:wght@400;500&family=Source+Sans+3:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <!-- pdf.js + mammoth are lazy-loaded via ensureResumeParsers() in app.js
      when the user actually uploads a résumé. Keeping them out of <head>
@@ -590,35 +590,26 @@
     <!-- Section A: Pipeline stat cards -->
     <div class="cc-stat-row" id="cc-stat-row"></div>
 
-    <!-- Section B: Pipeline funnel -->
-    <section class="cc-section">
-      <div class="cc-section-head">
-        <h2 class="cc-section-title">Pipeline funnel</h2>
-        <span class="cc-section-meta" id="cc-funnel-total"></span>
-      </div>
-      <div class="cc-funnel-wrap">
-        <div class="cc-funnel-bar" id="cc-funnel-bar" role="img" aria-label="Pipeline funnel"></div>
-        <div class="cc-funnel-legend" id="cc-funnel-legend"></div>
-      </div>
-    </section>
-
-    <!-- Sections C + D: Two columns -->
+    <!-- Section B: Pipeline funnel (left) + Upcoming deadlines (right), equal halves -->
     <div class="cc-two-col cc-section">
-      <!-- C: Upcoming deadlines -->
+      <!-- Pipeline funnel -->
+      <div>
+        <div class="cc-section-head">
+          <h2 class="cc-section-title">Pipeline funnel</h2>
+          <span class="cc-section-meta" id="cc-funnel-total"></span>
+        </div>
+        <div class="cc-funnel-wrap">
+          <div class="cc-funnel-bar" id="cc-funnel-bar" role="img" aria-label="Pipeline funnel"></div>
+          <div class="cc-funnel-legend" id="cc-funnel-legend"></div>
+        </div>
+      </div>
+      <!-- Upcoming deadlines -->
       <div>
         <div class="cc-section-head">
           <h2 class="cc-section-title">Upcoming deadlines · 30 days</h2>
           <a class="cc-section-link" onclick="openProgramsDeadlines()" href="#">See all →</a>
         </div>
         <div class="cc-list-card" id="cc-deadlines-list"></div>
-      </div>
-      <!-- D: Next steps -->
-      <div>
-        <div class="cc-section-head">
-          <h2 class="cc-section-title">Next steps · action items</h2>
-          <a class="cc-section-link" onclick="showPage('applications')" href="#">See all →</a>
-        </div>
-        <div class="cc-list-card" id="cc-nextsteps-list"></div>
       </div>
     </div>
 

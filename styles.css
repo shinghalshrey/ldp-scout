@@ -9,7 +9,7 @@
   --teal:#0d6b6b;--teal-bg:#e0f4f4;
   --purple:#5a3a9a;--purple-bg:#eeebf8;
   --red:#c0392b;--gold:#c8971a;
-  --mono:'DM Mono',monospace;--serif:'Fraunces',serif;--sans:'Outfit',sans-serif;
+  --mono:'DM Mono',monospace;--serif:'Fraunces',serif;--sans:'Source Sans 3','Source Sans Pro',sans-serif;
   --radius:12px;--shadow:0 2px 12px rgba(0,0,0,0.06);--shadow-md:0 4px 24px rgba(0,0,0,0.09);
 }
 *{box-sizing:border-box;margin:0;padding:0}
@@ -464,9 +464,14 @@ input, textarea, select, button { font-family: inherit; }
 .aifit-program-card-right{display:flex;align-items:center;gap:12px;margin-left:auto}
 .aifit-program-tags{display:flex;gap:4px;flex-wrap:wrap}
 .aifit-program-tag{font-size:10px;font-weight:500;padding:4px 8px;border-radius:4px;background:var(--bg3);color:var(--text2)}
-.aifit-program-save-btn{font-size:12px;font-weight:500;background:var(--text);color:var(--bg2);padding:6px 12px;border-radius:6px;border:none;cursor:pointer;transition:all .15s;opacity:0;white-space:nowrap}
-.aifit-program-card:hover .aifit-program-save-btn{opacity:1}
+.aifit-program-save-btn{font-size:12px;font-weight:600;background:var(--text);color:var(--bg2);padding:6px 12px;border-radius:6px;border:none;cursor:pointer;transition:all .15s;opacity:1;white-space:nowrap}
 .aifit-program-save-btn:hover{transform:scale(1.05)}
+/* Task PERF4 — shortlisted / in-pipeline state + hover "✕ Remove" affordance */
+.aifit-program-save-btn.is-saved,.aifit-program-save-btn.is-inpipe{background:var(--accent);color:#fff}
+.aifit-program-save-btn .sl-hover{display:none}
+.aifit-program-save-btn.is-saved:hover .sl-default,.aifit-program-save-btn.is-inpipe:hover .sl-default{display:none}
+.aifit-program-save-btn.is-saved:hover .sl-hover,.aifit-program-save-btn.is-inpipe:hover .sl-hover{display:inline}
+.aifit-program-save-btn.is-saved:hover,.aifit-program-save-btn.is-inpipe:hover{background:#b91c1c}
 .aifit-gap-panel{background:linear-gradient(135deg,#1d6a45 0%,#0f4530 60%,#0a2e1f 100%);border-radius:16px;padding:32px;color:#fff;margin-bottom:40px}
 .aifit-gap-header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:24px}
 .aifit-gap-title{font-family:var(--serif);font-style:italic;font-size:24px;font-weight:400}
@@ -2605,11 +2610,14 @@ input, textarea, select, button { font-family: inherit; }
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .cc-target-bar-track {
-  flex: 1; height: 8px; background: var(--bg3);
-  border-radius: 20px; overflow: hidden;
+  flex: 1; height: 9px; background: var(--bg3);
+  border-radius: 5px; overflow: hidden;
+  /* Task PERF4 — vertical gridlines every --grid % (matches the axis ticks) */
+  background-image: repeating-linear-gradient(to right,
+    var(--border2) 0, var(--border2) 1px, transparent 1px, transparent var(--grid, 20%));
 }
 .cc-target-bar {
-  height: 100%; background: var(--accent); border-radius: 20px;
+  height: 100%; background: var(--accent); border-radius: 5px;
   transition: width .3s ease;
 }
 .cc-target-count {
@@ -2618,6 +2626,15 @@ input, textarea, select, button { font-family: inherit; }
   font-variant-numeric: tabular-nums;
 }
 .cc-target-empty { font-size: 12px; color: var(--text3); }
+/* Task PERF4 — x-axis under the target bars (aligned to the bar track) */
+.cc-target-axis { display: flex; align-items: center; gap: 10px; margin-top: 11px; }
+.cc-target-axis-spacer  { width: 88px; flex-shrink: 0; }
+.cc-target-axis-rspacer { width: 20px; flex-shrink: 0; }
+.cc-target-axis-track { position: relative; flex: 1; height: 12px; }
+.cc-target-tick {
+  position: absolute; top: 0; transform: translateX(-50%);
+  font-size: 9px; color: var(--text3); font-variant-numeric: tabular-nums;
+}
 
 /* Networking snapshot line */
 .cc-net-snapshot {

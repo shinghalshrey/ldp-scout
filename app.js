@@ -5738,8 +5738,56 @@ function syncAIResultsToPrograms(result){
 // can render either a fresh scan (no meta → uses today's date, default state)
 // or a cached scan loaded from user_scan_history (meta carries scan_date,
 // scans_used, resume_changed). The render path is identical otherwise.
+// Task PERF4 — the AI Fit "Shortlist" button is now always visible and reflects state:
+//   not in pipeline      → "+ Shortlist"  (adds at the Shortlisted stage)
+//   in pipeline @ shortlisted → "✓ Shortlisted" (hover → "✕ Remove" — un-shortlist)
+//   in pipeline @ other stage → "✓ <Stage>"     (hover → "✕ Remove")
+function _aifitShortlistBtn(p){
+  const ex = _findAppForProgram(p);
+  if(!ex){
+    return `<button class="aifit-program-save-btn" onclick="toggleShortlist(${p.id})">+ Shortlist</button>`;
+  }
+  if(ex.status === 'shortlisted'){
+    return `<button class="aifit-program-save-btn is-saved" onclick="toggleShortlist(${p.id})" title="Remove from shortlist"><span class="sl-default">✓ Shortlisted</span><span class="sl-hover">✕ Remove</span></button>`;
+  }
+  const lbl = STAGE_BY_KEY[ex.status]?.label || ex.status;
+  return `<button class="aifit-program-save-btn is-inpipe" onclick="toggleShortlist(${p.id})" title="In your pipeline — click to remove"><span class="sl-default">✓ ${esc(lbl)}</span><span class="sl-hover">✕ Remove</span></button>`;
+}
+
+// Add to / remove from the shortlist directly from the AI Fit results, then re-render
+// the results so the button flips. Removing a program already at a later stage asks first.
+async function toggleShortlist(progId){
+  const p = progs.find(x => x.id === progId);
+  if(!p) return;
+  const ex = _findAppForProgram(p);
+  if(ex){
+    if(ex.status !== 'shortlisted'){
+      if(!confirm(`"${p.org}" is in your pipeline at ${STAGE_BY_KEY[ex.status]?.label || ex.status}. Remove it?`)) return;
+    }
+    const ok = await deleteApplicationFromDB(ex.id);
+    if(!ok) return;
+    apps = apps.filter(a => a.id !== ex.id);
+    renderApplications();
+    renderProgressStrip();
+    renderPrograms();
+    if(typeof renderContacts === 'function') renderContacts();
+    toast(`Removed ${p.org} from your shortlist`);
+  } else {
+    await addProgramToApplications(progId, 'shortlisted');   // handles DB save + renders + toast
+  }
+  _rerenderAIResults();
+}
+
+// Re-render the AI Fit results from the last scan in memory (used after a shortlist toggle
+// so the button state refreshes without a re-scan).
+let _lastAIResult = null, _lastAIMeta = null;
+function _rerenderAIResults(){
+  if(_lastAIResult) renderAIResults(_lastAIResult, _lastAIMeta || {});
+}
+
 function renderAIResults(result, meta){
   meta = meta || {};
+  _lastAIResult = result; _lastAIMeta = meta;   // Task PERF4 — cache for _rerenderAIResults()
   // Sync results to programs table (for Fit column)
   syncAIResultsToPrograms(result);
 
@@ -5874,7 +5922,7 @@ function renderAIResults(result, meta){
               <div class="aifit-program-tags">
                 ${tags.map(t => `<span class="aifit-program-tag">${t}</span>`).join('')}
               </div>
-              <button class="aifit-program-save-btn" onclick="addProgramToApplications(${p.id}, 'shortlisted')">+ Shortlist</button>
+              ${_aifitShortlistBtn(p)}
             </div>
           </div>`;
         }).join('')}
@@ -6415,7 +6463,9 @@ function renderCommandCenter(){
   _renderCCStats();
   _renderCCFunnel();
   _renderCCDeadlines();
-  _renderCCNextSteps();
+  // Task PERF4 — "Next steps · action items" section removed from the Command Center
+  // (redundant with Upcoming deadlines; the page is now a two-column funnel + deadlines
+  // row). _renderCCNextSteps() is intentionally no longer called.
   _renderCCTargeting();
   _renderCCNetSnapshot();
 }
@@ -6633,20 +6683,30 @@ function _renderCCTargeting(){
         <div class="cc-target-empty">Not set on your pipeline yet.</div>
       </div>`;
     }
-    const max = tally[0][1];
+    // Task PERF4 — bar chart against a fixed x-axis: starts at 5 and grows in
+    // increments of 5 as a city/sector/function fills up, with gridlines + ticks.
+    const max      = tally[0][1];
+    const scaleMax = Math.max(5, Math.ceil(max / 5) * 5);
+    const step     = scaleMax / 5;                  // 5 even intervals
+    const gridPct  = (step / scaleMax) * 100;       // gridline spacing (=20%)
     const rows = tally.slice(0,6).map(([name,n]) => {
-      const pct = Math.round((n/max)*100);
+      const pct = (n / scaleMax) * 100;
       return `<div class="cc-target-row">
         <div class="cc-target-label" title="${_esc(name)}">${_esc(name)}</div>
-        <div class="cc-target-bar-track">
+        <div class="cc-target-bar-track" style="--grid:${gridPct}%">
           <div class="cc-target-bar" style="width:${pct}%"></div>
         </div>
         <div class="cc-target-count">${n}</div>
       </div>`;
     }).join('');
+    let ticks = '';
+    for(let t = 0; t <= scaleMax; t += step){
+      ticks += `<span class="cc-target-tick" style="left:${(t/scaleMax)*100}%">${t}</span>`;
+    }
     return `<div class="cc-target-col">
       <div class="cc-target-head">${dim.label}</div>
       ${rows}
+      <div class="cc-target-axis"><span class="cc-target-axis-spacer"></span><div class="cc-target-axis-track">${ticks}</div><span class="cc-target-axis-rspacer"></span></div>
     </div>`;
   }).join('');
 }
