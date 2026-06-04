@@ -3447,13 +3447,14 @@ function _userAddedRowHTML(p){
   // Task PERF2 — match the catalog row's name-link style (dark text + subtle underline,
   // accent on hover) instead of the default blue browser link.
   const nameHtml = `<div class="pname">${p.url
-    ? `<a href="${esc(safeUrl(p.url))}" target="_blank" rel="noopener noreferrer" style="color:var(--text);text-decoration:none;border-bottom:1px solid var(--border2);padding-bottom:1px" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--text)'">${esc(p.name)}</a>`
+    ? `<a href="${esc(safeUrl(p.url))}" target="_blank" rel="noopener noreferrer" style="color:var(--text);text-decoration:none;border-bottom:1px solid var(--border2);padding-bottom:1px" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--text)'" onclick="event.stopPropagation()">${esc(p.name)}</a>`
     : esc(p.name)}</div>`;
-  return `<div class="prow">
+  // Task PROG_SNAP — user-added rows open the snapshot too (synthetic 'ua-<appId>' id).
+  return `<div class="prow" onclick="openProgramSnapshot('${p.id}')" style="cursor:pointer">
     <div>
       ${nameHtml}
       <div class="porg">${esc(p.org)}</div>
-      <div class="tags"><span class="tag" style="background:var(--accent-bg);color:var(--accent);font-weight:600">★ Added by you</span>${p.visa?` <span style="font-size:10px;color:var(--teal);font-weight:600;margin-left:4px">✓ Visa</span>`:''}<button class="row-edit-btn" onclick="openEditModalForProgram('${p.id}')" title="Edit this program">✏️</button></div>
+      <div class="tags"><span class="tag" style="background:var(--accent-bg);color:var(--accent);font-weight:600">★ Added by you</span>${p.visa?` <span style="font-size:10px;color:var(--teal);font-weight:600;margin-left:4px">✓ Visa</span>`:''}<button class="row-edit-btn" onclick="event.stopPropagation();openEditModalForProgram('${p.id}')" title="Edit this program">✏️</button></div>
     </div>
     <div class="cell">${p.fn ? esc(cap(p.fn)) : '—'}</div>
     <div class="cell">${p.sector ? esc(cap(p.sector)) : '—'}</div>
@@ -3463,7 +3464,7 @@ function _userAddedRowHTML(p){
     <div><span style="font-size:10px;color:var(--text3)" title="User-added programs aren't résumé-scored">Not scored</span></div>
     <div>${_userAddedStageDropdown(p)}</div>
     <div>
-      ${p.deadline ? `<button class="ics-btn" onclick="openICSModalForProgram('${p.id}')">📅 Set</button>` : `<span style="font-size:10px;color:var(--text3)">—</span>`}
+      ${p.deadline ? `<button class="ics-btn" onclick="event.stopPropagation();openICSModalForProgram('${p.id}')">📅 Set</button>` : `<span style="font-size:10px;color:var(--text3)">—</span>`}
     </div>
   </div>`;
 }
@@ -3472,14 +3473,14 @@ function _userAddedRowHTML(p){
 function _userAddedCardHTML(p){
   const stageLbl = (STAGE_BY_KEY[p.status]?.label) || p.status || '—';
   const reminderBtn = p.deadline
-    ? `<button class="pmc-cal" type="button" title="Add deadline reminder to calendar" onclick="openICSModalForProgram('${p.id}')">📅</button>`
+    ? `<button class="pmc-cal" type="button" title="Add deadline reminder to calendar" onclick="event.stopPropagation();openICSModalForProgram('${p.id}')">📅</button>`
     : '';
   return `
-    <div class="pmc-card" data-pid="${p.id}">
+    <div class="pmc-card" data-pid="${p.id}" onclick="openProgramSnapshot('${p.id}')" style="cursor:pointer">
       <div class="pmc-head">
         <div class="pmc-logo">${esc(_initials(p.org))}</div>
         <div class="pmc-title-wrap">
-          <div class="pmc-title">${p.url ? `<a href="${esc(safeUrl(p.url))}" target="_blank" rel="noopener noreferrer" style="color:var(--text);text-decoration:none;border-bottom:1px solid var(--border2)">${esc(p.name)}</a>` : esc(p.name)}</div>
+          <div class="pmc-title">${p.url ? `<a href="${esc(safeUrl(p.url))}" target="_blank" rel="noopener noreferrer" style="color:var(--text);text-decoration:none;border-bottom:1px solid var(--border2)" onclick="event.stopPropagation()">${esc(p.name)}</a>` : esc(p.name)}</div>
           <div class="pmc-org">${esc(p.org||'')}</div>
         </div>
       </div>
@@ -3494,7 +3495,7 @@ function _userAddedCardHTML(p){
       <div class="pmc-actions">
         <div class="pmc-stage-wrap">${_userAddedStageDropdown(p)}</div>
         ${reminderBtn}
-        <button class="row-edit-btn" onclick="openEditModalForProgram('${p.id}')" title="Edit this program" style="opacity:0.5;font-size:13px">✏️</button>
+        <button class="row-edit-btn" onclick="event.stopPropagation();openEditModalForProgram('${p.id}')" title="Edit this program" style="opacity:0.5;font-size:13px">✏️</button>
       </div>
     </div>`;
 }
@@ -3658,11 +3659,14 @@ function renderPrograms(){
       // Task 19.2.2 — "+ Details" disclosure also removed. The program-name
       // link IS the primary action; users wanting the source page click the
       // name. If p.url is missing the name renders as plain text (no link).
-      return `<div class="prow">
+      // Task PROG_SNAP — whole row opens the program snapshot modal. Interactive
+      // children (name link, edit button, scan CTA, stage dropdown, 📅 reminder)
+      // stop propagation so they keep their own behavior and don't also open it.
+      return `<div class="prow" onclick="openProgramSnapshot(${p.id})" style="cursor:pointer">
         <div>
-          <div class="pname">${p.url?`<a href="${esc(safeUrl(p.url))}" target="_blank" rel="noopener noreferrer" style="color:var(--text);text-decoration:none;border-bottom:1px solid var(--border2);padding-bottom:1px" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--text)'">${esc(p.name)}</a>`:esc(p.name)}</div>
+          <div class="pname">${p.url?`<a href="${esc(safeUrl(p.url))}" target="_blank" rel="noopener noreferrer" style="color:var(--text);text-decoration:none;border-bottom:1px solid var(--border2);padding-bottom:1px" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--text)'" onclick="event.stopPropagation()">${esc(p.name)}</a>`:esc(p.name)}</div>
           <div class="porg">${esc(p.org)}${p.visa?` <span style="font-size:10px;color:var(--teal);font-weight:600;margin-left:4px">✓ Visa</span>`:''}</div>
-          <div class="tags">${(p.tags||[]).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}${verifiedBadge(p)}<button class="row-edit-btn" onclick="openEditModalForProgram(${p.id})" title="Log application / edit notes, deadline…">✏️</button></div>
+          <div class="tags">${(p.tags||[]).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}${verifiedBadge(p)}<button class="row-edit-btn" onclick="event.stopPropagation();openEditModalForProgram(${p.id})" title="Log application / edit notes, deadline…">✏️</button></div>
         </div>
         <div class="cell">${cap(p.fn)}</div>
         <div class="cell">${cap(p.sector)}</div>
@@ -3670,11 +3674,11 @@ function renderPrograms(){
         <div class="cell mono" style="font-size:10px;line-height:1.5">${dl}</div>
         <div><span class="badge ${bc}">${bl}</span></div>
         <div>
-          ${p.aiTier ? fitTier(+p.fit||3,p) : `<span onclick="openProgramsScan()" title="Scan your résumé to see your fit for this program" style="cursor:pointer;font-size:10px;color:var(--text3);border-bottom:1px dashed var(--border2)">Scan résumé</span>`}
+          ${p.aiTier ? fitTier(+p.fit||3,p) : `<span onclick="event.stopPropagation();openProgramsScan()" title="Scan your résumé to see your fit for this program" style="cursor:pointer;font-size:10px;color:var(--text3);border-bottom:1px dashed var(--border2)">Scan résumé</span>`}
         </div>
         <div>${renderStageDropdown(p)}</div>
         <div>
-          ${rv.deadline ? `<button class="ics-btn" onclick="openICSModalForProgram(${p.id})">📅 Set</button>` : `<span style="font-size:10px;color:var(--text3)">—</span>`}
+          ${rv.deadline ? `<button class="ics-btn" onclick="event.stopPropagation();openICSModalForProgram(${p.id})">📅 Set</button>` : `<span style="font-size:10px;color:var(--text3)">—</span>`}
         </div>
       </div>`;
     }).join('');
@@ -3829,13 +3833,13 @@ function _mobileCardHTML(p){
   const inactive = p.is_active_cycle === false;
   const rv = resolveProgramView(p);   // Task 27A.2: user's deadline wins on mobile cards + reminder
   const nameHtml = p.url
-    ? `<a href="${esc(safeUrl(p.url))}" target="_blank" rel="noopener noreferrer">${esc(p.name)}</a>`
+    ? `<a href="${esc(safeUrl(p.url))}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">${esc(p.name)}</a>`
     : esc(p.name);
 
   // Reminder icon — only show when there's an actual deadline date to fire on
   const reminderBtn = (rv.deadline && !inactive)
     ? `<button class="pmc-cal" type="button" title="Add deadline reminder to calendar"
-        onclick="openICSModalForProgram(${p.id})">📅</button>`
+        onclick="event.stopPropagation();openICSModalForProgram(${p.id})">📅</button>`
     : '';
 
   // Language chip — only if language_required is populated
@@ -3844,7 +3848,7 @@ function _mobileCardHTML(p){
     : '';
 
   return `
-    <div class="pmc-card${inactive ? ' pmc-dim' : ''}" data-pid="${p.id}">
+    <div class="pmc-card${inactive ? ' pmc-dim' : ''}" data-pid="${p.id}" onclick="openProgramSnapshot(${p.id})" style="cursor:pointer">
       <div class="pmc-head">
         <div class="pmc-logo">${esc(_initials(p.org))}</div>
         <div class="pmc-title-wrap">
@@ -3868,7 +3872,7 @@ function _mobileCardHTML(p){
       <div class="pmc-actions">
         <div class="pmc-stage-wrap">${renderStageDropdown(p)}</div>
         ${reminderBtn}
-        <button class="row-edit-btn" onclick="openEditModalForProgram(${p.id})" title="Log application / edit notes…" style="opacity:0.5;font-size:13px">✏️</button>
+        <button class="row-edit-btn" onclick="event.stopPropagation();openEditModalForProgram(${p.id})" title="Log application / edit notes…" style="opacity:0.5;font-size:13px">✏️</button>
       </div>
     </div>
   `;
@@ -4155,6 +4159,153 @@ async function addProgramToApplications(progId, stage){
   if(typeof renderPrograms === 'function') renderPrograms();  // Phase 14: refresh Programs Pipeline column
   const stageLabel = stage.charAt(0).toUpperCase() + stage.slice(1);
   toast(`✓ ${p.org} added to Applications (${stageLabel})`);
+}
+
+// ═══════════════ PROGRAM SNAPSHOT MODAL (Task PROG_SNAP) ═══════════════
+// A lightweight, scannable card that opens when the user clicks a Programs-table
+// row or an AI Fit Scan result card — a quick read on a program without leaving
+// the page. Injected into <body> on demand, removed on close. Catalog programs
+// only (looked up in progs[]); user-added rows have synthetic 'ua-…' ids and are
+// intentionally not wired up.
+//
+// Field-name note: the spec referred to p.desc / p.deadline-or-dlnote, but the
+// in-memory program field is p.description (mapped from row.description at
+// app.js:509). We read p.description (with p.desc as a defensive fallback) so the
+// description actually renders. visa is a strict boolean on catalog rows
+// (row.visa === true), so "Visa: Unknown" only appears in the rare null case.
+// Resolve a snapshot id to its program-like object + matching pipeline app.
+// Handles BOTH catalog programs (numeric id, looked up in progs[]) and user-added
+// rows (synthetic 'ua-<appId>' id, rebuilt from apps[] via _userAddedRows()).
+function _psResolve(progId){
+  if(typeof progId === 'string' && progId.startsWith('ua-')){
+    const p = _userAddedRows().find(x => x.id === progId) || null;
+    const app = p ? (apps.find(a => String(a.id) === progId.slice(3)) || null) : null;
+    return { p, app };   // user-added rows are always in the pipeline
+  }
+  const p = progs.find(x => x.id === progId) || null;
+  return { p, app: p ? (_findAppForProgram(p) || null) : null };
+}
+
+function openProgramSnapshot(progId){
+  const { p, app } = _psResolve(progId);
+  if(!p) return;
+  const desc = (p.description || p.desc || '').trim();
+  // Quote synthetic string ids when re-emitting them into inline handlers; leave
+  // numeric catalog ids bare.
+  const idArg = (typeof p.id === 'string') ? `'${p.id}'` : p.id;
+
+  console.log('[ProgSnap]', p.org, '|', p.name, '| tracked:', !!app, '| has desc:', !!desc);
+
+  // Only one snapshot open at a time.
+  const old = document.getElementById('ov-prog-snap');
+  if(old) old.remove();
+
+  // Status badge — reuse the SAME badge classes the Programs table uses so the
+  // colors match exactly (b-open green / b-rolling blue / b-watch amber / b-closed gray).
+  // User-added rows carry a pipeline stage in p.status (not a program status), so
+  // show the "★ Added by you" marker the table uses instead of a misleading badge.
+  const sm = {open:['b-open','Open'],rolling:['b-rolling','Rolling'],watch:['b-watch','Watch'],closed:['b-closed','Closed']};
+  const badgeHtml = p._userAdded
+    ? `<span class="badge" style="background:var(--accent-bg);color:var(--accent);border-color:rgba(29,106,69,.2)">★ Added by you</span>`
+    : (() => { const [bc,bl] = sm[p.status] || ['b-closed','—']; return `<span class="badge ${bc}">${bl}</span>`; })();
+
+  // ── Three key facts (emoji anchors, · separated) ──
+  const locFact = `📍 ${esc(p.loc || 'Location TBD')}`;
+  let visaFact;
+  if(p.visa === true)       visaFact = `🛂 <span style="color:var(--teal);font-weight:600">Visa: Yes ✓</span>`;
+  else if(p.visa === false) visaFact = `🛂 <span style="color:var(--text3)">Visa: No</span>`;
+  else                      visaFact = `🛂 Visa: Unknown`;
+  // Deadline: a real date → formatted; else the program's dlnote; else fallback copy.
+  let dlText;
+  if(p.deadline){
+    const dt = new Date(p.deadline);
+    dlText = !isNaN(dt.getTime())
+      ? dt.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})
+      : esc(p.deadline);
+  } else if(p.dlnote){
+    dlText = esc(p.dlnote);
+  } else {
+    dlText = 'Check program page';
+  }
+  const dlFact = `📅 ${dlText}`;
+
+  // ── Actions ──
+  // Primary: visit the program page (hidden entirely when there is no URL).
+  const visitBtn = p.url
+    ? `<a class="ps-btn ps-btn-primary" href="${esc(safeUrl(p.url))}" target="_blank" rel="noopener noreferrer">Visit program page →</a>`
+    : '';
+  // Secondary: tracked → non-clickable label; not tracked → add button.
+  let secondaryAction;
+  if(app){
+    const stageLbl = (STAGE_BY_KEY[app.status] && STAGE_BY_KEY[app.status].label) || app.status || '—';
+    secondaryAction = `<span class="ps-tracked-label">✓ Tracked · ${esc(stageLbl)}</span>`;
+  } else {
+    secondaryAction = `<button class="ps-btn" onclick="_psAddToPipeline(${idArg})">Add to Pipeline +</button>`;
+  }
+
+  // ── User deadline + notes (only when tracked) ──
+  const userFields = app
+    ? `<div class="ps-user-fields">
+        <label>Your deadline:</label>
+        <input type="date" value="${esc((app.deadline || '').slice(0,10))}" onblur="_psSaveField(${idArg},'deadline',this.value)">
+        <label>Notes:</label>
+        <input type="text" value="${esc(app.notes || '')}" placeholder="Add a note…" onblur="_psSaveField(${idArg},'notes',this.value)">
+      </div>`
+    : '';
+
+  // Description: skip the section entirely when empty (no placeholder).
+  const descHtml = desc ? `<div class="ps-desc">${esc(desc)}</div>` : '';
+
+  const html = `<div class="ps-overlay" id="ov-prog-snap" onclick="if(event.target===this)closeProgramSnapshot()">
+    <div class="ps-card" role="dialog" aria-modal="true" aria-label="${esc(p.org)} — ${esc(p.name)}">
+      <div class="ps-header">
+        <div class="ps-header-main"><span class="ps-company">${esc(p.org)}</span><span class="ps-progname">${esc(p.name)}</span></div>
+        <div class="ps-header-right">
+          ${badgeHtml}
+          <button class="ps-close" type="button" onclick="closeProgramSnapshot()" aria-label="Close">✕</button>
+        </div>
+      </div>
+      <div class="ps-facts"><span>${locFact}</span><span>${visaFact}</span><span>${dlFact}</span></div>
+      ${descHtml}
+      <div class="ps-actions">${visitBtn}${secondaryAction}</div>
+      ${userFields}
+    </div>
+  </div>`;
+
+  document.body.insertAdjacentHTML('beforeend', html);
+  document.addEventListener('keydown', _psEscHandler);
+}
+
+// Close on X, backdrop, or Escape. The keydown listener is added on open and
+// removed here so it never lingers after the modal is gone.
+function closeProgramSnapshot(){
+  const el = document.getElementById('ov-prog-snap');
+  if(el) el.remove();
+  document.removeEventListener('keydown', _psEscHandler);
+}
+function _psEscHandler(e){ if(e.key === 'Escape') closeProgramSnapshot(); }
+
+// "Add to Pipeline +" → add at the default (networking) stage, then re-open the
+// snapshot so it flips to the tracked state (tracked label + editable fields).
+async function _psAddToPipeline(progId){
+  await addProgramToApplications(progId);              // DB save + table re-render + its own toast
+  if(document.getElementById('ov-prog-snap')) openProgramSnapshot(progId);   // only if still open
+}
+
+// Auto-save the user's per-application deadline/notes from the snapshot on blur.
+async function _psSaveField(progId, field, value){
+  const { app } = _psResolve(progId);
+  if(!app) return;
+  const newVal = value || '';
+  if((app[field] || '') === newVal) return;            // unchanged → skip the write
+  app[field] = newVal;
+  const ok = await saveApplicationToDB(app);
+  if(ok){
+    toast('✓ Saved');
+    // A changed deadline flows into the Programs table via resolveProgramView,
+    // so refresh it. The open snapshot lives outside #prog-list, so it survives.
+    if(field === 'deadline' && typeof renderPrograms === 'function') renderPrograms();
+  }
 }
 
 // ═══════════════ TASK 19.2 — STAGE DROPDOWN ═══════════════
@@ -5719,13 +5870,13 @@ function syncAIResultsToPrograms(result){
 function _aifitShortlistBtn(p){
   const ex = _findAppForProgram(p);
   if(!ex){
-    return `<button class="aifit-program-save-btn" onclick="toggleShortlist(${p.id})">+ Shortlist</button>`;
+    return `<button class="aifit-program-save-btn" onclick="event.stopPropagation();toggleShortlist(${p.id})">+ Shortlist</button>`;
   }
   if(ex.status === 'shortlisted'){
-    return `<button class="aifit-program-save-btn is-saved" onclick="toggleShortlist(${p.id})" title="Remove from shortlist"><span class="sl-default">✓ Shortlisted</span><span class="sl-hover">✕ Remove</span></button>`;
+    return `<button class="aifit-program-save-btn is-saved" onclick="event.stopPropagation();toggleShortlist(${p.id})" title="Remove from shortlist"><span class="sl-default">✓ Shortlisted</span><span class="sl-hover">✕ Remove</span></button>`;
   }
   const lbl = STAGE_BY_KEY[ex.status]?.label || ex.status;
-  return `<button class="aifit-program-save-btn is-inpipe" onclick="toggleShortlist(${p.id})" title="In your pipeline — click to remove"><span class="sl-default">✓ ${esc(lbl)}</span><span class="sl-hover">✕ Remove</span></button>`;
+  return `<button class="aifit-program-save-btn is-inpipe" onclick="event.stopPropagation();toggleShortlist(${p.id})" title="In your pipeline — click to remove"><span class="sl-default">✓ ${esc(lbl)}</span><span class="sl-hover">✕ Remove</span></button>`;
 }
 
 // Add to / remove from the shortlist directly from the AI Fit results, then re-render
@@ -5882,12 +6033,12 @@ function renderAIResults(result, meta){
           if(p.geo) tags.push(cap(p.geo));
           if(p.visa) tags.push('Visa');
 
-          return `<div class="aifit-program-card">
+          return `<div class="aifit-program-card" onclick="openProgramSnapshot(${p.id})" style="cursor:pointer">
             <div class="aifit-program-card-left">
               <div class="aifit-program-initial">${initial}</div>
               <div class="aifit-program-info">
                 <div class="aifit-program-name">${p.url
-                  ? `<a href="${esc(safeUrl(p.url))}" target="_blank" rel="noopener noreferrer" class="aifit-program-name-link">${esc(p.name)}</a>`
+                  ? `<a href="${esc(safeUrl(p.url))}" target="_blank" rel="noopener noreferrer" class="aifit-program-name-link" onclick="event.stopPropagation()">${esc(p.name)}</a>`
                   : esc(p.name)}</div>
                 ${item.reason ? `<div class="aifit-program-reason">${esc(item.reason)}</div>` : ''}
               </div>
@@ -6457,15 +6608,15 @@ function _renderCCStats(){
   if(!row) return;
   const active    = apps.filter(a => a.status !== 'rejected').length;
   const networking= apps.filter(a => a.status === 'networking').length;
-  const applied   = apps.filter(a => a.status === 'applied' || a.status === 'interview').length;
-  const offers    = apps.filter(a => a.status === 'offer').length;
+  const applied   = apps.filter(a => a.status === 'applied').length;
+  const interview = apps.filter(a => a.status === 'interview').length;
   row.innerHTML = `
     <div class="cc-stat-card" style="--c:var(--accent);cursor:pointer" onclick="showPage('applications')">
       <div class="cc-stat-num">${active}</div>
       <div class="cc-stat-label">Total Active</div>
       <div class="cc-stat-sub">Across all stages</div>
     </div>
-    <div class="cc-stat-card" style="--c:var(--blue);cursor:pointer" onclick="showPage('networking')">
+    <div class="cc-stat-card" style="--c:var(--blue);cursor:pointer" onclick="showPage('applications')">
       <div class="cc-stat-num">${networking}</div>
       <div class="cc-stat-label">Networking Stage</div>
       <div class="cc-stat-sub">Apps in pipeline</div>
@@ -6476,9 +6627,9 @@ function _renderCCStats(){
       <div class="cc-stat-sub">Submitted · awaiting</div>
     </div>
     <div class="cc-stat-card" style="--c:var(--teal);cursor:pointer" onclick="showPage('applications')">
-      <div class="cc-stat-num">${offers}</div>
-      <div class="cc-stat-label">Offers</div>
-      <div class="cc-stat-sub">Decision pending</div>
+      <div class="cc-stat-num">${interview}</div>
+      <div class="cc-stat-label">Interview</div>
+      <div class="cc-stat-sub">Interviewing now</div>
     </div>
     <div class="cc-stat-card" style="--c:var(--purple);cursor:pointer" onclick="showPage('networking')">
       <div class="cc-stat-num">${contacts.length}</div>

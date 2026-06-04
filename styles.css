@@ -2840,3 +2840,31 @@ input, textarea, select, button { font-family: inherit; }
   .mi-teaser-grid { grid-template-columns: 1fr; }
   .mi-coming-soon-card { padding: 28px 20px; }
 }
+
+/* ═══════════════ Program Snapshot modal (Task PROG_SNAP) ═══════════════ */
+.ps-overlay{position:fixed;inset:0;z-index:8000;background:rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(3px)}
+.ps-card{max-width:480px;width:92vw;background:var(--bg2);border:1px solid var(--border);border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.12);overflow:hidden}
+.ps-header{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:16px 20px;border-bottom:1px solid var(--border)}
+.ps-header-main{flex:1;min-width:0}
+.ps-header-right{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.ps-company{font-size:16px;font-weight:700;color:var(--text)}
+.ps-progname{font-size:13px;color:var(--text2);margin-left:6px;font-weight:400}
+/* X close button — not in the spec's class list but required by the close behavior. */
+.ps-close{background:none;border:none;color:var(--text3);font-size:15px;line-height:1;cursor:pointer;padding:4px 6px;border-radius:6px;transition:background .12s,color .12s}
+.ps-close:hover{background:var(--bg3);color:var(--text)}
+.ps-facts{padding:12px 20px;font-size:12px;color:var(--text2);display:flex;gap:16px;flex-wrap:wrap}
+/* "· dot" separators between the three facts (codebase convention, e.g. .al-card-meta). Hidden when they stack on mobile. */
+.ps-facts > span:not(:first-child)::before{content:"·";margin-right:16px;color:var(--text3)}
+/* Bottom spacing is margin (outside the clip box), NOT padding: a 14px padding-bottom
+   sits inside overflow:hidden and lets a sliver of the clamped 4th line peek through.
+   Margin keeps the same 14px gap while honoring "max 3 lines visible". */
+.ps-desc{padding:0 20px;margin-bottom:14px;font-size:13px;color:var(--text);line-height:1.6;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.ps-actions{display:flex;gap:10px;align-items:center;padding:14px 20px;border-top:1px solid var(--border)}
+/* text-decoration/inline-flex/font-family added so the primary <a> renders like a button. */
+.ps-btn{font-size:12px;padding:7px 16px;border-radius:8px;cursor:pointer;border:1px solid var(--border);background:var(--bg3);color:var(--text);text-decoration:none;display:inline-flex;align-items:center;font-family:var(--sans)}
+.ps-btn-primary{background:var(--accent);color:#fff;border:none;font-weight:600}
+.ps-tracked-label{font-size:12px;color:var(--accent);font-weight:500;padding:7px 0}
+.ps-user-fields{padding:10px 20px 16px;border-top:1px solid var(--border);display:flex;gap:12px;align-items:center;font-size:12px}
+.ps-user-fields label{color:var(--text3);font-size:11px;white-space:nowrap}
+.ps-user-fields input{flex:1;min-width:0;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--bg);color:var(--text);font-family:var(--sans)}
+@media (max-width: 600px){ .ps-facts{ flex-direction:column; gap:6px; } .ps-facts > span:not(:first-child)::before{ content:none; } }
