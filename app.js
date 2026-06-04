@@ -6452,6 +6452,7 @@ function renderCommandCenter(){
 }
 
 function _renderCCStats(){
+  console.log('[CC-STAT] apps:', apps.length, 'contacts:', contacts.length);
   const row = document.getElementById('cc-stat-row');
   if(!row) return;
   const active    = apps.filter(a => a.status !== 'rejected').length;
@@ -6459,25 +6460,30 @@ function _renderCCStats(){
   const applied   = apps.filter(a => a.status === 'applied' || a.status === 'interview').length;
   const offers    = apps.filter(a => a.status === 'offer').length;
   row.innerHTML = `
-    <div class="cc-stat-card" style="--c:var(--accent)">
+    <div class="cc-stat-card" style="--c:var(--accent);cursor:pointer" onclick="showPage('applications')">
       <div class="cc-stat-num">${active}</div>
       <div class="cc-stat-label">Total Active</div>
       <div class="cc-stat-sub">Across all stages</div>
     </div>
-    <div class="cc-stat-card" style="--c:var(--blue)">
+    <div class="cc-stat-card" style="--c:var(--blue);cursor:pointer" onclick="showPage('networking')">
       <div class="cc-stat-num">${networking}</div>
-      <div class="cc-stat-label">Networking</div>
-      <div class="cc-stat-sub">Outreach in progress</div>
+      <div class="cc-stat-label">Networking Stage</div>
+      <div class="cc-stat-sub">Apps in pipeline</div>
     </div>
-    <div class="cc-stat-card" style="--c:var(--amber)">
+    <div class="cc-stat-card" style="--c:var(--amber);cursor:pointer" onclick="showPage('applications')">
       <div class="cc-stat-num">${applied}</div>
       <div class="cc-stat-label">Applied</div>
       <div class="cc-stat-sub">Submitted · awaiting</div>
     </div>
-    <div class="cc-stat-card" style="--c:var(--teal)">
+    <div class="cc-stat-card" style="--c:var(--teal);cursor:pointer" onclick="showPage('applications')">
       <div class="cc-stat-num">${offers}</div>
       <div class="cc-stat-label">Offers</div>
       <div class="cc-stat-sub">Decision pending</div>
+    </div>
+    <div class="cc-stat-card" style="--c:var(--purple);cursor:pointer" onclick="showPage('networking')">
+      <div class="cc-stat-num">${contacts.length}</div>
+      <div class="cc-stat-label">Contacts</div>
+      <div class="cc-stat-sub">People tracked</div>
     </div>`;
 }
 

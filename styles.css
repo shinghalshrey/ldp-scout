@@ -2252,7 +2252,7 @@ input, textarea, select, button { font-family: inherit; }
 /* Stat cards row */
 .cc-stat-row {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 16px;
   margin-bottom: 8px;
 }
@@ -2262,10 +2262,11 @@ input, textarea, select, button { font-family: inherit; }
   border-left: 3px solid var(--c, var(--accent));
   border-radius: 10px;
   padding: 20px 22px;
+  cursor: pointer;
   transition: transform .15s ease, box-shadow .15s ease;
 }
 .cc-stat-card:hover {
-  transform: translateY(-1px);
+  transform: translateY(-2px);
   box-shadow: 0 4px 14px rgba(0,0,0,.04);
 }
 .cc-stat-num {
