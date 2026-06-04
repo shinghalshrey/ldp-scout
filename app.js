@@ -18,6 +18,11 @@ const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsI
 const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
 let currentUser = null;
 let userProfile = null;
+// Task SHARE — program id pulled from a ?p=<id> share link at boot (see the
+// boot sequence near initAuth()). Held here at module scope because three
+// places consume it: the signed-out public snapshot (initAuth), the
+// post-sign-in re-open (onSignIn), and the boot detector that sets it.
+let _pendingProgSnap = null;
 
 // Task H — instrumentation. Surface unhandled async errors (e.g. failed Supabase
 // calls) in both the console and Sentry (the Sentry loader in index.html auto-hooks
@@ -430,6 +435,17 @@ async function initAuth() {
     await onSignIn();
   } else {
     showLanding();
+    // Task SHARE — signed-out visitor arriving via a ?p= link: float the
+    // read-only snapshot on top of the landing page. progs[] is already
+    // populated (localStorage/DP[] fallback loads synchronously at module
+    // init), so the lookup works even before the Supabase fetch. An unknown
+    // id resolves to undefined → no modal (silent ignore). _pendingProgSnap is
+    // intentionally NOT cleared here — onSignIn() consumes it after the visitor
+    // signs in, re-opening the full modal with pipeline controls.
+    if(_pendingProgSnap){
+      const p = progs.find(x => x.id === _pendingProgSnap);
+      if(p) openProgramSnapshotPublic(p);
+    }
   }
 }
 
@@ -636,6 +652,24 @@ async function onSignIn(){
     }
   } catch {
     showPage('command');
+  }
+
+  // Task SHARE — finish the share-link journey. If the visitor arrived via a
+  // ?p=<id> link (set at boot, survived through sign-up), drop them on the
+  // Programs tab with the full snapshot open so they can add it to their
+  // pipeline. This also covers the "already signed in + ?p= link" case, since
+  // onSignIn() runs on every initial sign-in. Capture the id into a local
+  // const BEFORE clearing the module var — the setTimeout closure would
+  // otherwise read the cleared (null) value 300ms later. An id no longer in
+  // progs[] is silently ignored.
+  if(_pendingProgSnap){
+    const _shareId = _pendingProgSnap;
+    _pendingProgSnap = null;   // clear immediately so it can't re-trigger
+    if(progs.find(x => x.id === _shareId)){
+      console.log('[Share] post-signin modal for:', _shareId);
+      showPage('programs');
+      setTimeout(() => openProgramSnapshot(_shareId), 300);   // let Programs render first
+    }
   }
 }
 
@@ -4256,12 +4290,21 @@ function openProgramSnapshot(progId){
   // Description: skip the section entirely when empty (no placeholder).
   const descHtml = desc ? `<div class="ps-desc">${esc(desc)}</div>` : '';
 
+  // Task SHARE — copy-a-link button, only for catalog programs (numeric id).
+  // User-added rows ('ua-<appId>') are private to the user and have no public
+  // ?p= route, so the button is omitted entirely for them. Reuses .ps-close
+  // styling (small borderless icon button) since it sits beside the close X.
+  const shareBtn = (typeof p.id === 'number')
+    ? `<button class="ps-close" type="button" onclick="_psShareProgram(event, ${p.id})" aria-label="Copy shareable link" title="Copy shareable link">🔗</button>`
+    : '';
+
   const html = `<div class="ps-overlay" id="ov-prog-snap" onclick="if(event.target===this)closeProgramSnapshot()">
     <div class="ps-card" role="dialog" aria-modal="true" aria-label="${esc(p.org)} — ${esc(p.name)}">
       <div class="ps-header">
         <div class="ps-header-main"><span class="ps-company">${esc(p.org)}</span><span class="ps-progname">${esc(p.name)}</span></div>
         <div class="ps-header-right">
           ${badgeHtml}
+          ${shareBtn}
           <button class="ps-close" type="button" onclick="closeProgramSnapshot()" aria-label="Close">✕</button>
         </div>
       </div>
@@ -4284,6 +4327,97 @@ function closeProgramSnapshot(){
   document.removeEventListener('keydown', _psEscHandler);
 }
 function _psEscHandler(e){ if(e.key === 'Escape') closeProgramSnapshot(); }
+
+// Task SHARE — copy a public deep-link (origin + '/?p=<id>') for this program to
+// the clipboard. stopPropagation keeps the click from bubbling to the overlay's
+// backdrop-close handler. Only ever wired up for catalog (numeric-id) programs.
+function _psShareProgram(event, progId){
+  if(event) event.stopPropagation();
+  const { p } = _psResolve(progId);
+  if(!p) return;
+  const shareUrl = window.location.origin + '/?p=' + p.id;
+  console.log('[Share] copied link for:', p.org, p.name, shareUrl);
+  navigator.clipboard.writeText(shareUrl)
+    .then(() => toast('✓ Link copied'))
+    .catch(() => toast('Could not copy link — please copy it from the address bar'));
+}
+
+// Task SHARE — read-only snapshot for a SIGNED-OUT visitor who arrived via a
+// ?p=<id> share link. Same visual shell as openProgramSnapshot (header, three
+// facts, description, "Visit program page" link) but with NO pipeline controls
+// — instead a sign-up CTA, because saving to a pipeline needs an account.
+// Always a catalog program (resolved via progs.find in initAuth), so the badge
+// is always the program-status badge. Reuses the #ov-prog-snap id + .ps-overlay
+// (z-index 8000, above the landing overlay's 700), so closeProgramSnapshot /
+// _psEscHandler / backdrop-click all work unchanged.
+function openProgramSnapshotPublic(p){
+  if(!p) return;
+  console.log('[Share] public modal for:', p.org, p.name);
+
+  const desc = (p.description || p.desc || '').trim();
+
+  // Only one snapshot open at a time.
+  const old = document.getElementById('ov-prog-snap');
+  if(old) old.remove();
+
+  // Status badge — same classes the Programs table / full snapshot use.
+  const sm = {open:['b-open','Open'],rolling:['b-rolling','Rolling'],watch:['b-watch','Watch'],closed:['b-closed','Closed']};
+  const [bc,bl] = sm[p.status] || ['b-closed','—'];
+  const badgeHtml = `<span class="badge ${bc}">${bl}</span>`;
+
+  // ── Three key facts (mirror openProgramSnapshot exactly) ──
+  const locFact = `📍 ${esc(p.loc || 'Location TBD')}`;
+  let visaFact;
+  if(p.visa === true)       visaFact = `🛂 <span style="color:var(--teal);font-weight:600">Visa: Yes ✓</span>`;
+  else if(p.visa === false) visaFact = `🛂 <span style="color:var(--text3)">Visa: No</span>`;
+  else                      visaFact = `🛂 Visa: Unknown`;
+  let dlText;
+  if(p.deadline){
+    const dt = new Date(p.deadline);
+    dlText = !isNaN(dt.getTime())
+      ? dt.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})
+      : esc(p.deadline);
+  } else if(p.dlnote){
+    dlText = esc(p.dlnote);
+  } else {
+    dlText = 'Check program page';
+  }
+  const dlFact = `📅 ${dlText}`;
+
+  // Visit-page link — same primary button; omitted when there's no URL.
+  const visitBtn = p.url
+    ? `<a class="ps-btn ps-btn-primary" href="${esc(safeUrl(p.url))}" target="_blank" rel="noopener noreferrer">Visit program page →</a>`
+    : '';
+  const visitRow = visitBtn ? `<div class="ps-actions">${visitBtn}</div>` : '';
+
+  const descHtml = desc ? `<div class="ps-desc">${esc(desc)}</div>` : '';
+
+  // CTA row replaces the pipeline controls. "Sign up free →" closes the snapshot
+  // (revealing the landing page underneath) then focuses the email input.
+  const ctaRow = `<div class="ps-actions" style="flex-direction:column;align-items:stretch;gap:8px">
+        <span style="font-size:12px;color:var(--text2);text-align:center">Sign up to save this program to your pipeline</span>
+        <button class="ps-btn ps-btn-primary" type="button" style="justify-content:center" onclick="closeProgramSnapshot();showAuthModal()">Sign up free →</button>
+      </div>`;
+
+  const html = `<div class="ps-overlay" id="ov-prog-snap" onclick="if(event.target===this)closeProgramSnapshot()">
+    <div class="ps-card" role="dialog" aria-modal="true" aria-label="${esc(p.org)} — ${esc(p.name)}">
+      <div class="ps-header">
+        <div class="ps-header-main"><span class="ps-company">${esc(p.org)}</span><span class="ps-progname">${esc(p.name)}</span></div>
+        <div class="ps-header-right">
+          ${badgeHtml}
+          <button class="ps-close" type="button" onclick="closeProgramSnapshot()" aria-label="Close">✕</button>
+        </div>
+      </div>
+      <div class="ps-facts"><span>${locFact}</span><span>${visaFact}</span><span>${dlFact}</span></div>
+      ${descHtml}
+      ${visitRow}
+      ${ctaRow}
+    </div>
+  </div>`;
+
+  document.body.insertAdjacentHTML('beforeend', html);
+  document.addEventListener('keydown', _psEscHandler);
+}
 
 // "Add to Pipeline +" → add at the default (networking) stage, then re-open the
 // snapshot so it flips to the tracked state (tracked label + editable fields).
@@ -6512,6 +6646,19 @@ window.addEventListener('resize', () => {
 });
 
 // ─── Init ────────────────────────────────────────────────────────
+// Task SHARE — detect a ?p=<id> share link FIRST, before initAuth() routes the
+// visitor. We only stash the id here; whether it opens the public (signed-out)
+// snapshot or the full (signed-in) modal is decided downstream by initAuth() /
+// onSignIn(). The URL is cleaned immediately so a refresh doesn't re-trigger.
+const _urlParams = new URLSearchParams(window.location.search);
+const _rawShareId = _urlParams.get('p');
+_pendingProgSnap = _rawShareId ? parseInt(_rawShareId, 10) : null;
+if(_pendingProgSnap !== null && isNaN(_pendingProgSnap)) _pendingProgSnap = null;  // non-numeric ?p= → ignore
+if(_pendingProgSnap){
+  console.log('[Share] pending program from URL:', _pendingProgSnap);
+  window.history.replaceState({}, '', window.location.pathname);
+}
+
 // Task 21: landing-page "Programs verified May 2026" stamp removed.
 // Per-row verification badge in renderPrograms() is the truthful version now.
 const _lpProgs = document.getElementById('lp-stat-progs');
