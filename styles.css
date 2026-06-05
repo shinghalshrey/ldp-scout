@@ -2841,30 +2841,58 @@ input, textarea, select, button { font-family: inherit; }
   .mi-coming-soon-card { padding: 28px 20px; }
 }
 
-/* ═══════════════ Program Snapshot modal (Task PROG_SNAP) ═══════════════ */
-.ps-overlay{position:fixed;inset:0;z-index:8000;background:rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(3px)}
-.ps-card{max-width:480px;width:92vw;background:var(--bg2);border:1px solid var(--border);border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.12);overflow:hidden}
-.ps-header{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:16px 20px;border-bottom:1px solid var(--border)}
+/* ═══════════════ Program Snapshot modal v2 (Task MODAL_V2) ═══════════════ */
+/* Proper detail-page layout: flex-centered overlay; a flex-column card whose
+   header is pinned while the .ps-card-body scrolls; an 8-cell key-details grid;
+   scrollable About; a two-sided action bar; tracked-only user fields. On mobile
+   the card becomes a full-screen takeover with single-column grid + stacked btns. */
+.ps-overlay{position:fixed;inset:0;z-index:8000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.35);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px)}
+.ps-card{display:flex;flex-direction:column;overflow:hidden;max-width:680px;width:94vw;max-height:85vh;background:var(--bg2);border-radius:16px;box-shadow:0 12px 48px rgba(0,0,0,0.15)}
+/* Header pinned above the scrolling body; opaque bg so content can't show through. */
+.ps-header{position:sticky;top:0;z-index:1;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:16px 20px;border-bottom:1px solid var(--border);background:var(--bg2);flex-shrink:0}
 .ps-header-main{flex:1;min-width:0}
-.ps-header-right{display:flex;align-items:center;gap:10px;flex-shrink:0}
-.ps-company{font-size:16px;font-weight:700;color:var(--text)}
-.ps-progname{font-size:13px;color:var(--text2);margin-left:6px;font-weight:400}
-/* X close button — not in the spec's class list but required by the close behavior. */
-.ps-close{background:none;border:none;color:var(--text3);font-size:15px;line-height:1;cursor:pointer;padding:4px 6px;border-radius:6px;transition:background .12s,color .12s}
+.ps-header-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
+/* X / share icon buttons (close behavior unchanged). Larger tap target on mobile. */
+.ps-close{background:none;border:none;color:var(--text3);font-size:16px;line-height:1;cursor:pointer;padding:6px 8px;border-radius:8px;transition:background .12s,color .12s}
 .ps-close:hover{background:var(--bg3);color:var(--text)}
-.ps-facts{padding:12px 20px;font-size:12px;color:var(--text2);display:flex;gap:16px;flex-wrap:wrap}
-/* "· dot" separators between the three facts (codebase convention, e.g. .al-card-meta). Hidden when they stack on mobile. */
-.ps-facts > span:not(:first-child)::before{content:"·";margin-right:16px;color:var(--text3)}
-/* Bottom spacing is margin (outside the clip box), NOT padding: a 14px padding-bottom
-   sits inside overflow:hidden and lets a sliver of the clamped 4th line peek through.
-   Margin keeps the same 14px gap while honoring "max 3 lines visible". */
-.ps-desc{padding:0 20px;margin-bottom:14px;font-size:13px;color:var(--text);line-height:1.6;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
-.ps-actions{display:flex;gap:10px;align-items:center;padding:14px 20px;border-top:1px solid var(--border)}
+/* The single scroll region: everything below the pinned header. */
+.ps-card-body{flex:1;overflow-y:auto}
+/* Key-details grid — 2 cols desktop / 1 col mobile. Cell borders come from the
+   gap (1px) revealing the container's border-coloured background; the outer 1px
+   frame comes from the border. */
+.ps-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;margin:16px;background:var(--border);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.ps-grid-cell{padding:12px 16px;background:var(--bg)}
+.ps-grid-label{font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3);margin-bottom:4px}
+.ps-grid-value{font-size:13px;color:var(--text);font-weight:500}
+.ps-grid-value .badge{vertical-align:middle}
+/* About — optional section; long descriptions scroll within 200px. */
+.ps-about{padding:16px 20px;border-top:1px solid var(--border)}
+.ps-about-head{font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3);margin-bottom:8px}
+.ps-about-text{max-height:200px;overflow-y:auto;font-size:13px;line-height:1.7;color:var(--text)}
+/* Action bar — Visit + Find Alumni on the left, pipeline state on the right. */
+.ps-actions{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:14px 20px;border-top:1px solid var(--border)}
+.ps-actions-side{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 /* text-decoration/inline-flex/font-family added so the primary <a> renders like a button. */
-.ps-btn{font-size:12px;padding:7px 16px;border-radius:8px;cursor:pointer;border:1px solid var(--border);background:var(--bg3);color:var(--text);text-decoration:none;display:inline-flex;align-items:center;font-family:var(--sans)}
+.ps-btn{font-size:12px;padding:8px 16px;border-radius:8px;cursor:pointer;border:1px solid var(--border);background:var(--bg3);color:var(--text);text-decoration:none;display:inline-flex;align-items:center;justify-content:center;font-family:var(--sans);font-weight:500;white-space:nowrap}
+.ps-btn:hover{background:var(--bg4)}
 .ps-btn-primary{background:var(--accent);color:#fff;border:none;font-weight:600}
-.ps-tracked-label{font-size:12px;color:var(--accent);font-weight:500;padding:7px 0}
-.ps-user-fields{padding:10px 20px 16px;border-top:1px solid var(--border);display:flex;gap:12px;align-items:center;font-size:12px}
+.ps-btn-primary:hover{background:var(--accent2)}
+.ps-btn-outline{background:transparent;border:1px solid var(--border2);color:var(--text)}
+.ps-btn-outline:hover{background:var(--bg3)}
+.ps-tracked-label{font-size:12px;color:var(--accent);font-weight:600;padding:7px 0;white-space:nowrap}
+/* User fields — tracked only. Subtle bg differentiates from the rest of the body. */
+.ps-user-fields{display:flex;gap:12px;align-items:center;padding:12px 20px;border-top:1px solid var(--border);background:var(--bg);font-size:12px}
 .ps-user-fields label{color:var(--text3);font-size:11px;white-space:nowrap}
-.ps-user-fields input{flex:1;min-width:0;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--bg);color:var(--text);font-family:var(--sans)}
-@media (max-width: 600px){ .ps-facts{ flex-direction:column; gap:6px; } .ps-facts > span:not(:first-child)::before{ content:none; } }
+.ps-user-fields input{flex:1;min-width:0;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--bg2);color:var(--text);font-family:var(--sans)}
+.ps-user-fields input[type=date]{flex:0 0 auto}
+/* ── Mobile (≤768px): full-screen takeover, single column, stacked actions ── */
+@media (max-width: 768px){
+  .ps-overlay{backdrop-filter:none;-webkit-backdrop-filter:none}
+  .ps-card{width:100vw;height:100dvh;max-height:100dvh;border-radius:0}
+  .ps-grid{grid-template-columns:1fr}
+  .ps-actions{flex-direction:column;align-items:stretch;gap:8px}
+  .ps-actions-side{flex-direction:column;align-items:stretch;gap:8px}
+  .ps-btn{width:100%}
+  .ps-user-fields{flex-direction:column;align-items:stretch;gap:8px}
+  .ps-close{min-width:44px;min-height:44px;font-size:18px}
+}

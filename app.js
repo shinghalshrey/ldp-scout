@@ -4236,6 +4236,49 @@ function _psResolve(progId){
   return { p, app: p ? (_findAppForProgram(p) || null) : null };
 }
 
+// ── Shared snapshot helpers (Task MODAL_V2) ───────────────────────────────
+// The 8-cell key-details grid is built once here and used by BOTH the signed-in
+// and public snapshot modals so they stay visually identical. `badgeHtml` is the
+// same status badge shown in the header (a colored program-status badge, or the
+// "★ Added by you" marker for user-added rows).
+function _psGridHtml(p, badgeHtml){
+  // Visa: Yes ✓ (green) / No (red) / Unknown (gray).
+  let visaVal;
+  if(p.visa === true)       visaVal = `<span style="color:var(--accent);font-weight:600">Yes ✓</span>`;
+  else if(p.visa === false) visaVal = `<span style="color:var(--red)">No</span>`;
+  else                      visaVal = `<span style="color:var(--text3)">Unknown</span>`;
+  // Deadline: a real date → formatted; else the program's dlnote; else fallback copy.
+  let dlVal;
+  if(p.deadline){
+    const dt = new Date(p.deadline);
+    dlVal = !isNaN(dt.getTime())
+      ? dt.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})
+      : esc(p.deadline);
+  } else if(p.dlnote){
+    dlVal = esc(p.dlnote);
+  } else {
+    dlVal = 'Check program page';
+  }
+  const cell = (label, value) =>
+    `<div class="ps-grid-cell"><div class="ps-grid-label">${label}</div><div class="ps-grid-value">${value}</div></div>`;
+  return `<div class="ps-grid">
+        ${cell('📍 Location', esc(p.loc || 'Not specified'))}
+        ${cell('🏢 Industry', esc(p.sector || '—'))}
+        ${cell('💼 Function', esc(p.fn || 'General Management'))}
+        ${cell('⏱ Duration', esc(p.dur || '—'))}
+        ${cell('🛂 Visa Sponsorship', visaVal)}
+        ${cell('🌐 Language', esc(p.lang || 'English (assumed)'))}
+        ${cell('📅 Deadline', dlVal)}
+        ${cell('📋 Status', badgeHtml)}
+      </div>`;
+}
+// About section — rendered only when a description exists (no placeholder).
+function _psAboutHtml(desc){
+  return desc
+    ? `<div class="ps-about"><div class="ps-about-head">About this program</div><div class="ps-about-text">${esc(desc)}</div></div>`
+    : '';
+}
+
 function openProgramSnapshot(progId){
   const { p, app } = _psResolve(progId);
   if(!p) return;
@@ -4259,38 +4302,27 @@ function openProgramSnapshot(progId){
     ? `<span class="badge" style="background:var(--accent-bg);color:var(--accent);border-color:rgba(29,106,69,.2)">★ Added by you</span>`
     : (() => { const [bc,bl] = sm[p.status] || ['b-closed','—']; return `<span class="badge ${bc}">${bl}</span>`; })();
 
-  // ── Three key facts (emoji anchors, · separated) ──
-  const locFact = `📍 ${esc(p.loc || 'Location TBD')}`;
-  let visaFact;
-  if(p.visa === true)       visaFact = `🛂 <span style="color:var(--teal);font-weight:600">Visa: Yes ✓</span>`;
-  else if(p.visa === false) visaFact = `🛂 <span style="color:var(--text3)">Visa: No</span>`;
-  else                      visaFact = `🛂 Visa: Unknown`;
-  // Deadline: a real date → formatted; else the program's dlnote; else fallback copy.
-  let dlText;
-  if(p.deadline){
-    const dt = new Date(p.deadline);
-    dlText = !isNaN(dt.getTime())
-      ? dt.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})
-      : esc(p.deadline);
-  } else if(p.dlnote){
-    dlText = esc(p.dlnote);
-  } else {
-    dlText = 'Check program page';
-  }
-  const dlFact = `📅 ${dlText}`;
+  // ── Share button — catalog (numeric-id) programs only ──
+  // User-added rows ('ua-<appId>') are private to the user and have no public
+  // ?p= route, so the button is omitted for them. Reuses .ps-close styling
+  // (small borderless icon button) since it sits beside the close X.
+  const shareBtn = (typeof p.id === 'number')
+    ? `<button class="ps-close" type="button" onclick="_psShareProgram(event, ${p.id})" aria-label="Copy shareable link" title="Copy shareable link">🔗</button>`
+    : '';
 
-  // ── Actions ──
-  // Primary: visit the program page (hidden entirely when there is no URL).
+  // ── Action bar ──
+  // Left: visit the program page (hidden when no URL) + jump to the Alumni Finder
+  // filtered to this company. Right: tracked → non-clickable label; else add button.
   const visitBtn = p.url
     ? `<a class="ps-btn ps-btn-primary" href="${esc(safeUrl(p.url))}" target="_blank" rel="noopener noreferrer">Visit program page →</a>`
     : '';
-  // Secondary: tracked → non-clickable label; not tracked → add button.
-  let secondaryAction;
+  const findAlumniBtn = `<button class="ps-btn ps-btn-outline" type="button" onclick="_psFindAlumni(${idArg})">Find Alumni →</button>`;
+  let rightAction;
   if(app){
     const stageLbl = (STAGE_BY_KEY[app.status] && STAGE_BY_KEY[app.status].label) || app.status || '—';
-    secondaryAction = `<span class="ps-tracked-label">✓ Tracked · ${esc(stageLbl)}</span>`;
+    rightAction = `<span class="ps-tracked-label">✓ In pipeline · ${esc(stageLbl)}</span>`;
   } else {
-    secondaryAction = `<button class="ps-btn" onclick="_psAddToPipeline(${idArg})">Add to Pipeline +</button>`;
+    rightAction = `<button class="ps-btn ps-btn-primary" type="button" onclick="_psAddToPipeline(${idArg})">Add to Pipeline +</button>`;
   }
 
   // ── User deadline + notes (only when tracked) ──
@@ -4303,31 +4335,25 @@ function openProgramSnapshot(progId){
       </div>`
     : '';
 
-  // Description: skip the section entirely when empty (no placeholder).
-  const descHtml = desc ? `<div class="ps-desc">${esc(desc)}</div>` : '';
-
-  // Task SHARE — copy-a-link button, only for catalog programs (numeric id).
-  // User-added rows ('ua-<appId>') are private to the user and have no public
-  // ?p= route, so the button is omitted entirely for them. Reuses .ps-close
-  // styling (small borderless icon button) since it sits beside the close X.
-  const shareBtn = (typeof p.id === 'number')
-    ? `<button class="ps-close" type="button" onclick="_psShareProgram(event, ${p.id})" aria-label="Copy shareable link" title="Copy shareable link">🔗</button>`
-    : '';
-
   const html = `<div class="ps-overlay" id="ov-prog-snap" onclick="if(event.target===this)closeProgramSnapshot()">
     <div class="ps-card" role="dialog" aria-modal="true" aria-label="${esc(p.org)} — ${esc(p.name)}">
       <div class="ps-header">
-        <div class="ps-header-main"><span class="ps-company">${esc(p.org)}</span><span class="ps-progname">${esc(p.name)}</span></div>
+        <div class="ps-header-main"><span style="font-size:18px;font-weight:700;color:var(--text)">${esc(p.org)}</span><span style="color:var(--text3);margin:0 6px">·</span><span style="font-size:14px;font-weight:400;color:var(--text2)">${esc(p.name)}</span></div>
         <div class="ps-header-right">
           ${badgeHtml}
           ${shareBtn}
           <button class="ps-close" type="button" onclick="closeProgramSnapshot()" aria-label="Close">✕</button>
         </div>
       </div>
-      <div class="ps-facts"><span>${locFact}</span><span>${visaFact}</span><span>${dlFact}</span></div>
-      ${descHtml}
-      <div class="ps-actions">${visitBtn}${secondaryAction}</div>
-      ${userFields}
+      <div class="ps-card-body">
+        ${_psGridHtml(p, badgeHtml)}
+        ${_psAboutHtml(desc)}
+        <div class="ps-actions">
+          <div class="ps-actions-side">${visitBtn}${findAlumniBtn}</div>
+          <div class="ps-actions-side">${rightAction}</div>
+        </div>
+        ${userFields}
+      </div>
     </div>
   </div>`;
 
@@ -4381,53 +4407,32 @@ function openProgramSnapshotPublic(p){
   const [bc,bl] = sm[p.status] || ['b-closed','—'];
   const badgeHtml = `<span class="badge ${bc}">${bl}</span>`;
 
-  // ── Three key facts (mirror openProgramSnapshot exactly) ──
-  const locFact = `📍 ${esc(p.loc || 'Location TBD')}`;
-  let visaFact;
-  if(p.visa === true)       visaFact = `🛂 <span style="color:var(--teal);font-weight:600">Visa: Yes ✓</span>`;
-  else if(p.visa === false) visaFact = `🛂 <span style="color:var(--text3)">Visa: No</span>`;
-  else                      visaFact = `🛂 Visa: Unknown`;
-  let dlText;
-  if(p.deadline){
-    const dt = new Date(p.deadline);
-    dlText = !isNaN(dt.getTime())
-      ? dt.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})
-      : esc(p.deadline);
-  } else if(p.dlnote){
-    dlText = esc(p.dlnote);
-  } else {
-    dlText = 'Check program page';
-  }
-  const dlFact = `📅 ${dlText}`;
-
   // Visit-page link — same primary button; omitted when there's no URL.
   const visitBtn = p.url
     ? `<a class="ps-btn ps-btn-primary" href="${esc(safeUrl(p.url))}" target="_blank" rel="noopener noreferrer">Visit program page →</a>`
     : '';
-  const visitRow = visitBtn ? `<div class="ps-actions">${visitBtn}</div>` : '';
 
-  const descHtml = desc ? `<div class="ps-desc">${esc(desc)}</div>` : '';
-
-  // CTA row replaces the pipeline controls. "Sign up free →" closes the snapshot
-  // (revealing the landing page underneath) then focuses the email input.
-  const ctaRow = `<div class="ps-actions" style="flex-direction:column;align-items:stretch;gap:8px">
-        <span style="font-size:12px;color:var(--text2);text-align:center">Sign up to save this program to your pipeline</span>
-        <button class="ps-btn ps-btn-primary" type="button" style="justify-content:center" onclick="closeProgramSnapshot();showAuthModal()">Sign up free →</button>
-      </div>`;
+  // CTA replaces the pipeline controls (no account → can't save). "Sign up …"
+  // closes the snapshot (revealing the landing page underneath) then opens auth.
+  const signUpBtn = `<button class="ps-btn ps-btn-primary" type="button" onclick="closeProgramSnapshot();showAuthModal()">Sign up to save this program →</button>`;
 
   const html = `<div class="ps-overlay" id="ov-prog-snap" onclick="if(event.target===this)closeProgramSnapshot()">
     <div class="ps-card" role="dialog" aria-modal="true" aria-label="${esc(p.org)} — ${esc(p.name)}">
       <div class="ps-header">
-        <div class="ps-header-main"><span class="ps-company">${esc(p.org)}</span><span class="ps-progname">${esc(p.name)}</span></div>
+        <div class="ps-header-main"><span style="font-size:18px;font-weight:700;color:var(--text)">${esc(p.org)}</span><span style="color:var(--text3);margin:0 6px">·</span><span style="font-size:14px;font-weight:400;color:var(--text2)">${esc(p.name)}</span></div>
         <div class="ps-header-right">
           ${badgeHtml}
           <button class="ps-close" type="button" onclick="closeProgramSnapshot()" aria-label="Close">✕</button>
         </div>
       </div>
-      <div class="ps-facts"><span>${locFact}</span><span>${visaFact}</span><span>${dlFact}</span></div>
-      ${descHtml}
-      ${visitRow}
-      ${ctaRow}
+      <div class="ps-card-body">
+        ${_psGridHtml(p, badgeHtml)}
+        ${_psAboutHtml(desc)}
+        <div class="ps-actions">
+          <div class="ps-actions-side">${visitBtn}</div>
+          <div class="ps-actions-side">${signUpBtn}</div>
+        </div>
+      </div>
     </div>
   </div>`;
 
@@ -4440,6 +4445,21 @@ function openProgramSnapshotPublic(p){
 async function _psAddToPipeline(progId){
   await addProgramToApplications(progId);              // DB save + table re-render + its own toast
   if(document.getElementById('ov-prog-snap')) openProgramSnapshot(progId);   // only if still open
+}
+
+// "Find Alumni →" — jump to the in-app Alumni Finder pre-filtered to this company.
+// Closes the snapshot, switches to Networking → Alumni, drops the company name into
+// the finder's search box, then re-renders. Signed-in only — the public modal never
+// shows this button, and showPage() would gate a signed-out user back to the landing.
+function _psFindAlumni(progId){
+  const { p } = _psResolve(progId);
+  if(!p) return;
+  closeProgramSnapshot();
+  showPage('networking');
+  setNetworkingSubview('alumni');
+  const box = document.getElementById('alumni-prog-search');
+  if(box) box.value = p.org || '';
+  if(typeof renderAlumniSearch === 'function') renderAlumniSearch();
 }
 
 // Auto-save the user's per-application deadline/notes from the snapshot on blur.
