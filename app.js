@@ -2353,14 +2353,14 @@ const ALL_MBA_SCHOOLS = [
   {key:'lbs',label:'London Business School (LBS)',li:'london-business-school'},
   {key:'iese',label:'IESE Business School',li:'iese-business-school'},
   {key:'ie',label:'IE Business School',li:'ie-business-school'},
-  {key:'oxford',label:'Oxford Saïd Business School',li:'said-business-school'},
+  {key:'oxford',label:'Oxford Saïd Business School',li:'oxfordsbs'},  // fixed: 'said-business-school' is not the Oxford page; verified LinkedIn school slug is 'oxfordsbs' (/school/oxfordsbs/people)
   {key:'cambridge',label:'Cambridge Judge Business School',li:'cambridge-judge-business-school'},
   {key:'bocconi',label:'SDA Bocconi School of Management',li:'sda-bocconi-school-of-management'},
   {key:'mannheim',label:'Mannheim Business School',li:'mannheim-business-school'},
   {key:'wbs',label:'Warwick Business School',li:'warwick-business-school'},
-  {key:'imperial',label:'Imperial College Business School',li:'imperial-college-business-school'},
-  {key:'cranfield',label:'Cranfield School of Management',li:'cranfield-school-of-management'},
-  {key:'rsm',label:'Rotterdam School of Management (RSM)',li:'rotterdam-school-of-management'},
+  {key:'imperial',label:'Imperial College Business School',li:'imperial-business-school'},  // fixed: school rebranded to "Imperial Business School" (eff. Apr 2025); current LinkedIn slug is 'imperial-business-school' (old 'imperial-college-business-school' reflected the pre-rebrand name)
+  {key:'cranfield',label:'Cranfield School of Management',li:'cranfieldschoolofmanagement'},  // fixed: LinkedIn slug has no hyphens — verified /school/cranfieldschoolofmanagement/people
+  {key:'rsm',label:'Rotterdam School of Management (RSM)',li:'rotterdam-school-of-management-erasmus-university'},  // fixed: canonical LinkedIn page includes '-erasmus-university'
   {key:'tias',label:'TIAS School for Business and Society',li:'tias-school-for-business-and-society'},
   {key:'vlerick',label:'Vlerick Business School',li:'vlerick-business-school'},
   {key:'alba',label:'ALBA Graduate Business School',li:'alba-graduate-business-school'},
@@ -2371,7 +2371,7 @@ const ALL_MBA_SCHOOLS = [
   {key:'audencia',label:'Audencia Business School',li:'audencia'},
   {key:'neoma',label:'NEOMA Business School',li:'neoma-business-school'},
   {key:'kedge',label:'KEDGE Business School',li:'kedge-business-school'},
-  {key:'escp',label:'ESCP Business School',li:'escp-europe'},
+  {key:'escp',label:'ESCP Business School',li:'escp-business-school'},  // fixed: rebranded from "ESCP Europe" (2020); current slug is 'escp-business-school'
   {key:'ebs',label:'EBS Universität für Wirtschaft und Recht',li:'ebs-university'},
   {key:'whu',label:'WHU – Otto Beisheim School of Management',li:'whu-otto-beisheim-school-of-management'},
   {key:'hws',label:'HHL Leipzig Graduate School of Management',li:'hhl-leipzig-graduate-school-of-management'},
@@ -2388,6 +2388,22 @@ const ALL_MBA_SCHOOLS = [
 ];
 const SCHOOL_LABELS=Object.fromEntries(ALL_MBA_SCHOOLS.map(s=>[s.key,s.label]));
 const SCHOOL_LI_IDS=Object.fromEntries(ALL_MBA_SCHOOLS.map(s=>[s.key,s.li]));
+
+// ─── Part 1: one-time LinkedIn school-slug audit (runs on boot) ───────────────
+// Logs every school's /school/{slug}/people/ URL so a bad or missing slug is
+// obvious in the console. Slugs were verified against live LinkedIn school pages
+// on 2026-06-05; fixes applied this pass: oxford, imperial, cranfield, rsm, escp
+// (see the inline notes on those entries above).
+console.log('[AlumniQC] School LinkedIn slug audit:');
+ALL_MBA_SCHOOLS.forEach(s => {
+  if (s.li) {
+    console.log('  ✓', s.label, '→ https://www.linkedin.com/school/' + s.li + '/people/');
+  } else {
+    console.log('  ✗', s.label, '→ NO SLUG (alumni search will use broad fallback)');
+  }
+});
+console.log('[AlumniQC]', ALL_MBA_SCHOOLS.filter(s => s.li).length, 'schools with slugs,',
+  ALL_MBA_SCHOOLS.filter(s => !s.li).length, 'without');
 
 // ═══ PHASE 8: EMAIL DOMAIN → SCHOOL AUTO-DETECT ═══
 // Used during onboarding to pre-select the user's school based on their login email
@@ -4694,6 +4710,18 @@ function _refreshSidebarBadges(){
 function renderAlumniSearch(){
   const container = document.getElementById('alumni-search-rows');
   if(!container) return;
+
+  // Part 3: one-time CSS so the mobile copy buttons (.al-copy-btn) stay hidden on
+  // desktop (via their inline display:none) but appear at ≤768px — where LinkedIn's
+  // mobile app strips the ?keywords= filter from /school/ deep links. styles.css is
+  // off-limits for this task, so the rule is injected here once.
+  if (!document.getElementById('al-copy-style')) {
+    const st = document.createElement('style');
+    st.id = 'al-copy-style';
+    st.textContent = '@media (max-width: 768px) { .al-copy-btn { display: inline-block !important; } }';
+    document.head.appendChild(st);
+  }
+
   _syncPipelineToggleUI();   // Task 27D: keep the alumni My-Pipeline pill in lockstep with shared state
   const q = (document.getElementById('alumni-prog-search')||{}).value?.toLowerCase()||'';
   const school = activeAlumniSchool;
@@ -4734,6 +4762,20 @@ function renderAlumniSearch(){
     return;
   }
 
+  // Part 3: build a mobile copy button. The query text lives inside a single-quoted
+  // JS string within a double-quoted onclick, so it must be escaped for BOTH layers:
+  // HTML entities for the attribute (& " < >) and JS-string escaping for \ and '.
+  // NOTE: we must NOT use &#39; for the apostrophe — the HTML parser would decode it
+  // back to ' and break the JS string for orgs like "Moody's" or "L'Oréal".
+  const _alCopyBtn = txt => {
+    const safe = String(txt)
+      .replace(/&/g,'&amp;').replace(/"/g,'&quot;')
+      .replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/\\/g,'\\\\').replace(/'/g,"\\'")
+      .replace(/[\r\n]+/g,' ');
+    return `<button class="al-copy-btn" onclick="event.stopPropagation();navigator.clipboard.writeText('${safe}').then(()=>toast('✓ Copied — paste into LinkedIn search'))" title="Copy search for mobile" style="display:none; font-size:11px; padding:3px 7px; border:1px solid var(--border); border-radius:6px; background:var(--bg3); cursor:pointer; margin-left:4px; vertical-align:middle">📋</button>`;
+  };
+
   const STATUS_MAP = {open:['s-open','OPEN'], rolling:['s-rolling','ROLLING'], watch:['s-watch','OPENING SOON'], closed:['s-closed','CLOSED']};
 
   container.innerHTML = `<div style="display:flex;flex-direction:column;gap:10px">${filtered.map(p => {
@@ -4753,10 +4795,10 @@ function renderAlumniSearch(){
       searchChips = `
         <a href="${schoolToCompanyUrl}" target="_blank" rel="noopener noreferrer" class="al-mini-chip school" title="Open ${schoolLabel}'s alumni page filtered for ${p.org}">
           <span class="al-mini-chip-star">★</span><span>${schoolShort} alumni at ${p.org}</span><span class="al-mini-chip-arrow">↗</span>
-        </a>
+        </a>${_alCopyBtn(`${schoolLabel} ${p.org} alumni LinkedIn`)}
         <a href="${companySideUrl}" target="_blank" rel="noopener noreferrer" class="al-mini-chip school" title="LinkedIn people search for ${p.org} employees mentioning ${schoolShort}">
           <span class="al-mini-chip-star">★</span><span>${p.org} people from ${schoolShort}</span><span class="al-mini-chip-arrow">↗</span>
-        </a>`;
+        </a>${_alCopyBtn(`${p.org} ${schoolShort}`)}`;
     } else {
       const broadUrl = `https://www.linkedin.com/search/results/people/?keywords=${orgEnc}`;
       searchChips = `
@@ -4809,6 +4851,10 @@ function renderAlumniSearch(){
       </div>
     </div>`;
   }).join('')}</div>`;
+
+  // Part 4: render diagnostic — how many cards rendered and which school slug drove
+  // the alumni searches (or NONE when no school is selected).
+  console.log('[AlumniQC] rendered', filtered.length, 'cards, school:', activeAlumniSchool, 'slug:', slug || 'NONE');
 }
 
 // ─── Connection request template modal ───────────────────────────
