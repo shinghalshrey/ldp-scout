@@ -680,6 +680,11 @@ function onSignOut(){
   resumeLastScanAt = null;   // Phase 7
   // Task 19.2.3: clear last-page so next signin doesn't restore previous user's tab
   try { localStorage.removeItem('ldps_last_page'); } catch {}
+  // Task TC — clear the per-domain program cache so a different school's user
+  // can't briefly see the previous user's school-exclusive programs via the
+  // stale-while-revalidate path before the fresh Supabase query lands.
+  try { localStorage.removeItem('ldps_progs'); } catch {}
+  console.log('[Auth] program cache cleared on sign-out');
   // Task TC — reset per-session UI state so the next user starts clean.
   _scanLoadedOnce = false;
   _deadlinesView = false;
