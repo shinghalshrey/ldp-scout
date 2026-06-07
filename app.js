@@ -1301,6 +1301,8 @@ async function loadUserProfile(){
         hints_dismissed:         data.hints_dismissed         || [],
         digest_opt_in:           !!data.digest_opt_in
       };
+      console.log('[OB-CLEANUP] loaded mba_year:', data.mba_year);
+      _reflectMbaYearInForms();
       activeAlumniSchool = data.school_key || activeAlumniSchool;
     } else {
       // First-time user — create a stub profile row
@@ -2091,6 +2093,9 @@ function onbOpen(){
   // Pre-fill name from existing profile if present (rare — only if a partial save happened earlier)
   const nameEl = document.getElementById('onb-name');
   if(nameEl) nameEl.value = userProfile?.full_name || '';
+  // OB-CLEANUP — ensure the MBA start year dropdown exists + reflects any saved value.
+  _onbEnsureYearField();
+  _reflectMbaYearInForms();
   const fileDisp = document.getElementById('onb-file-name-display');
   if(fileDisp){ fileDisp.style.display='none'; fileDisp.textContent=''; }
   const status = document.getElementById('onb-step3-status');
@@ -2181,11 +2186,51 @@ function _onbValidateName(){
   nextBtn.style.opacity = ok ? '1' : '0.5';
 }
 
+// OB-CLEANUP — shared <option> list for the MBA start year dropdowns (2024–2028).
+function _mbaYearOptionsHtml(){
+  return [2024,2025,2026,2027,2028].map(y => '<option value="'+y+'">'+y+'</option>').join('');
+}
+
+// OB-CLEANUP — push the saved mba_year into whichever year dropdowns are mounted.
+// Safe to call before the dropdowns exist (no-op) and on every profile reload.
+function _reflectMbaYearInForms(){
+  const val = (userProfile && userProfile.mba_year != null) ? String(userProfile.mba_year) : '';
+  const onbEl  = document.getElementById('onb-mba-year');
+  if(onbEl)  onbEl.value = val;
+  const profEl = document.getElementById('profile-mba-year');
+  if(profEl) profEl.value = val;
+}
+
+// OB-CLEANUP — inject the optional "MBA Start Year" dropdown under the name field
+// on onboarding step 1. Built in JS (index.html is off-limits) and idempotent, so
+// reopening onboarding never duplicates it. Inherits .fg select styling from styles.css.
+function _onbEnsureYearField(){
+  if(document.getElementById('onb-mba-year')) return;
+  const nameInput = document.getElementById('onb-name');
+  if(!nameInput) return;
+  const nameField = nameInput.closest('.fg') || nameInput.parentElement;
+  if(!nameField) return;
+  const fg = document.createElement('div');
+  fg.className = 'fg full';
+  fg.style.marginTop = '16px';
+  fg.innerHTML =
+    '<label>MBA Start Year</label>' +
+    '<select id="onb-mba-year">' +
+      '<option value="">Select year (optional)</option>' +
+      _mbaYearOptionsHtml() +
+    '</select>';
+  nameField.insertAdjacentElement('afterend', fg);
+}
+
 async function onbNext(){
   if(_onbStep === 1){
     const val = (document.getElementById('onb-name').value || '').trim();
     if(!val){ toast('Please enter your name to continue.'); return; }
-    await saveUserProfile({ full_name: val });
+    // OB-CLEANUP — capture the optional MBA start year alongside the name.
+    const yearEl = document.getElementById('onb-mba-year');
+    const yearVal = yearEl ? (yearEl.value || '') : '';
+    console.log('[OB-CLEANUP] saving mba_year:', yearVal);
+    await saveUserProfile({ full_name: val, mba_year: yearVal || null });
     onbGoto(2);
   } else if(_onbStep === 2){
     if(!_onbSchoolKey){ toast('Please pick your school to continue.'); return; }
@@ -2716,6 +2761,9 @@ function openProfileModal(){
   _profileSelectedSchool = (userProfile && userProfile.school_key)
     ? { key: userProfile.school_key, label: userProfile.school_label || '' }
     : null;
+  // OB-CLEANUP — ensure the MBA start year dropdown exists + reflects saved value.
+  _profileEnsureYearField();
+  _reflectMbaYearInForms();
   // Clear password fields and status message every open.
   const pw1 = document.getElementById('profile-pw1'); if(pw1) pw1.value = '';
   const pw2 = document.getElementById('profile-pw2'); if(pw2) pw2.value = '';
@@ -2759,6 +2807,26 @@ function pickProfileSchool(key, label){
   if(input) input.value = label;
   const drop = document.getElementById('profile-school-drop');
   if(drop) drop.style.display = 'none';
+}
+
+// OB-CLEANUP — inject the "MBA start year" dropdown into the profile modal, just
+// below the Business school field. JS-only (index.html is off-limits) and
+// idempotent across reopen. Styled inline to match the modal's other inputs.
+function _profileEnsureYearField(){
+  if(document.getElementById('profile-mba-year')) return;
+  const schoolInput = document.getElementById('profile-school-input');
+  if(!schoolInput) return;
+  const schoolBlock = schoolInput.closest('div');
+  if(!schoolBlock) return;
+  const block = document.createElement('div');
+  block.style.marginBottom = '14px';
+  block.innerHTML =
+    '<label style="display:block;font-size:11px;color:var(--text2);margin-bottom:6px;font-family:var(--sans)">MBA start year</label>' +
+    '<select id="profile-mba-year" style="width:100%;padding:11px 14px;border:1px solid var(--border2);border-radius:8px;font-size:14px;font-family:var(--sans);background:var(--bg3);outline:none;box-sizing:border-box;">' +
+      '<option value="">Not set</option>' +
+      _mbaYearOptionsHtml() +
+    '</select>';
+  schoolBlock.insertAdjacentElement('afterend', block);
 }
 
 async function saveProfileChanges(){
@@ -2817,6 +2885,9 @@ async function saveProfileChanges(){
       updates.school_key   = schoolToSave.key;
       updates.school_label = schoolToSave.label;
     }
+    // OB-CLEANUP — persist MBA start year (blank selection clears it).
+    const yearEl = document.getElementById('profile-mba-year');
+    updates.mba_year = (yearEl && yearEl.value) ? yearEl.value : null;
     await saveUserProfile(updates);
 
     // 2. If a password was entered, push it to Supabase Auth.
