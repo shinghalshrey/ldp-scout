@@ -777,6 +777,29 @@ function updateAuthUI() {
     if (profileBtn) profileBtn.style.display = 'none';
     if (setPwBtn) setPwBtn.style.display = 'none';
   }
+
+  // Task ADMIN — careers-team admins (user_profiles.role === 'admin') get a
+  // "Careers Dashboard" link in the topbar that opens admin.html in a new tab.
+  // index.html is frozen for this task, so the element is created here on demand
+  // rather than hardcoded in the markup. Created once, then shown/hidden on each
+  // call — students and signed-out visitors never see it.
+  const isAdmin = !!(currentUser && userProfile && userProfile.role === 'admin');
+  let adminLink = document.getElementById('admin-dash-link');
+  if (isAdmin && !adminLink) {
+    const topbarRight = document.querySelector('.topbar-right');
+    if (topbarRight) {
+      adminLink = document.createElement('a');
+      adminLink.id = 'admin-dash-link';
+      adminLink.href = 'admin.html';
+      adminLink.target = '_blank';
+      adminLink.rel = 'noopener';
+      adminLink.textContent = '📊 Careers Dashboard';
+      adminLink.title = 'Open the careers team dashboard (admins only)';
+      adminLink.style.cssText = 'padding:6px 12px;border-radius:8px;background:var(--accent-bg);color:var(--accent);border:1px solid rgba(29,106,69,.25);cursor:pointer;font-weight:600;font-size:12px;margin-right:8px;text-decoration:none;font-family:var(--sans);white-space:nowrap;';
+      topbarRight.insertBefore(adminLink, document.getElementById('auth-btn'));
+    }
+  }
+  if (adminLink) adminLink.style.display = isAdmin ? '' : 'none';
 }
 
 async function handleAuth() {
@@ -1289,6 +1312,9 @@ async function loadUserProfile(){
         school_key:  data.school_key,
         school_label:data.school_label,
         mba_year:    data.mba_year,
+        // Task ADMIN — surface role so updateAuthUI() can show the careers-team
+        // dashboard link for admins. Defaults to 'student' when the column is null.
+        role:        data.role || 'student',
         target_geos: data.target_geos || [],
         target_fns:  data.target_fns || [],
         goals_note:  data.goals_note,
