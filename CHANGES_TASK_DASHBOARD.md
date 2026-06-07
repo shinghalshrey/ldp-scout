@@ -131,6 +131,25 @@ renders empty/zero instead of crashing the whole run.
 
 ---
 
+## Daily automation (9am)
+
+A Windows Scheduled Task regenerates the dashboard every morning at 9:00 AM.
+
+- **Task name:** `LDP Scout Dashboard Daily` (runs only when logged on; catches up if the PC was off at 9).
+- **Wrapper:** `run-dashboard.cmd` — cd's here, runs the generator, appends output to `dashboard-gen.log` (gitignored). Reads `SUPABASE_SERVICE_KEY` from the process env, falling back to the persisted User-scope value.
+- **Key:** stored once in the user environment via `setx SUPABASE_SERVICE_KEY "<service_role key>"`. To change it later, re-run `setx` — the task picks it up on its next run.
+- **Verified:** triggered manually, `LastTaskResult = 0`, produced `Dashboard generated: 43 users, ...`.
+
+Manage it (PowerShell):
+```powershell
+Get-ScheduledTaskInfo    -TaskName "LDP Scout Dashboard Daily"   # next/last run + result
+Start-ScheduledTask      -TaskName "LDP Scout Dashboard Daily"   # run now
+Disable-ScheduledTask    -TaskName "LDP Scout Dashboard Daily"   # pause
+Unregister-ScheduledTask -TaskName "LDP Scout Dashboard Daily"   # remove
+```
+
+> Note: `dashboard-gen.log` may render `—`/`·` as garbled characters (console code-page quirk, log file only). The dashboard HTML is UTF-8 and displays correctly.
+
 ## Files
 
 - **Added:** `generate-dashboard.js`
