@@ -1,286 +1,289 @@
-# LDP Scout — Database Schema
+# DB_SCHEMA.md — LDP Scout
 
-Supabase Postgres. All app tables live in `public` schema. RLS is enabled on every user-data table; the anon key is public, so RLS is the only thing protecting user data.
+Generated from live Supabase introspection on **2026-06-07** (updated from Session 3 baseline).
+This document describes the actual deployed schema.
 
-**Project URL:** `https://kqtarrgtxqpamlfrkgiv.supabase.co`
-
----
-
-## Tables (verified in Supabase Studio, May 18 2026)
-
-7 tables in `public`, all with RLS on (`relrowsecurity = true`).
-
-### `public.user_profiles`
-
-User profile data, one row per user. Driven by Profile modal.
-
-**RLS policies:**
-- `own_profile_select` (SELECT) — `auth.uid() = user_id`
-- `own_profile_upsert` (INSERT) — `auth.uid() = user_id`
-- `own_profile_update` (UPDATE) — `auth.uid() = user_id`
-
-**Columns (per handover):** `user_id` (PK, FK to `auth.users.id`), `email`, `full_name`, `school_key`, `school_label`, `mba_year`, `target_geos` (text[]), `target_fns` (text[]), `goals_note`, `tours_completed` (jsonb), `hints_dismissed` (jsonb).
-
-**`full_name` is mandatory** going forward (Task 19). Onboarding will not allow proceeding without it. Existing rows with NULL `full_name` will be backfilled by prompting on next sign-in.
-
-No DELETE policy — by design (users can't delete their profile from the UI). If account-deletion is ever added, do it via a Supabase Edge Function with service role, not a client-side DELETE.
-
-Row count (May 18): 10.
+Supabase project: `https://kqtarrgtxqpamlfrkgiv.supabase.co`
+Schema: `public`
 
 ---
 
-### `public.user_scan_history`
+## 1. Tables — quick reference
 
-One row per completed scan. Written by frontend AFTER both tier + gap AI calls succeed. The proxy reads this for quota enforcement (3-scan free limit).
+| Table | Purpose | PK | Rows | RLS |
+|-------|---------|----|------|-----|
+| `user_profiles` | One row per user, profile + onboarding flags + role | `user_id` | 54 | ✓ |
+| `user_scan_history` | One row per completed AI scan, quota enforcement | `id` | 15 | ✓ |
+| `user_applications` | Kanban pipeline cards — main user-data table | `id` | 106 | ✓ |
+| `user_resumes` | One row per user (upserted), résumé content | `user_id` | 34 | ✓ |
+| `user_contacts` | Networking Tracker contacts | `id` | 4 | ✓ |
+| `programs` | Public LDP catalog | `id` | 428 | ✓ (multi-tenant via `visible_to`) |
+| `program_job_descriptions` | JD content per program | `id` | 0 | ✓ |
+| `community_intel` | Community-contributed program intel | `id` | 0 | ✓ |
 
-**RLS policies (applied Session 3):**
-- `users read own scans` (SELECT) — `auth.uid() = user_id`
-- `users insert own scans` (INSERT) — `auth.uid() = user_id`
-
-No UPDATE/DELETE policies — completed scans are immutable from the user's side.
-
-Row count (May 18): 3.
-
-**Proxy reads via PostgREST HEAD + count=exact** (see `scan.js` `getCompletedScanCount`). RLS scopes the count; the explicit `user_id=eq.<uid>` filter in the URL is belt-and-suspenders.
-
----
-
-### `public.user_applications`
-
-Kanban / shortlist data — one row per program a user has shortlisted or tracked.
-
-**RLS policies:**
-- `own_apps_all` (ALL) — `auth.uid() = user_id`
-
-Single permissive policy covering SELECT/INSERT/UPDATE/DELETE. Pragmatic for Kanban (users need to add, move, and remove cards).
-
-**Columns (verified from `saveApplicationToDB` in `app.js:1615-1629`):**
-
-| Column | Type | Notes |
-|---|---|---|
-| `id` | int (PK) | Auto |
-| `user_id` | uuid | FK to `auth.users.id` |
-| `program_id` | int or null | Matches `programs.id`. Null for ad-hoc applications not in the catalog. |
-| `name` | text | Snapshot of program name at time of save (resists catalog renames) |
-| `org` | text or null | Snapshot of company at time of save |
-| `geo` | text or null | |
-| `status` | text | Pipeline stage: shortlisted / networking / drafting / applied / interview / offer / rejected. Default `'networking'`. |
-| `applied_on` | date or null | |
-| `deadline` | date or null | |
-| `next_step` | text or null | |
-| `contact` | text or null | |
-| `notes` | text or null | |
-| `created_at` | timestamptz | Auto |
-| `updated_at` | timestamptz | Auto (assumed; verify in Supabase Studio if a trigger updates it) |
+`id` types vary by table — see each section. Notable: `user_applications.id` is **uuid**; `programs.id` is **integer**; `user_contacts.id` is **bigint**. Foreign keys must match the referent's type.
 
 ---
 
-### `public.user_resumes`
+## 2. Foreign keys
 
-Stored résumé content per user. Discovered via policy scan.
+The only declared foreign key in the public schema is:
 
-**RLS policies:**
-- `own_resume_all` (ALL) — `auth.uid() = user_id`
+| From | To |
+|------|-----|
+| `user_contacts.related_app_id` (uuid) | `user_applications.id` (uuid) |
 
-**Investigate before Task 4/5:** when is a résumé persisted, what's in the row, do we re-use stored résumés on subsequent scans? If yes, this is relevant to cost optimization (Task 5) — don't re-parse if we already have the text.
+`user_id` columns reference `auth.users(id)` (uuid) implicitly via RLS — there is no declared FK to `auth.users` on any table in `public`.
 
----
-
-### `public.programs`
-
-The 393-program catalog. Public-read. **No write policies — catalog is curated server-side only** (Path A, Task 19.2).
-
-**RLS policies:**
-- `programs are public` (SELECT, public)
-
-(Duplicate `Anyone can read programs` policy was dropped in Session 4.)
-
-**Columns (verified from `app.js:453` SELECT):**
-
-| Column | Type | Notes |
-|---|---|---|
-| `id` | int (PK) | Stable identifier, referenced from `user_applications.program_id` |
-| `program_name` | text | Renders as `name` in client (`p.name`) |
-| `company` | text | Renders as `org` in client |
-| `industry` | text | Renders as `sector` in client. Single-value today; widening to `sectors text[]` queued. |
-| `function` | text | JS-reserved word — code uses bracket access `row['function']`. Single-value today; widening to `functions text[]` queued. |
-| `location` | text | Free-text, often comma- or `·`-separated multi-location |
-| `geo` | text | "europe" / "global" / "uae" — being replaced by `continents text[]` in Task 19.3 |
-| `status` | text | "open" / "rolling" / "watch" — application cycle status |
-| `deadline` | date or null | |
-| `dlnote` | text | Free-text deadline context, e.g. "Opens Sep–Oct annually" |
-| `visa` | bool | Visa sponsorship offered |
-| `url` | text | Apply / program homepage URL — the click-through link rendered in the UI |
-| `tags` | text[] | Free-tagging |
-| `notes` | text | Long-form notes for the row |
-| `program_type` | text | "Full Time" / "Internship" / "" — Phase 16 P2 scraped field |
-| `duration` | text | Free-text duration ("2 years", "24–30 months") — Phase 16 P2 |
-| `description` | text | Phase 16 P2 |
-| `eligibility` | text | Phase 16 P2 |
-| `work_experience` | text | Phase 16 P2 |
-| `target_degree` | text | Phase 16 P2 |
-| `source_url` | text | Provenance — where the row was originally scraped from. Stored, not rendered. |
-
-**Queued additions** (catalog curation task, May 20 2026):
-- `last_verified_at` (timestamptz) — drives the "Verified" badge; only set on rows actually checked
-- `language_required` (text[]) — material filter for European programs (German B2, Local language, etc.)
-- `is_active_cycle` (bool default true) — preserves discontinued program history without deleting rows
-- See PROJECT_OVERVIEW.md for full Wave 2 field list.
-
-To list current columns from the live DB (sanity check before any migration):
-```sql
-SELECT column_name, data_type, is_nullable
-FROM information_schema.columns
-WHERE table_schema = 'public' AND table_name = 'programs'
-ORDER BY ordinal_position;
-```
----
-
-### `public.program_job_descriptions`
-
-JD content keyed to programs. Public-read.
-
-**RLS policies:**
-- `jd_read_all` (SELECT) — public
-
-No insert/update policies — implies content is loaded server-side (via SQL editor or service role), not from the app.
+`program_id` columns on `community_intel`, `program_job_descriptions`, and `user_applications` reference `programs.id` (integer) **logically** but no FK is declared.
 
 ---
 
-### `public.community_intel`
+## 3. `user_profiles`
 
-Community-contributed program intelligence. Read-public, write-own.
+One row per user. PK on `user_id`. RLS enabled.
 
-**RLS policies:**
-- `intel_read_all` (SELECT) — public
-- `intel_write_own` (ALL) — write scoped to `auth.uid() = user_id`
+| Column | Type | Nullable | Default |
+|--------|------|----------|---------|
+| `user_id` | uuid | NO | — |
+| `email` | text | NO | — |
+| `full_name` | text | YES | — |
+| `school_key` | text | YES | — |
+| `school_label` | text | YES | — |
+| `mba_year` | text | YES | — |
+| `target_geos` | text[] | YES | — |
+| `target_fns` | text[] | YES | — |
+| `goals_note` | text | YES | — |
+| `created_at` | timestamptz | YES | `now()` |
+| `updated_at` | timestamptz | YES | `now()` |
+| `onboarding_completed_at` | timestamptz | YES | — |
+| `onboarding_skipped_at` | timestamptz | YES | — |
+| `tours_completed` | jsonb | YES | `'[]'::jsonb` |
+| `hints_dismissed` | jsonb | YES | `'[]'::jsonb` |
+| `digest_opt_in` | boolean | YES | `false` |
+| `role` | text | YES | `'student'` |
 
-**Caution:** because it's read-public, anything any user writes is visible to all users. Don't store anything sensitive here. If you ever add fields like internal contact info or interview content, gate them behind a separate table with stricter RLS.
+Notes:
+- `target_geos`, `target_fns`, `goals_note` exist in schema but are **unused** — no UI collects them (deliberately dropped in Task OB-CLEANUP). Columns retained for backward compatibility.
+- `role` added 2026-06-07. Values: `'student'` (default), `'admin'` (careers team). Used by admin RLS policies for school-scoped cross-user read access.
+- `mba_year` wired into onboarding step 1 and profile modal as of Task OB-CLEANUP.
 
----
-
-## auth.users (Supabase-managed)
-
-`user_metadata` flag the app reads:
-
-- `has_password` (bool) — set when user completes password setup post-OTP. Suppresses the password prompt on subsequent logins. (Mandatory for new users as of Task 9.)
-
-**Issue X status (RESOLVED Session 4):** Original concern was email verification bypass via password signup. Root cause: Supabase "Confirm email" setting was OFF, allowing password-signup to auto-confirm without inbox verification. Resolution: enabled "Confirm email" toggle in Supabase dashboard. Bogus accounts deleted from `auth.users`.
-
-**Defense-in-depth (DONE in Task 9):** Password-signup UI path removed. New users only sign up via OTP, then a mandatory password setup at the end of OTP verification.
-
-To get the current list of password-enabled users:
-```sql
-SELECT email, raw_user_meta_data->>'has_password' AS has_password, created_at
-FROM auth.users
-WHERE (raw_user_meta_data->>'has_password')::boolean = true
-ORDER BY created_at DESC;
-```
-
----
-
-## RPC functions
-
-### `public.email_account_status(p_email text)`
-
-Added Session 4 as prerequisite for Task 9's two-button Sign Up / Sign In landing UI. Returns whether an account exists for the given email, and whether that account has a password set.
-
-```sql
-CREATE OR REPLACE FUNCTION public.email_account_status(p_email text)
-RETURNS TABLE(account_exists boolean, has_password boolean)
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public, auth
-AS $$
-BEGIN
-  RETURN QUERY
-  SELECT
-    true AS account_exists,
-    COALESCE((u.raw_user_meta_data->>'has_password')::boolean, false) AS has_password
-  FROM auth.users u
-  WHERE lower(u.email) = lower(p_email)
-  LIMIT 1;
-  IF NOT FOUND THEN
-    RETURN QUERY SELECT false, false;
-  END IF;
-END;
-$$;
-GRANT EXECUTE ON FUNCTION public.email_account_status(text) TO anon, authenticated;
-```
-
-**Security note:** This RPC leaks "does this email have an account" to anyone with the anon key. Accepted as low-risk in Session 4 — the email-enumeration vector exists in any OTP flow (sending an OTP also reveals account existence via response timing or message wording).
+**Policies:**
+- `own_profile_select` — SELECT where `auth.uid() = user_id`
+- `own_profile_update` — UPDATE where `auth.uid() = user_id`
+- `own_profile_upsert` — INSERT with check `auth.uid() = user_id`
+- `admin_read_profiles` — SELECT where requesting user has `role = 'admin'` AND matching `school_key` (school-scoped admin access)
 
 ---
 
-## Quick verification queries (run periodically)
+## 4. `user_scan_history`
 
-```sql
--- All RLS policies on public schema
-SELECT schemaname, tablename, policyname, cmd
-FROM pg_policies
-WHERE schemaname = 'public'
-ORDER BY tablename, policyname;
+One row per completed AI résumé scan. PK on `id`. RLS enabled.
 
--- Verify RLS is on for all user-data tables
-SELECT relname, relrowsecurity
-FROM pg_class
-WHERE relnamespace = 'public'::regnamespace
-  AND relkind = 'r';
+| Column | Type | Nullable | Default |
+|--------|------|----------|---------|
+| `id` | uuid | NO | `gen_random_uuid()` |
+| `user_id` | uuid | NO | — |
+| `result` | jsonb | NO | — |
+| `resume_chars` | integer | YES | — |
+| `program_count` | integer | YES | — |
+| `created_at` | timestamptz | YES | `now()` |
 
--- Row counts (sanity check)
-SELECT 'user_scan_history' AS table, count(*) FROM public.user_scan_history
-UNION ALL
-SELECT 'user_profiles', count(*) FROM public.user_profiles
-UNION ALL
-SELECT 'user_applications', count(*) FROM public.user_applications
-UNION ALL
-SELECT 'user_resumes', count(*) FROM public.user_resumes;
+Index: `idx_scan_history_user`.
 
--- Recent signups (abuse monitoring)
-SELECT id, email, created_at, email_confirmed_at
-FROM auth.users
-ORDER BY created_at DESC
-LIMIT 20;
-
--- Users with no completed scan (signed up but never used)
-SELECT u.email, u.created_at
-FROM auth.users u
-LEFT JOIN public.user_scan_history h ON h.user_id = u.id
-WHERE h.id IS NULL
-ORDER BY u.created_at DESC;
-
--- Users with no full_name (need backfill prompt)
-SELECT u.email, p.full_name, u.created_at
-FROM auth.users u
-LEFT JOIN public.user_profiles p ON p.user_id = u.id
-WHERE p.full_name IS NULL OR p.full_name = ''
-ORDER BY u.created_at DESC;
-```
+**Policies:**
+- `users read own scans` — SELECT where `auth.uid() = user_id`
+- `users insert own scans` — INSERT with check `auth.uid() = user_id`
+- `admin_read_scans` — SELECT where requesting user has `role = 'admin'` AND matching `school_key` via join to `user_profiles`
 
 ---
 
-## GRANTs applied (Session 3, re-run if you add new tables)
+## 5. `user_applications`
 
-```sql
-GRANT USAGE ON SCHEMA public TO authenticated;
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.user_scan_history TO authenticated;
-GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO authenticated;
-```
+Main user-data table. One row per pipeline card. PK on `id` (uuid). RLS enabled.
 
-The schema-wide sequence GRANT covers any sequences in `public`. If you add a new table with a sequence and find inserts failing with "permission denied for sequence", re-run the sequence GRANT.
+| Column | Type | Nullable | Default |
+|--------|------|----------|---------|
+| `id` | uuid | NO | `gen_random_uuid()` |
+| `user_id` | uuid | NO | — |
+| `program_id` | integer | YES | — |
+| `name` | text | NO | — |
+| `org` | text | YES | — |
+| `geo` | text | YES | — |
+| `fn` | text | YES | — |
+| `sector` | text | YES | — |
+| `url` | text | YES | — |
+| `visa` | boolean | YES | — |
+| `status` | text | NO | `'networking'` |
+| `applied_on` | date | YES | — |
+| `deadline` | date | YES | — |
+| `next_step` | text | YES | — |
+| `contact` | text | YES | — |
+| `notes` | text | YES | — |
+| `created_at` | timestamptz | YES | `now()` |
+| `updated_at` | timestamptz | YES | `now()` |
+
+Indexes: `idx_user_apps_status`, `idx_user_apps_user`.
+
+**Pipeline stages (status values):** `shortlisted → networking → drafting → applied → interview → offer → rejected`. Defined in `STAGES` array in `app.js`.
+
+**Policies:**
+- `own_apps_all` — ALL where `auth.uid() = user_id`, check `auth.uid() = user_id`
+- `admin_read_apps` — SELECT where requesting user has `role = 'admin'` AND matching `school_key` via join to `user_profiles`
 
 ---
 
-## Maintenance notes
+## 6. `user_resumes`
 
-- **Service role key** never appears in any client code, any pinned file, or any chat. If leaked, rotate in Supabase Settings → API immediately.
-- **Anon key** in `app.js:14` and `scan.js` is intentionally public.
-- **JWT secret** (HS256 legacy fallback) lives in Vercel env var `SUPABASE_JWT_SECRET`. ES256 verification via JWKS is primary; HS256 is fallback only.
-- When adding a new table: enable RLS *before* inserting any rows, write policies, test from an anon session that you can't read others' data, then enable client writes.
+One row per user (upserted). PK on `user_id`. RLS enabled.
+
+| Column | Type | Nullable | Default |
+|--------|------|----------|---------|
+| `user_id` | uuid | NO | — |
+| `file_name` | text | YES | — |
+| `raw_text` | text | NO | — |
+| `char_count` | integer | YES | — |
+| `parsed` | jsonb | YES | — |
+| `last_scan_at` | timestamptz | YES | — |
+| `uploaded_at` | timestamptz | YES | `now()` |
+
+**Policies:**
+- `own_resume_all` — ALL where `auth.uid() = user_id`, check `auth.uid() = user_id`
+- `admin_read_resumes` — SELECT where requesting user has `role = 'admin'` AND matching `school_key` via join to `user_profiles`. **GDPR note:** admin dashboard should only show `user_id` existence (Y/N), NOT `raw_text` content.
 
 ---
 
-## Known cleanup items (low priority)
+## 7. `user_contacts`
 
-1. Document `user_resumes` row shape and write triggers — relevant to Task 5 cost optimization.
-2. Backfill `full_name` for the 10 existing `user_profiles` rows (Task 19 onboarding flow will prompt on next sign-in if NULL).
+Networking Tracker data. PK on `id` (bigint identity). RLS enabled.
+
+| Column | Type | Nullable | Default |
+|--------|------|----------|---------|
+| `id` | bigint | NO | identity |
+| `user_id` | uuid | NO | — |
+| `full_name` | text | NO | — |
+| `company` | text | YES | — |
+| `role_title` | text | YES | — |
+| `linkedin_url` | text | YES | — |
+| `email` | text | YES | — |
+| `status` | text | NO | `'identified'` |
+| `last_contacted` | date | YES | — |
+| `follow_up_date` | date | YES | — |
+| `notes` | text | YES | — |
+| `related_app_id` | uuid | YES | — |
+| `created_at` | timestamptz | YES | `now()` |
+| `updated_at` | timestamptz | YES | `now()` |
+
+FK: `related_app_id` → `user_applications.id`.
+
+**Contact stages (status values):** `identified → reached_out → responded → call_scheduled → call_done → referral_received`.
+
+**Policies:**
+- `own_contacts_all` — ALL where `auth.uid() = user_id`, check `auth.uid() = user_id`
+
+---
+
+## 8. `programs`
+
+Public LDP catalog. PK on `id` (integer, auto-increment). RLS enabled with multi-tenant visibility.
+
+| Column | Type | Nullable | Default |
+|--------|------|----------|---------|
+| `id` | integer | NO | `nextval('programs_id_seq')` |
+| `company` | text | NO | — |
+| `program_name` | text | NO | — |
+| `industry` | text | YES | — |
+| `function` | text | YES | — |
+| `location` | text | YES | — |
+| `duration` | text | YES | — |
+| `deadline` | date | YES | — |
+| `salary` | text | YES | — |
+| `visa` | boolean | YES | `false` |
+| `url` | text | YES | — |
+| `tier` | integer | YES | `2` |
+| `school_partners` | text[] | YES | — |
+| `last_verified` | text | YES | `'May 2026'` |
+| `created_at` | timestamptz | YES | `now()` |
+| `geo` | text | YES | — |
+| `dlnote` | text | YES | — |
+| `status` | text | YES | — |
+| `tags` | text[] | YES | — |
+| `notes` | text | YES | — |
+| `program_type` | text | YES | — |
+| `description` | text | YES | — |
+| `eligibility` | text | YES | — |
+| `target_degree` | text | YES | — |
+| `work_experience` | text | YES | — |
+| `source_url` | text | YES | — |
+| `logo_url` | text | YES | — |
+| `last_verified_at` | timestamptz | YES | — |
+| `language_required` | text[] | YES | — |
+| `is_active_cycle` | boolean | YES | `true` |
+| `locations` | text[] | YES | — |
+| `countries` | text[] | YES | `'{}'` |
+| `continents` | text[] | YES | `'{}'` |
+| `visible_to` | text[] | YES | `ARRAY['all']` |
+
+Notes:
+- `visible_to` controls multi-tenant visibility. `'all'` = visible to everyone. `'{esade}'` = visible only to users with matching `school_key`. 18 programs are currently ESADE-exclusive.
+- `countries` and `continents` are derived from `locations` for geographic filtering.
+
+**Policies:**
+- `programs_select` — SELECT where `'all' = ANY(visible_to)` OR (user is authenticated AND user's `school_key` matches any value in `visible_to`)
+
+---
+
+## 9. `program_job_descriptions`
+
+JD content per program. PK on `id` (uuid). RLS enabled. Currently empty (0 rows).
+
+| Column | Type | Nullable | Default |
+|--------|------|----------|---------|
+| `id` | uuid | NO | `gen_random_uuid()` |
+| `program_id` | integer | NO | — |
+| `program_name` | text | NO | — |
+| `source_url` | text | YES | — |
+| `jd_text` | text | NO | — |
+| `parsed_reqs` | jsonb | YES | — |
+| `scraped_at` | timestamptz | YES | `now()` |
+| `verified_at` | timestamptz | YES | — |
+| `active` | boolean | YES | `true` |
+
+**Policies:**
+- `jd_read_all` — SELECT where authenticated
+
+---
+
+## 10. `community_intel`
+
+Community-contributed program intel. PK on `id` (uuid). RLS enabled. Currently empty (0 rows).
+
+| Column | Type | Nullable | Default |
+|--------|------|----------|---------|
+| `id` | uuid | NO | `gen_random_uuid()` |
+| `user_id` | uuid | NO | — |
+| `program_id` | integer | NO | — |
+| `intel_type` | text | NO | — |
+| `content` | text | NO | — |
+| `is_anonymous` | boolean | YES | `false` |
+| `upvotes` | integer | YES | `0` |
+| `created_at` | timestamptz | YES | `now()` |
+
+**Policies:**
+- `intel_read_all` — SELECT where authenticated
+- `intel_write_own` — ALL where `auth.uid() = user_id`
+
+---
+
+## 11. Admin RLS policies (added 2026-06-07)
+
+School-scoped read access for careers team administrators. An admin user (`role = 'admin'` in `user_profiles`) can SELECT rows from student tables where the student's `school_key` matches the admin's `school_key`. No UPDATE/INSERT/DELETE access — admins can observe but not modify student data.
+
+| Policy | Table | Access |
+|--------|-------|--------|
+| `admin_read_profiles` | `user_profiles` | SELECT same-school profiles |
+| `admin_read_apps` | `user_applications` | SELECT same-school applications (via join to `user_profiles`) |
+| `admin_read_scans` | `user_scan_history` | SELECT same-school scan rows (via join to `user_profiles`) |
+| `admin_read_resumes` | `user_resumes` | SELECT same-school résumé rows (via join to `user_profiles`) |
+
+**GDPR note:** The admin dashboard UI should only surface résumé existence (Y/N) and scan counts — NOT `raw_text` from `user_resumes` or `result` JSON from `user_scan_history`.
