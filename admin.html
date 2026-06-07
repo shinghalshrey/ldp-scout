@@ -73,8 +73,8 @@
   .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
   .section-label .sl-note { font-family: var(--sans); font-style: normal; font-size: 11px; color: var(--text3); font-weight: 400; }
 
-  /* ── KPI row (5 cards) ── */
-  .kpi-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 30px; }
+  /* ── KPI row (auto-fill so the 7 cards wrap naturally) ── */
+  .kpi-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 14px; margin-bottom: 30px; }
   .kpi-card { background: var(--white); border: 1px solid var(--border); border-radius: 10px; padding: 18px 18px 16px; position: relative; overflow: hidden; }
   .kpi-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--teal); }
   .kpi-card.accent::before { background: var(--green); }
@@ -165,6 +165,16 @@
   .funnel-bar span { font-size: 12px; font-weight: 600; color: #fff; white-space: nowrap; }
   .funnel-num { font-size: 13px; font-weight: 600; color: var(--text); width: 28px; text-align: right; flex-shrink: 0; }
 
+  /* activation funnel — extends .funnel for wider adoption labels + a count·% value */
+  .funnel.act { gap: 11px; }
+  .funnel.act .funnel-label { width: 140px; font-size: 12.5px; }
+  .funnel.act .funnel-num { width: auto; min-width: 80px; text-align: left; padding-left: 2px; color: var(--text2); }
+
+  /* global cohort filter bar (under the intro note — drives every section below) */
+  .cohort-bar { display: flex; align-items: center; gap: 12px; background: var(--white); border: 1px solid var(--border); border-radius: 10px; padding: 12px 18px; margin-bottom: 28px; flex-wrap: wrap; }
+  .cohort-bar-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--text2); }
+  .cohort-bar-note { font-size: 12px; color: var(--text3); margin-left: auto; }
+
   .kicker { padding: 14px 22px; font-size: 11.5px; color: var(--text2); border-top: 1px solid var(--cream2); line-height: 1.6; }
   .kicker strong { color: var(--green); }
 
@@ -172,13 +182,11 @@
   .dash-footer { text-align: center; padding: 20px 40px; font-size: 11.5px; color: var(--text3); border-top: 1px solid var(--border); margin-top: 8px; line-height: 1.7; max-width: 760px; margin-left: auto; margin-right: auto; }
 
   @media (max-width: 1100px) {
-    .kpi-row { grid-template-columns: repeat(3, 1fr); }
     .two-col { grid-template-columns: 1fr; }
   }
   @media (max-width: 720px) {
     .dash-body { padding: 24px 18px 48px; }
     .dash-header { padding: 22px 20px; }
-    .kpi-row { grid-template-columns: repeat(2, 1fr); }
   }
 </style>
 </head>
@@ -226,18 +234,31 @@
       </p>
     </div>
 
-    <!-- KPIs -->
-    <div class="section-label">Headline metrics</div>
+    <!-- Global cohort filter — drives every section below -->
+    <div class="cohort-bar">
+      <label class="cohort-bar-label" for="cohort-year">Cohort</label>
+      <select id="cohort-year" class="filter-select" onchange="onCohort()">
+        <option value="">All cohorts</option>
+      </select>
+      <span class="cohort-bar-note" id="cohort-bar-note"></span>
+    </div>
+
+    <!-- ═══ SECTION A · PRODUCT ADOPTION ═══ -->
+    <div class="section-label">Product adoption</div>
     <div class="kpi-row" id="kpi-row"></div>
 
-    <!-- Student activity -->
+    <div class="section-label">Activation funnel <span class="sl-note">· share of the cohort reaching each milestone</span></div>
+    <div class="chart-card" style="margin-bottom:30px">
+      <div class="funnel act" id="funnel-act"></div>
+    </div>
+
+    <!-- ═══ SECTION B · STUDENT PROGRESS ═══ -->
     <div class="section-label">Student activity</div>
     <div class="table-card">
       <div class="table-card-header">
         <h3>Student activity</h3>
         <div class="filter-bar">
           <input id="flt-text" class="filter-input" type="text" placeholder="Search name or email…" oninput="onFilter()">
-          <select id="flt-year" class="filter-select" onchange="onFilter()"><option value="">All MBA years</option></select>
           <span class="filter-count" id="flt-count"></span>
           <button class="filter-clear" id="flt-clear" onclick="clearFilters()" style="display:none">Clear</button>
         </div>
@@ -251,7 +272,7 @@
       <div class="kicker">Click any student to see the programs they're tracking and the stage each sits at. Résumé shows upload status only and scans show a count — résumé content and scan results are never exposed here.</div>
     </div>
 
-    <!-- Program targeting -->
+    <!-- ═══ SECTION C · PROGRAM INTELLIGENCE ═══ -->
     <div class="section-label">Program targeting <span class="sl-note">· most-tracked across your school</span></div>
     <div class="table-card">
       <div class="table-card-header"><h3>Programs by students tracking</h3><span class="td-muted" id="targeting-meta"></span></div>
@@ -263,7 +284,18 @@
       </div>
     </div>
 
-    <!-- Application pipeline -->
+    <div class="section-label">Upcoming deadlines <span class="sl-note">· applications with deadlines in the next 30 days</span></div>
+    <div class="table-card">
+      <div class="table-card-header"><h3>Deadlines in the next 30 days</h3><span class="td-muted" id="deadlines-meta"></span></div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th>Program</th><th>Student</th><th>Deadline</th><th>Days left</th><th>Stage</th></tr></thead>
+          <tbody id="deadlines-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ═══ SECTION D · PIPELINE + COHORT COMPARISON ═══ -->
     <div class="section-label">Application pipeline</div>
     <div class="two-col">
       <div class="chart-card">
@@ -278,6 +310,28 @@
             <tbody id="pipeline-tbody"></tbody>
           </table>
         </div>
+      </div>
+    </div>
+
+    <div class="section-label">Cohort summary <span class="sl-note">· all cohorts, side by side (ignores the filter above)</span></div>
+    <div class="table-card">
+      <div class="table-card-header"><h3>Engagement by MBA year</h3><span class="td-muted" id="cohort-summary-meta"></span></div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th>MBA Year</th><th class="th-right">Students</th><th class="th-right">Résumé %</th><th class="th-right">Scanned %</th><th class="th-right">Tracking %</th><th class="th-right">Avg Apps</th><th class="th-right">Interviews</th><th class="th-right">Offers</th></tr></thead>
+          <tbody id="cohort-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="section-label">Needs attention <span class="sl-note">· no activity in 14+ days</span></div>
+    <div class="table-card">
+      <div class="table-card-header"><h3>Students who may be stuck</h3><span class="td-muted" id="stuck-meta"></span></div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th>Student</th><th>Email</th><th>Last Activity</th><th class="th-right">Apps Tracked</th><th>Furthest Stage</th></tr></thead>
+          <tbody id="stuck-tbody"></tbody>
+        </table>
       </div>
     </div>
 
@@ -327,11 +381,15 @@ let studentIds = new Set();          // user_ids that are real students (role !=
 let studentApps = [];                // apps belonging to students only
 let resumeSet = new Set();           // student user_ids with a résumé
 let scansByUser = {};                // user_id -> scan count
+let scanLatestByUser = {};           // user_id -> latest scan created_at (ISO) — for "active last 7 days"
+let resumeUploadByUser = {};         // user_id -> résumé uploaded_at (ISO) — for "active last 7 days"
 let appsByUser = {};                 // user_id -> [apps]
 let nameByUser = {};                 // user_id -> display name
 let sortKey = 'created_at', sortDir = 'desc';
-let fText = '', fYear = '';
+let fText = '';                      // student-table text search (the year filter is now the global cohort filter)
+let gYear = '';                      // [ADMIN-V2] global cohort filter (mba_year; '' = all cohorts)
 let expanded = new Set();            // user_ids whose detail row is open
+let pipelineChart = null;            // Chart.js instance — destroyed before each re-render
 
 // ── tiny helpers ──
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -354,6 +412,34 @@ function onbStatus(p){
   return 'Incomplete';
 }
 function onbPillClass(s){ return s === 'Completed' ? 'pill-green' : s === 'Skipped' ? 'pill-orange' : 'pill-grey'; }
+
+// ── [ADMIN-V2] global cohort filter helpers ──
+// cohortStudents(): STUDENTS narrowed to the selected mba_year ('' = all).
+// cohortApps():     studentApps narrowed to that same set of students.
+function cohortStudents(){
+  if(!gYear) return STUDENTS;
+  return STUDENTS.filter(s => (s.mba_year || '').trim() === gYear);
+}
+function cohortApps(){
+  if(!gYear) return studentApps;
+  const ids = new Set(cohortStudents().map(s => s.user_id));
+  return studentApps.filter(a => ids.has(a.user_id));
+}
+// True when an ISO timestamp falls within the last `days` days.
+function withinDays(iso, days){
+  if(!iso) return false;
+  const t = new Date(iso).getTime();
+  if(isNaN(t)) return false;
+  return t >= (Date.now() - days * 86400000);
+}
+// A student is "active in the last 7 days" if ANY engagement signal is recent:
+// profile update, app created/updated, a scan, or a résumé upload.
+function isActiveLast7(s){
+  if(withinDays(s.updated_at, 7)) return true;
+  if(withinDays(scanLatestByUser[s.user_id], 7)) return true;
+  if(withinDays(resumeUploadByUser[s.user_id], 7)) return true;
+  return (appsByUser[s.user_id] || []).some(a => withinDays(a.created_at, 7) || withinDays(a.updated_at, 7));
+}
 
 // ═══════════════ BOOT: auth gate + role check ═══════════════
 async function boot(){
@@ -410,10 +496,34 @@ async function boot(){
   show('view-dashboard');
   await loadData();
   buildIndexes();
+  renderAll();
+}
+
+// [ADMIN-V2] One place to (re)render every section — called on boot and whenever
+// the global cohort filter changes.
+function renderAll(){
+  updateCohortNote();
   renderKPIs();
+  renderFunnel();
   renderStudentTable();
   renderTargeting();
+  renderDeadlines();
   renderPipeline();
+  renderCohortSummary();
+  renderStuck();
+}
+
+function onCohort(){
+  gYear = document.getElementById('cohort-year').value;
+  console.log('[ADMIN-V2] cohort filter changed:', gYear);
+  renderAll();
+}
+
+function updateCohortNote(){
+  const el = document.getElementById('cohort-bar-note');
+  if(!el) return;
+  const n = cohortStudents().length, tot = STUDENTS.length;
+  el.textContent = gYear ? `Showing ${n} of ${tot} students · ${gYear}` : `All cohorts · ${tot} students`;
 }
 
 function show(id){
@@ -429,8 +539,8 @@ function show(id){
 // user_scan_history.
 async function loadData(){
   const [profilesR, appsR, scansR, resumesR, programsR] = await Promise.all([
-    sb.from('user_profiles').select('user_id, email, full_name, school_key, school_label, mba_year, role, created_at, onboarding_completed_at, onboarding_skipped_at'),
-    sb.from('user_applications').select('id, user_id, program_id, name, org, geo, fn, sector, status, created_at'),
+    sb.from('user_profiles').select('user_id, email, full_name, school_key, school_label, mba_year, role, created_at, updated_at, onboarding_completed_at, onboarding_skipped_at'),
+    sb.from('user_applications').select('id, user_id, program_id, name, org, geo, fn, sector, status, deadline, updated_at, created_at'),
     sb.from('user_scan_history').select('id, user_id, created_at'),          // count only — never result
     sb.from('user_resumes').select('user_id, file_name, uploaded_at'),       // existence only — never raw_text
     sb.from('programs').select('id, company, program_name, function, geo, location'),
@@ -465,7 +575,16 @@ function buildIndexes(){
   resumeSet = new Set(RESUMES.filter(r => studentIds.has(r.user_id)).map(r => r.user_id));
 
   scansByUser = {};
-  SCANS.forEach(s => { if(studentIds.has(s.user_id)) scansByUser[s.user_id] = (scansByUser[s.user_id] || 0) + 1; });
+  scanLatestByUser = {};
+  SCANS.forEach(s => {
+    if(!studentIds.has(s.user_id)) return;
+    scansByUser[s.user_id] = (scansByUser[s.user_id] || 0) + 1;
+    const cur = scanLatestByUser[s.user_id];
+    if(!cur || new Date(s.created_at) > new Date(cur)) scanLatestByUser[s.user_id] = s.created_at;
+  });
+
+  resumeUploadByUser = {};
+  RESUMES.forEach(r => { if(studentIds.has(r.user_id)) resumeUploadByUser[r.user_id] = r.uploaded_at; });
 
   appsByUser = {};
   studentApps.forEach(a => { (appsByUser[a.user_id] = appsByUser[a.user_id] || []).push(a); });
@@ -473,9 +592,11 @@ function buildIndexes(){
   nameByUser = {};
   STUDENTS.forEach(s => { nameByUser[s.user_id] = displayName(s); });
 
-  // MBA-year filter options
-  const years = Array.from(new Set(STUDENTS.map(s => (s.mba_year || '').trim()).filter(Boolean))).sort();
-  const sel = document.getElementById('flt-year');
+  // Populate the global cohort filter (most-recent year first). The student
+  // table no longer has its own year dropdown — this one drives every section.
+  const years = Array.from(new Set(STUDENTS.map(s => (s.mba_year || '').trim()).filter(Boolean)))
+    .sort((a, b) => b.localeCompare(a));
+  const sel = document.getElementById('cohort-year');
   years.forEach(y => {
     const o = document.createElement('option');
     o.value = y; o.textContent = y;
@@ -493,21 +614,30 @@ function rollup(s){
   };
 }
 
-// ═══════════════ KPIs ═══════════════
+// ═══════════════ KPIs (7 cards, all cohort-filtered) ═══════════════
 function renderKPIs(){
-  const total      = STUDENTS.length;
-  const resumes    = resumeSet.size;
-  const scans      = STUDENTS.reduce((n, s) => n + (scansByUser[s.user_id] || 0), 0);
-  const appsTotal  = studentApps.length;
-  const active     = STUDENTS.filter(s => (appsByUser[s.user_id] || []).length > 0).length;
+  const studs      = cohortStudents();
+  const apps       = cohortApps();
+  const total      = studs.length;
+  const resumes    = studs.filter(s => resumeSet.has(s.user_id)).length;
+  const scans      = studs.reduce((n, s) => n + (scansByUser[s.user_id] || 0), 0);
+  const appsTotal  = apps.length;
+  const active     = studs.filter(s => (appsByUser[s.user_id] || []).length > 0).length;
   const avgPerActive = active ? (appsTotal / active).toFixed(1) : '0';
+  const active7    = studs.filter(isActiveLast7).length;
+  const offerApps  = apps.filter(a => a.status === 'offer');
+  const offers     = offerApps.length;
+  const offerStuds = new Set(offerApps.map(a => a.user_id)).size;
+  console.log('[ADMIN-V2] active last 7d:', active7);
 
   const cards = [
-    { cls:'accent', label:'Total students',     value:total,     sub:'Signed up to LDP Scout' },
-    { cls:'',       label:'Résumés uploaded',    value:resumes,   sub:`${pct(resumes,total)}% of students` },
-    { cls:'',       label:'AI scans completed',  value:scans,     sub:'Fit scans run' },
-    { cls:'accent', label:'Applications tracked',value:appsTotal, sub:`Avg ${avgPerActive} per active student` },
-    { cls:'good',   label:'Active trackers',     value:active,    sub:`${pct(active,total)}% with 1+ application` },
+    { cls:'accent', label:'Total students',      value:total,     sub:'Signed up to LDP Scout' },
+    { cls:'',       label:'Résumés uploaded',     value:resumes,   sub:`${pct(resumes,total)}% of students` },
+    { cls:'',       label:'AI scans completed',   value:scans,     sub:'Fit scans run' },
+    { cls:'accent', label:'Applications tracked', value:appsTotal, sub:`Avg ${avgPerActive} per active student` },
+    { cls:'good',   label:'Active trackers',      value:active,    sub:`${pct(active,total)}% with 1+ application` },
+    { cls:'good',   label:'Active last 7 days',   value:active7,   sub:`${pct(active7,total)}% engaged this week` },
+    { cls:'good',   label:'Offers received',      value:offers,    sub:offers ? `Across ${offerStuds} student${offerStuds!==1?'s':''}` : 'No offers yet' },
   ];
   document.getElementById('kpi-row').innerHTML = cards.map(c => `
     <div class="kpi-card ${c.cls}">
@@ -515,6 +645,38 @@ function renderKPIs(){
       <div class="kpi-value">${c.value}</div>
       <div class="kpi-sub">${esc(c.sub)}</div>
     </div>`).join('');
+}
+
+// ═══════════════ [ADMIN-V2] ACTIVATION FUNNEL ═══════════════
+// CSS-only horizontal bars. Every bar is proportional to "Signed up" (= 100%).
+function renderFunnel(){
+  const studs = cohortStudents();
+  const signedUp     = studs.length;
+  const resumeUp     = studs.filter(s => resumeSet.has(s.user_id)).length;
+  const scanned      = studs.filter(s => (scansByUser[s.user_id] || 0) > 0).length;
+  const tracking     = studs.filter(s => (appsByUser[s.user_id] || []).length > 0).length;
+  const interviewing = studs.filter(s => (appsByUser[s.user_id] || []).some(a => a.status === 'interview')).length;
+  const offered      = studs.filter(s => (appsByUser[s.user_id] || []).some(a => a.status === 'offer')).length;
+
+  // Progressively darker greens drawn from the page palette.
+  const steps = [
+    { label:'Signed up',        n:signedUp,     color:'#7BB5A8' },
+    { label:'Résumé uploaded',  n:resumeUp,     color:'#4A8C7F' },
+    { label:'AI scan complete', n:scanned,      color:'#3A6E60' },
+    { label:'Tracking 1+ app',  n:tracking,     color:'#2D5A4A' },
+    { label:'Interviewing',     n:interviewing, color:'#2D4A3E' },
+    { label:'Offer received',   n:offered,      color:'#24382F' },
+  ];
+  const base = signedUp || 1;  // first row is the 100% reference
+
+  document.getElementById('funnel-act').innerHTML = steps.map(s => {
+    const p = pct(s.n, base);
+    return `<div class="funnel-item">
+      <div class="funnel-label">${esc(s.label)}</div>
+      <div class="funnel-bar-wrap"><div class="funnel-bar" style="width:${p}%;background:${s.color}"></div></div>
+      <div class="funnel-num">${s.n} · ${p}%</div>
+    </div>`;
+  }).join('');
 }
 
 // ═══════════════ STUDENT TABLE ═══════════════
@@ -535,8 +697,7 @@ function sortValue(s, key){
 
 function filteredStudents(){
   const q = fText.trim().toLowerCase();
-  return STUDENTS.filter(s => {
-    if(fYear && (s.mba_year || '').trim() !== fYear) return false;
+  return cohortStudents().filter(s => {
     if(q){
       const hay = (displayName(s) + ' ' + (s.email || '')).toLowerCase();
       if(!hay.includes(q)) return false;
@@ -562,7 +723,7 @@ function renderStudentTable(){
   const tbody = document.getElementById('student-tbody');
 
   if(!rows.length){
-    tbody.innerHTML = `<tr><td class="empty-cell" colspan="${COLS.length}">${STUDENTS.length ? 'No students match these filters.' : 'No students found for your school yet.'}</td></tr>`;
+    tbody.innerHTML = `<tr><td class="empty-cell" colspan="${COLS.length}">${cohortStudents().length ? 'No students match this search.' : 'No students found for this cohort yet.'}</td></tr>`;
   } else {
     tbody.innerHTML = rows.map(s => {
       const r = rollup(s);
@@ -590,10 +751,10 @@ function renderStudentTable(){
     }).join('');
   }
 
-  // filter meta
-  const shown = rows.length, tot = STUDENTS.length;
+  // filter meta (totals are within the active cohort)
+  const shown = rows.length, tot = cohortStudents().length;
   document.getElementById('flt-count').textContent = (shown === tot) ? `${tot} students` : `${shown} of ${tot} students`;
-  document.getElementById('flt-clear').style.display = (fText || fYear) ? '' : 'none';
+  document.getElementById('flt-clear').style.display = fText ? '' : 'none';
 }
 
 function renderStudentDetail(userId){
@@ -623,20 +784,18 @@ function toggleRow(id){
 }
 function onFilter(){
   fText = document.getElementById('flt-text').value;
-  fYear = document.getElementById('flt-year').value;
   renderStudentTable();
 }
 function clearFilters(){
-  fText = ''; fYear = '';
+  fText = '';
   document.getElementById('flt-text').value = '';
-  document.getElementById('flt-year').value = '';
   renderStudentTable();
 }
 
 // ═══════════════ PROGRAM TARGETING ═══════════════
 function renderTargeting(){
   const map = {};
-  studentApps.forEach(a => {
+  cohortApps().forEach(a => {
     let key, name, company, fn, geo;
     const p = (a.program_id != null) ? PROG_BY_ID[a.program_id] : null;
     if(p){
@@ -680,8 +839,9 @@ function renderTargeting(){
 
 // ═══════════════ APPLICATION PIPELINE ═══════════════
 function pipelineData(){
+  const apps = cohortApps();
   return STAGES.map(st => {
-    const inStage = studentApps.filter(a => (a.status || 'networking') === st);
+    const inStage = apps.filter(a => (a.status || 'networking') === st);
     const studs = new Set(inStage.map(a => a.user_id));
     return { stage: st, label: STAGE_LABEL[st], color: STAGE_COLOR[st], apps: inStage.length, students: studs };
   });
@@ -728,7 +888,8 @@ function renderPipeline(){
     return;
   }
 
-  new Chart(document.getElementById('pipelineChart').getContext('2d'), {
+  if(pipelineChart){ pipelineChart.destroy(); pipelineChart = null; }
+  pipelineChart = new Chart(document.getElementById('pipelineChart').getContext('2d'), {
     type: 'bar',
     data: {
       labels: data.map(d => d.label),
@@ -759,6 +920,136 @@ function renderPipeline(){
       }
     }
   });
+}
+
+// ═══════════════ [ADMIN-V2] UPCOMING DEADLINES ═══════════════
+// Cohort apps whose deadline lands within today … today+30 days.
+function renderDeadlines(){
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const horizon = new Date(today); horizon.setDate(horizon.getDate() + 30);
+
+  const rows = cohortApps().map(a => {
+    if(!a.deadline) return null;
+    const d = new Date(a.deadline);
+    if(isNaN(d)) return null;
+    d.setHours(0, 0, 0, 0);
+    if(d < today || d > horizon) return null;
+    return { a, d, daysLeft: Math.round((d - today) / 86400000) };
+  }).filter(Boolean).sort((x, y) => x.d - y.d);
+
+  console.log('[ADMIN-V2] upcoming deadlines:', rows.length);
+  document.getElementById('deadlines-meta').textContent =
+    rows.length ? `${rows.length} application${rows.length !== 1 ? 's' : ''} due soon` : '';
+
+  const tbody = document.getElementById('deadlines-tbody');
+  if(!rows.length){
+    tbody.innerHTML = `<tr><td class="empty-cell" colspan="5">No tracked applications have deadlines in the next 30 days.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = rows.map(({ a, daysLeft }) => {
+    const st = a.status || 'networking';
+    const known = STAGES.includes(st);
+    const color = STAGE_COLOR[st] || 'var(--text3)';
+    const onSand = st === 'shortlisted';
+    const pillCls = daysLeft <= 7 ? 'pill-orange' : daysLeft <= 14 ? 'pill-teal' : 'pill-grey';
+    return `<tr>
+      <td><strong>${esc(a.name || 'Untitled program')}</strong>${a.org ? ` <span class="detail-prog-org">· ${esc(a.org)}</span>` : ''}</td>
+      <td>${esc(nameByUser[a.user_id] || '—')}</td>
+      <td>${fmtDate(a.deadline)}</td>
+      <td><span class="pill ${pillCls}">${daysLeft} day${daysLeft !== 1 ? 's' : ''}</span></td>
+      <td><span class="stage-pill${onSand ? ' on-sand' : ''}" style="background:${color}">${known ? STAGE_LABEL[st] : esc(st)}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+// ═══════════════ [ADMIN-V2] COHORT SUMMARY ═══════════════
+// Always shows ALL cohorts (this IS the comparison view) regardless of the
+// global filter; the row matching the current filter is highlighted.
+function renderCohortSummary(){
+  const groups = {};
+  STUDENTS.forEach(s => {
+    const y = (s.mba_year || '').trim() || 'Not set';
+    (groups[y] = groups[y] || []).push(s);
+  });
+
+  const keys = Object.keys(groups);
+  const realYears = keys.filter(k => k !== 'Not set').sort((a, b) => b.localeCompare(a)); // most recent first
+  const ordered = realYears.concat(keys.includes('Not set') ? ['Not set'] : []);
+
+  console.log('[ADMIN-V2] cohort summary rows:', ordered.length);
+  document.getElementById('cohort-summary-meta').textContent =
+    `${ordered.length} cohort${ordered.length !== 1 ? 's' : ''}`;
+
+  document.getElementById('cohort-tbody').innerHTML = ordered.map(y => {
+    const studs    = groups[y];
+    const ids      = new Set(studs.map(s => s.user_id));
+    const n        = studs.length;
+    const resumes  = studs.filter(s => resumeSet.has(s.user_id)).length;
+    const scanned  = studs.filter(s => (scansByUser[s.user_id] || 0) > 0).length;
+    const tracking = studs.filter(s => (appsByUser[s.user_id] || []).length > 0).length;
+    const apps     = studentApps.filter(a => ids.has(a.user_id));
+    const avgApps  = n ? (apps.length / n).toFixed(1) : '0';
+    const interviews = apps.filter(a => a.status === 'interview').length;
+    const offers     = apps.filter(a => a.status === 'offer').length;
+    const hl = (gYear && y === gYear) ? ' style="background:var(--good-bg);border-left:3px solid var(--teal)"' : '';
+    return `<tr${hl}>
+      <td><strong>${esc(y)}</strong></td>
+      <td class="td-right">${n}</td>
+      <td class="td-right">${pct(resumes, n)}%</td>
+      <td class="td-right">${pct(scanned, n)}%</td>
+      <td class="td-right">${pct(tracking, n)}%</td>
+      <td class="td-right">${avgApps}</td>
+      <td class="td-right">${interviews}</td>
+      <td class="td-right">${offers}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ═══════════════ [ADMIN-V2] NEEDS ATTENTION (stuck students) ═══════════════
+// Cohort students with 1+ app whose most recent app update is older than 14 days.
+function renderStuck(){
+  const cutoff = Date.now() - 14 * 86400000;
+  const rows = [];
+  cohortStudents().forEach(s => {
+    const apps = appsByUser[s.user_id] || [];
+    if(!apps.length) return;
+    let last = null;
+    apps.forEach(a => {
+      const t = a.updated_at ? new Date(a.updated_at).getTime() : NaN;
+      if(!isNaN(t) && (last === null || t > last)) last = t;
+    });
+    if(last === null || last >= cutoff) return;     // no timestamp, or recently active → not stuck
+    let furthest = -1;
+    apps.forEach(a => { const i = STAGES.indexOf(a.status || 'networking'); if(i > furthest) furthest = i; });
+    const stage = furthest >= 0 ? STAGES[furthest] : 'networking';
+    rows.push({ s, last, apps: apps.length, stage });
+  });
+  rows.sort((a, b) => a.last - b.last);   // most stale first
+
+  console.log('[ADMIN-V2] stuck students:', rows.length);
+  const LIMIT = 20;
+  const shown = rows.slice(0, LIMIT);
+  document.getElementById('stuck-meta').textContent =
+    rows.length ? (rows.length > LIMIT ? `showing ${LIMIT} of ${rows.length} flagged` : `${rows.length} flagged`) : '';
+
+  const tbody = document.getElementById('stuck-tbody');
+  if(!rows.length){
+    tbody.innerHTML = `<tr><td class="empty-cell" colspan="5">All active students have recent activity — nothing flagged.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = shown.map(r => {
+    const st = r.stage;
+    const known = STAGES.includes(st);
+    const color = STAGE_COLOR[st] || 'var(--text3)';
+    const onSand = st === 'shortlisted';
+    return `<tr>
+      <td><strong>${esc(displayName(r.s))}</strong></td>
+      <td class="td-muted">${esc(r.s.email || '—')}</td>
+      <td>${fmtDate(new Date(r.last).toISOString())}</td>
+      <td class="td-right">${r.apps}</td>
+      <td><span class="stage-pill${onSand ? ' on-sand' : ''}" style="background:${color}">${known ? STAGE_LABEL[st] : esc(st)}</span></td>
+    </tr>`;
+  }).join('');
 }
 
 // go
