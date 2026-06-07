@@ -25,3 +25,7 @@ build/
 
 # Vercel
 .vercel/
+
+# Generated analytics dashboard — contains user PII; generate locally via
+# generate-dashboard.js with the service-role key. Do not deploy publicly.
+dashboard.html
