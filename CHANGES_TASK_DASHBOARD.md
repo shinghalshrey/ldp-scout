@@ -135,7 +135,8 @@ renders empty/zero instead of crashing the whole run.
 
 A Windows Scheduled Task regenerates the dashboard every morning at 9:00 AM.
 
-- **Task name:** `LDP Scout Dashboard Daily` (runs only when logged on; catches up if the PC was off at 9).
+- **Task name:** `LDP Scout Dashboard Daily` (runs only when logged on; catches up via *Start when available* if the PC missed 9am while off/asleep).
+- **Wake from sleep:** task has *WakeToRun* enabled, and wake timers were turned on in the active power plan for AC **and** battery (they were off by default — AC was "important only", battery disabled): `powercfg /SETACVALUEINDEX SCHEME_CURRENT SUB_SLEEP bd3b718a-0680-4d9d-8ab2-e1d2b4ac806d 1` (and `/SETDCVALUEINDEX ... 1`). It wakes from **sleep/hibernate** (not a full shutdown), runs, then returns to sleep on the normal idle timer (sleep is **not** force-triggered). To stop waking on battery, set the DC value back to `0`.
 - **Wrapper:** `run-dashboard.cmd` — cd's here, runs the generator, appends output to `dashboard-gen.log` (gitignored). Reads `SUPABASE_SERVICE_KEY` from the process env, falling back to the persisted User-scope value.
 - **Key:** stored once in the user environment via `setx SUPABASE_SERVICE_KEY "<service_role key>"`. To change it later, re-run `setx` — the task picks it up on its next run.
 - **Verified:** triggered manually, `LastTaskResult = 0`, produced `Dashboard generated: 43 users, ...`.
