@@ -224,6 +224,38 @@ function _refreshActivePagePersonalization(){
 }
 // ═══════════════ END PERSONALIZATION HELPERS ═══════════════
 
+// ─── Task EMAIL-GATE — partner-school signup gate ─────────────────
+// LDP Scout is institutional: only students at partner business schools may
+// SIGN UP. School identity is derived from the email domain (the onboarding
+// school-selection step is gone). Unrecognised domains are blocked at signup
+// (see lpSignUp). To add a school: add its domain(s) here.
+//
+// NOTE: this gate applies to SIGN UP only. Existing users (incl. legacy
+// gmail/hotmail accounts) can still SIGN IN — see lpSignIn.
+const EMAIL_DOMAIN_TO_SCHOOL = {
+  // ESADE
+  'alumni.esade.edu': { key: 'esade', label: 'ESADE Business School' },
+  'student.esade.edu': { key: 'esade', label: 'ESADE Business School' },
+  'esade.edu': { key: 'esade', label: 'ESADE Business School' },
+  // HEC Paris
+  'hec.edu': { key: 'hec', label: 'HEC Paris' },
+  // Bocconi
+  'unibocconi.it': { key: 'bocconi', label: 'Bocconi University' },
+  'studbocconi.it': { key: 'bocconi', label: 'Bocconi University' },
+  // LBS
+  'london.edu': { key: 'lbs', label: 'London Business School' },
+  // EDHEC
+  'edhec.com': { key: 'edhec', label: 'EDHEC Business School' },
+  'edhec.edu': { key: 'edhec', label: 'EDHEC Business School' },
+};
+
+function deriveSchoolFromEmail(email) {
+  if (!email) return null;
+  const domain = email.split('@')[1]?.toLowerCase();
+  if (!domain) return null;
+  return EMAIL_DOMAIN_TO_SCHOOL[domain] || null;
+}
+
 // ─── .edu validation ─────────────────────────────────────────────
 // Allow standard .edu TLDs plus school-specific domains used by major MBA programs.
 // Phase 15: removed EDU_DOMAIN_PATTERNS (the .edu / .ac.uk regex fallback)
@@ -897,8 +929,15 @@ async function lpSignUp(){
     msg.style.display = 'block';
     return;
   }
-  if(!isValidEduEmail(email)){
-    msg.innerHTML = '⚠️ Please use your school email. LDP Scout is currently invite-only for MBA students.<br><span style="font-size:11px;color:var(--text3)">Accepted examples: you@esade.edu · you@hec.edu · you@london.edu. School not in our list? Email <a href="mailto:hello@ldpscout.com" style="color:var(--blue)">hello@ldpscout.com</a> and we\'ll add it within 24 hours.</span>';
+  // Task EMAIL-GATE — hard signup gate. School is derived from the email domain;
+  // unrecognised domains are blocked BEFORE any OTP is sent (so no auth.users row
+  // is ever created). Replaces the older broad .edu whitelist on the signup path.
+  const derived = deriveSchoolFromEmail(email);
+  console.log('[EMAIL-GATE] signup attempt:', email, '→', derived);
+  if(!derived){
+    const domain = email.split('@')[1] || '';
+    console.log('[EMAIL-GATE] blocked: unrecognized domain', domain);
+    msg.innerHTML = '⚠️ LDP Scout is currently available to students at partner business schools (ESADE, HEC, Bocconi, LBS, EDHEC). If your school should be on this list, email <a href="mailto:hello@ldpscout.com" style="color:var(--blue)">hello@ldpscout.com</a>.';
     msg.classList.add('err');
     msg.style.display = 'block';
     return;
@@ -952,12 +991,10 @@ async function lpSignIn(){
     msg.style.display = 'block';
     return;
   }
-  if(!isValidEduEmail(email)){
-    msg.innerHTML = '⚠️ Please use your school email. LDP Scout is currently invite-only for MBA students.<br><span style="font-size:11px;color:var(--text3)">Accepted examples: you@esade.edu · you@hec.edu · you@london.edu. School not in our list? Email <a href="mailto:hello@ldpscout.com" style="color:var(--blue)">hello@ldpscout.com</a> and we\'ll add it within 24 hours.</span>';
-    msg.classList.add('err');
-    msg.style.display = 'block';
-    return;
-  }
+  // Task EMAIL-GATE — sign IN is intentionally NOT domain-gated. Existing users
+  // (including legacy gmail/hotmail accounts created before the gate) must keep
+  // access. Account existence below is the real guard: unknown emails get
+  // "No account found. Use Sign Up." and the signup path enforces the gate.
 
   btn.disabled = true;
   btn.textContent = 'Checking…';
@@ -1331,11 +1368,24 @@ async function loadUserProfile(){
       _reflectMbaYearInForms();
       activeAlumniSchool = data.school_key || activeAlumniSchool;
     } else {
-      // First-time user — create a stub profile row
+      // First-time user — create a stub profile row.
+      // Task EMAIL-GATE — auto-set school from the signup email domain (the
+      // onboarding school step is gone). Signup is gated to partner domains so a
+      // brand-new user's email should always resolve here; guard with null just
+      // in case (e.g. an account provisioned on a non-mapped domain).
+      const derived = deriveSchoolFromEmail(currentUser.email);
+      console.log('[EMAIL-GATE] new-profile school from email:', currentUser.email, '→', derived);
       const stub = { user_id: currentUser.id, email: currentUser.email };
+      if(derived){
+        stub.school_key   = derived.key;
+        stub.school_label = derived.label;
+      }
       await sb.from('user_profiles').upsert(stub, {onConflict:'user_id'});
+      if(derived) activeAlumniSchool = derived.key;
       userProfile = {
-        schools: [],
+        school_key:   derived ? derived.key   : null,
+        school_label: derived ? derived.label : null,
+        schools:      derived ? [derived.key] : [],
         onboarding_completed_at: null,
         onboarding_skipped_at:   null,
         tours_completed:         [],
@@ -2104,18 +2154,9 @@ function onbOpen(){
   _onbResumeFile = null;
   _onbSchoolKey = null;
   _onbSchoolLabel = null;
-  // Phase 8: auto-detect school from the user's login email (e.g. alumni.esade.edu → ESADE)
-  // User can still override on step 2 — this just removes the dropdown friction for ~95% of users.
-  if(currentUser?.email){
-    const detectedKey = detectSchoolFromEmail(currentUser.email);
-    if(detectedKey){
-      const obj = ALL_MBA_SCHOOLS.find(s => s.key === detectedKey);
-      if(obj){
-        _onbSchoolKey   = obj.key;
-        _onbSchoolLabel = obj.label;
-      }
-    }
-  }
+  // Task EMAIL-GATE — the school-selection step was removed from onboarding;
+  // school is set from the signup email in loadUserProfile(). No school detection
+  // or pre-fill is needed here anymore.
   // Pre-fill name from existing profile if present (rare — only if a partial save happened earlier)
   const nameEl = document.getElementById('onb-name');
   if(nameEl) nameEl.value = userProfile?.full_name || '';
@@ -2130,8 +2171,6 @@ function onbOpen(){
   if(uz) uz.classList.remove('has-file');
   const fi = document.getElementById('onb-resume-file-input');
   if(fi) fi.value = '';
-  onbRenderSchoolOpts('');
-  onbUpdateSchoolDisplay();
   document.getElementById('ov-onboard').classList.add('open');
   onbGoto(1);
   setTimeout(()=>{ const n=document.getElementById('onb-name'); if(n) n.focus(); }, 50);
@@ -2143,34 +2182,31 @@ function onbClose(){
 
 function onbGoto(step){
   _onbStep = step;
+  // Task EMAIL-GATE — onboarding is now 2 logical steps: 1) name + MBA year,
+  // 2) résumé. The school step was removed (school comes from the signup email),
+  // so logical step 2 drives the résumé panel (panel-3); the school panel
+  // (panel-2), the 3rd step indicator and the 2nd connector bar are hidden.
+  // index.html is frozen, so all of this is applied at runtime.
+  const PANEL_FOR_STEP = { 1: 1, 2: 3 };
   for(let i=1; i<=3; i++){
     const panel = document.getElementById('onb-panel-'+i);
-    if(panel) panel.style.display = (i===step) ? 'block' : 'none';
+    if(panel) panel.style.display = (i === PANEL_FOR_STEP[step]) ? 'block' : 'none';
+  }
+  // Step indicators: dots 1 & 2 are the two real steps; dot 3 is hidden.
+  for(let i=1; i<=3; i++){
     const ind = document.getElementById('onb-step-ind-'+i);
-    if(ind) ind.classList.toggle('on', i<=step);
+    if(!ind) continue;
+    if(i === 3){ ind.style.display = 'none'; }
+    else { ind.style.display = ''; ind.classList.toggle('on', i <= step); }
   }
-  // Phase 8: when arriving at step 2, show the auto-detect banner if we pre-selected a school
-  if(step === 2){
-    const banner = document.getElementById('onb-school-autodetect');
-    const msg    = document.getElementById('onb-school-autodetect-msg');
-    if(banner && msg){
-      if(_onbSchoolKey){
-        msg.textContent = `${_onbSchoolLabel || _onbSchoolKey} — click below to change.`;
-        banner.style.display = 'block';
-      } else {
-        banner.style.display = 'none';
-      }
-    }
-  }
-  // Bars light up when the step they CONNECT INTO is reached
-  for(let i=1; i<=2; i++){
-    const bar = document.getElementById('onb-bar-'+i);
-    if(bar) bar.classList.toggle('on', step > i);
-  }
-  // Task 19 — mandatory full_name on step 1:
-  //   - hide the Skip button (name can't be skipped)
-  //   - disable Next until input.value.trim().length >= 1
-  //   - wire oninput so the disable state updates live
+  // Only the first connector bar remains (between step 1 and 2); hide the second.
+  const bar1 = document.getElementById('onb-bar-1');
+  if(bar1){ bar1.style.display = ''; bar1.classList.toggle('on', step > 1); }
+  const bar2 = document.getElementById('onb-bar-2');
+  if(bar2) bar2.style.display = 'none';
+
+  // Task 19 — mandatory full_name on step 1: hide Skip, gate Next until a
+  // non-empty name is entered, wire oninput for live updates.
   const nextBtn = document.getElementById('onb-next-btn');
   const skipBtn = document.getElementById('onb-skip-btn');
   if(step === 1){
@@ -2183,16 +2219,11 @@ function onbGoto(step){
     _onbValidateName(); // sync button state on entry
   } else {
     if(skipBtn) skipBtn.style.display = '';
-    // Existing behavior for steps 2/3 — skip stays visible, next button
-    // label/state handled below
   }
-  // Adjust button labels + state for steps 2/3 (step 1 handled above)
+  // Step 2 (résumé): Next becomes the scan CTA, disabled until a file is chosen.
   if(nextBtn){
-    nextBtn.textContent = (step === 3) ? '✦ Scan my résumé' : 'Next →';
+    nextBtn.textContent = (step === 2) ? '✦ Scan my résumé' : 'Next →';
     if(step === 2){
-      nextBtn.disabled = false;
-      nextBtn.style.opacity = '1';
-    } else if(step === 3){
       nextBtn.disabled = !_onbResumeFile;
       nextBtn.style.opacity = nextBtn.disabled ? '0.5' : '1';
     }
@@ -2212,9 +2243,12 @@ function _onbValidateName(){
   nextBtn.style.opacity = ok ? '1' : '0.5';
 }
 
-// OB-CLEANUP — shared <option> list for the MBA start year dropdowns (2024–2028).
+// OB-CLEANUP — shared <option> list for the MBA start year dropdowns.
+// Task EMAIL-GATE — widened from 2024–2028 to 2020–2030. Both the onboarding
+// (_onbEnsureYearField) and profile-modal (_profileEnsureYearField) dropdowns
+// call this helper, so this single change updates both.
 function _mbaYearOptionsHtml(){
-  return [2024,2025,2026,2027,2028].map(y => '<option value="'+y+'">'+y+'</option>').join('');
+  return [2020,2021,2022,2023,2024,2025,2026,2027,2028,2029,2030].map(y => '<option value="'+y+'">'+y+'</option>').join('');
 }
 
 // OB-CLEANUP — push the saved mba_year into whichever year dropdowns are mounted.
@@ -2257,13 +2291,11 @@ async function onbNext(){
     const yearVal = yearEl ? (yearEl.value || '') : '';
     console.log('[OB-CLEANUP] saving mba_year:', yearVal);
     await saveUserProfile({ full_name: val, mba_year: yearVal || null });
+    // Task EMAIL-GATE — step 2 is the résumé step now (school step removed).
     onbGoto(2);
   } else if(_onbStep === 2){
-    if(!_onbSchoolKey){ toast('Please pick your school to continue.'); return; }
-    await saveUserProfile({ school_key: _onbSchoolKey, school_label: _onbSchoolLabel });
-    activeAlumniSchool = _onbSchoolKey;
-    onbGoto(3);
-  } else if(_onbStep === 3){
+    // Task EMAIL-GATE — résumé step (formerly step 3). School is no longer
+    // collected here; it is set from the signup email in loadUserProfile().
     if(!_onbResumeFile){
       // Nothing to scan — user must use Skip
       toast('Add a résumé to scan, or click "Skip for now".');
@@ -2783,7 +2815,25 @@ function openProfileModal(){
   const nameEl = document.getElementById('profile-name');
   const schoolEl = document.getElementById('profile-school-input');
   if(nameEl)   nameEl.value   = (userProfile && userProfile.full_name)    || '';
-  if(schoolEl) schoolEl.value = (userProfile && userProfile.school_label) || '';
+  // Task EMAIL-GATE — school is derived from the signup email and is immutable
+  // here. Show it, disable the input, and add a one-time helper note. index.html
+  // is frozen, so the read-only treatment + note are applied at runtime.
+  if(schoolEl){
+    schoolEl.value = (userProfile && userProfile.school_label) || '';
+    schoolEl.disabled = true;
+    schoolEl.setAttribute('aria-readonly', 'true');
+    schoolEl.style.background = 'var(--bg4)';
+    schoolEl.style.color = 'var(--text2)';
+    schoolEl.style.cursor = 'not-allowed';
+    schoolEl.title = 'School is set from your email and cannot be changed.';
+    if(!document.getElementById('profile-school-readonly-note')){
+      const note = document.createElement('div');
+      note.id = 'profile-school-readonly-note';
+      note.style.cssText = 'font-size:11px;color:var(--text3);margin-top:6px;line-height:1.5;';
+      note.textContent = 'School is set from your email and cannot be changed. Contact hello@ldpscout.com if this is incorrect.';
+      schoolEl.insertAdjacentElement('afterend', note);
+    }
+  }
   _profileSelectedSchool = (userProfile && userProfile.school_key)
     ? { key: userProfile.school_key, label: userProfile.school_label || '' }
     : null;
@@ -2867,7 +2917,6 @@ async function saveProfileChanges(){
   };
 
   const nameVal   = (document.getElementById('profile-name').value || '').trim();
-  const schoolVal = (document.getElementById('profile-school-input').value || '').trim();
   const pw1       = document.getElementById('profile-pw1').value;
   const pw2       = document.getElementById('profile-pw2').value;
 
@@ -2875,22 +2924,9 @@ async function saveProfileChanges(){
     showMsg('Please enter your name.', true);
     return;
   }
-  // School validation: if the user typed something, it must match a known school
-  // (either from the dropdown click or by exact case-insensitive label match).
-  let schoolToSave = null;
-  if(schoolVal){
-    if(_profileSelectedSchool && _profileSelectedSchool.label === schoolVal){
-      schoolToSave = _profileSelectedSchool;
-    } else {
-      const match = (typeof ALL_MBA_SCHOOLS !== 'undefined' ? ALL_MBA_SCHOOLS : [])
-        .find(s => s.label.toLowerCase() === schoolVal.toLowerCase());
-      if(!match){
-        showMsg('Pick a school from the dropdown.', true);
-        return;
-      }
-      schoolToSave = { key: match.key, label: match.label };
-    }
-  }
+  // Task EMAIL-GATE — school is immutable (set from the signup email), so the
+  // profile modal no longer reads or writes it. Only name, MBA year and password
+  // are editable here.
   // Password rules: both blank → skip; both filled → must match + 8+ chars.
   if((pw1 || pw2) && pw1 !== pw2){
     showMsg('The two passwords don\u2019t match.', true);
@@ -2907,10 +2943,6 @@ async function saveProfileChanges(){
   try {
     // 1. Update name + school in user_profiles.
     const updates = { full_name: nameVal };
-    if(schoolToSave){
-      updates.school_key   = schoolToSave.key;
-      updates.school_label = schoolToSave.label;
-    }
     // OB-CLEANUP — persist MBA start year (blank selection clears it).
     const yearEl = document.getElementById('profile-mba-year');
     updates.mba_year = (yearEl && yearEl.value) ? yearEl.value : null;
