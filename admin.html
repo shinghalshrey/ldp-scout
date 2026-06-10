@@ -559,15 +559,17 @@ function show(id){
 }
 
 // ═══════════════ DATA ═══════════════
-// All five reads are RLS-scoped to the admin's school automatically. We fetch
-// ONLY GDPR-safe columns: no raw_text from user_resumes, no result from
-// user_scan_history.
+// All reads are RLS-scoped to the admin's school automatically. We fetch ONLY
+// GDPR-safe columns. Résumé + scan data come through SECURITY DEFINER RPCs
+// (admin_student_resumes / admin_student_scans, see security_fixes_2026-06-11.sql)
+// that return existence + timestamps only — the base tables' raw_text / result
+// columns are never exposed to admins, even via a direct REST query.
 async function loadData(){
   const [profilesR, appsR, scansR, resumesR, programsR] = await Promise.all([
     sb.from('user_profiles').select('user_id, email, full_name, school_key, school_label, mba_year, role, created_at, updated_at, onboarding_completed_at, onboarding_skipped_at'),
     sb.from('user_applications').select('id, user_id, program_id, name, org, geo, fn, sector, status, deadline, updated_at, created_at'),
-    sb.from('user_scan_history').select('id, user_id, created_at'),          // count only — never result
-    sb.from('user_resumes').select('user_id, file_name, uploaded_at'),       // existence only — never raw_text
+    sb.rpc('admin_student_scans'),     // returns { user_id, created_at } — never result
+    sb.rpc('admin_student_resumes'),   // returns { user_id, file_name, uploaded_at } — never raw_text
     sb.from('programs').select('id, company, program_name, function, geo, location'),
   ]);
 

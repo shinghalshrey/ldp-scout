@@ -5666,7 +5666,12 @@ function exportPipelineCSV(){
     return;
   }
   const escape = v => {
-    const s = String(v == null ? '' : v).replace(/\r?\n/g, ' ');
+    let s = String(v == null ? '' : v).replace(/\r?\n/g, ' ');
+    // CSV formula-injection guard: a value starting with = + - @ (or a control
+    // char) can be executed as a formula by Excel / Google Sheets. Prefix a
+    // single quote so the spreadsheet treats it as text. These fields are
+    // user-entered and the export is also viewed by the careers team.
+    if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
     return s.includes(',') || s.includes('"') || s.includes('\n')
       ? `"${s.replace(/"/g, '""')}"` : s;
   };
