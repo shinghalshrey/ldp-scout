@@ -67,6 +67,7 @@
   .intro-note { background: var(--green); border-radius: 10px; padding: 20px 28px; margin-bottom: 28px; }
   .intro-eyebrow { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--teal-lt); margin-bottom: 8px; }
   .intro-body { font-size: 13.5px; color: rgba(255,255,255,0.86); line-height: 1.7; max-width: 880px; }
+  .intro-refreshed { font-size: 11.5px; color: var(--teal-lt); margin-top: 10px; }
 
   /* ── Section labels ── */
   .section-label { font-family: var(--serif); font-style: italic; font-size: 18px; color: var(--green); margin-bottom: 14px; display: flex; align-items: center; gap: 10px; }
@@ -170,6 +171,14 @@
   .funnel.act .funnel-label { width: 140px; font-size: 12.5px; }
   .funnel.act .funnel-num { width: auto; min-width: 80px; text-align: left; padding-left: 2px; color: var(--text2); }
 
+  /* [ADMIN-V3] recommended-actions insight rows */
+  .insight-row { display: flex; align-items: flex-start; gap: 14px; padding: 14px 22px; border-bottom: 1px solid var(--cream2); }
+  .insight-row:last-child { border-bottom: none; }
+  .insight-icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+  .insight-content { flex: 1; min-width: 0; }
+  .insight-text { font-size: 14px; font-weight: 500; color: var(--text); line-height: 1.5; }
+  .insight-action { font-size: 12.5px; color: var(--text3); margin-top: 3px; line-height: 1.4; }
+
   /* global cohort filter bar (under the intro note — drives every section below) */
   .cohort-bar { display: flex; align-items: center; gap: 12px; background: var(--white); border: 1px solid var(--border); border-radius: 10px; padding: 12px 18px; margin-bottom: 28px; flex-wrap: wrap; }
   .cohort-bar-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--text2); }
@@ -232,6 +241,7 @@
         which leadership programs are drawing interest across the cohort, and where students sit in their
         application pipeline — so you can target outreach and support where it counts.
       </p>
+      <div class="intro-refreshed">Data refreshed: <span id="data-refreshed">—</span></div>
     </div>
 
     <!-- Global cohort filter — drives every section below -->
@@ -252,24 +262,10 @@
       <div class="funnel act" id="funnel-act"></div>
     </div>
 
-    <!-- ═══ SECTION B · STUDENT PROGRESS ═══ -->
-    <div class="section-label">Student activity</div>
+    <!-- ═══ [ADMIN-V3] SECTION B · RECOMMENDED ACTIONS ═══ -->
+    <div class="section-label">Recommended actions <span class="sl-note">· based on current cohort activity</span></div>
     <div class="table-card">
-      <div class="table-card-header">
-        <h3>Student activity</h3>
-        <div class="filter-bar">
-          <input id="flt-text" class="filter-input" type="text" placeholder="Search name or email…" oninput="onFilter()">
-          <span class="filter-count" id="flt-count"></span>
-          <button class="filter-clear" id="flt-clear" onclick="clearFilters()" style="display:none">Clear</button>
-        </div>
-      </div>
-      <div style="overflow-x:auto">
-        <table id="student-table">
-          <thead id="student-thead"></thead>
-          <tbody id="student-tbody"></tbody>
-        </table>
-      </div>
-      <div class="kicker">Click any student to see the programs they're tracking and the stage each sits at. Résumé shows upload status only and scans show a count — résumé content and scan results are never exposed here.</div>
+      <div id="insights-list"></div>
     </div>
 
     <!-- ═══ SECTION C · PROGRAM INTELLIGENCE ═══ -->
@@ -280,17 +276,6 @@
         <table>
           <thead><tr><th>#</th><th>Program</th><th>Company</th><th>Function</th><th>Geo</th><th class="th-right">Students tracking</th></tr></thead>
           <tbody id="targeting-tbody"></tbody>
-        </table>
-      </div>
-    </div>
-
-    <div class="section-label">Upcoming deadlines <span class="sl-note">· applications with deadlines in the next 30 days</span></div>
-    <div class="table-card">
-      <div class="table-card-header"><h3>Deadlines in the next 30 days</h3><span class="td-muted" id="deadlines-meta"></span></div>
-      <div style="overflow-x:auto">
-        <table>
-          <thead><tr><th>Program</th><th>Student</th><th>Deadline</th><th>Days left</th><th>Stage</th></tr></thead>
-          <tbody id="deadlines-tbody"></tbody>
         </table>
       </div>
     </div>
@@ -310,6 +295,17 @@
             <tbody id="pipeline-tbody"></tbody>
           </table>
         </div>
+      </div>
+    </div>
+
+    <div class="section-label">Upcoming deadlines <span class="sl-note">· applications with deadlines in the next 30 days</span></div>
+    <div class="table-card">
+      <div class="table-card-header"><h3>Deadlines in the next 30 days</h3><span class="td-muted" id="deadlines-meta"></span></div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th>Program</th><th>Student</th><th>Deadline</th><th>Days left</th><th>Stage</th></tr></thead>
+          <tbody id="deadlines-tbody"></tbody>
+        </table>
       </div>
     </div>
 
@@ -333,6 +329,26 @@
           <tbody id="stuck-tbody"></tbody>
         </table>
       </div>
+    </div>
+
+    <!-- ═══ SECTION E · STUDENT DETAIL (moved below the rollups in ADMIN-V3) ═══ -->
+    <div class="section-label">Student detail <span class="sl-note">· click any row to expand</span></div>
+    <div class="table-card">
+      <div class="table-card-header">
+        <h3>Student activity</h3>
+        <div class="filter-bar">
+          <input id="flt-text" class="filter-input" type="text" placeholder="Search name or email…" oninput="onFilter()">
+          <span class="filter-count" id="flt-count"></span>
+          <button class="filter-clear" id="flt-clear" onclick="clearFilters()" style="display:none">Clear</button>
+        </div>
+      </div>
+      <div style="overflow-x:auto">
+        <table id="student-table">
+          <thead id="student-thead"></thead>
+          <tbody id="student-tbody"></tbody>
+        </table>
+      </div>
+      <div class="kicker">Click any student to see the programs they're tracking and the stage each sits at. Résumé shows upload status only and scans show a count — résumé content and scan results are never exposed here.</div>
     </div>
 
   </div>
@@ -492,6 +508,7 @@ async function boot(){
   document.getElementById('dash-school-line').textContent = schoolLabel;
   document.getElementById('dash-today').textContent =
     new Date().toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' });
+  document.getElementById('data-refreshed').textContent = new Date().toLocaleString('en-GB');
 
   show('view-dashboard');
   await loadData();
@@ -500,17 +517,18 @@ async function boot(){
 }
 
 // [ADMIN-V2] One place to (re)render every section — called on boot and whenever
-// the global cohort filter changes.
+// the global cohort filter changes. Calls mirror the ADMIN-V3 page order.
 function renderAll(){
   updateCohortNote();
   renderKPIs();
   renderFunnel();
-  renderStudentTable();
+  renderInsights();
   renderTargeting();
-  renderDeadlines();
   renderPipeline();
+  renderDeadlines();
   renderCohortSummary();
   renderStuck();
+  renderStudentTable();
 }
 
 function onCohort(){
@@ -677,6 +695,110 @@ function renderFunnel(){
       <div class="funnel-num">${s.n} · ${p}%</div>
     </div>`;
   }).join('');
+}
+
+// ═══════════════ [ADMIN-V3] RECOMMENDED ACTIONS ═══════════════
+// Turns the cohort-filtered data into suggested next steps for the careers
+// team. Pure derivation from data already in memory — no extra queries.
+function computeInsights(){
+  const studs = cohortStudents();
+  const apps = cohortApps();
+  const insights = [];
+
+  // 1. Résumé uploaded but no scan
+  const resumeNoScan = studs.filter(s =>
+    resumeSet.has(s.user_id) && !(scansByUser[s.user_id] > 0)
+  ).length;
+  if(resumeNoScan > 0){
+    insights.push({
+      icon: '📄',
+      text: `${resumeNoScan} student${resumeNoScan>1?'s':''} uploaded a résumé but haven't run an AI scan`,
+      action: 'Send a reminder about the AI Fit Scan feature'
+    });
+  }
+
+  // 2. Signed up but no résumé
+  const noResume = studs.filter(s => !resumeSet.has(s.user_id)).length;
+  if(noResume > 0){
+    insights.push({
+      icon: '👤',
+      text: `${noResume} student${noResume>1?'s':''} signed up but haven't uploaded a résumé`,
+      action: 'These students may need onboarding help or a walkthrough'
+    });
+  }
+
+  // 3. Programs with 3+ students tracking — recruiter invite opportunity
+  const progCounts = {};
+  apps.forEach(a => {
+    const key = a.program_id || a.name;
+    progCounts[key] = (progCounts[key] || new Set()).add(a.user_id);
+  });
+  const hotPrograms = Object.entries(progCounts)
+    .filter(([_, users]) => users.size >= 3)
+    .length;
+  if(hotPrograms > 0){
+    insights.push({
+      icon: '🎯',
+      text: `${hotPrograms} program${hotPrograms>1?'s have':' has'} 3+ students tracking`,
+      action: 'Consider inviting those recruiters for an info session or panel'
+    });
+  }
+
+  // 4. Students stuck — same 14-day rule as renderStuck()
+  const cutoff = Date.now() - 14 * 86400000;
+  const stuckCount = studs.filter(s => {
+    const userApps = appsByUser[s.user_id] || [];
+    if(!userApps.length) return false;
+    let last = null;
+    userApps.forEach(a => {
+      const t = a.updated_at ? new Date(a.updated_at).getTime() : NaN;
+      if(!isNaN(t) && (last === null || t > last)) last = t;
+    });
+    return last !== null && last < cutoff;
+  }).length;
+  if(stuckCount > 0){
+    insights.push({
+      icon: '⏸️',
+      text: `${stuckCount} student${stuckCount>1?'s':''} went quiet (no updates in 14+ days)`,
+      action: 'Check the "Needs Attention" section below for names'
+    });
+  }
+
+  // 5. Onboarding incomplete
+  const incompleteOnb = studs.filter(s =>
+    !s.onboarding_completed_at && !s.onboarding_skipped_at
+  ).length;
+  if(incompleteOnb > 0){
+    insights.push({
+      icon: '🚪',
+      text: `${incompleteOnb} student${incompleteOnb>1?'s':''} haven't completed onboarding`,
+      action: 'They may have signed up but never explored the tool'
+    });
+  }
+
+  // 6. No insights? Good news.
+  if(insights.length === 0){
+    insights.push({
+      icon: '✅',
+      text: 'All students are actively engaged',
+      action: 'No immediate actions needed — check back next week'
+    });
+  }
+
+  return insights;
+}
+
+function renderInsights(){
+  const list = computeInsights();
+  console.log('[ADMIN-V3] insights:', list.length);
+  document.getElementById('insights-list').innerHTML = list.map(i => `
+    <div class="insight-row">
+      <span class="insight-icon">${i.icon}</span>
+      <div class="insight-content">
+        <div class="insight-text">${esc(i.text)}</div>
+        <div class="insight-action">${esc(i.action)}</div>
+      </div>
+    </div>`).join('');
 }
 
 // ═══════════════ STUDENT TABLE ═══════════════
