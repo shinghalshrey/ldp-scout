@@ -141,6 +141,11 @@
   .prog-bar-fill  { height: 100%; border-radius: 3px; background: var(--teal); }
   .prog-bar-num { font-size: 13px; font-weight: 600; color: var(--text); min-width: 16px; text-align: right; }
 
+  /* [ADMIN-V3.1] program-targeting top-10 cap */
+  .targeting-toggle { padding: 12px 22px; text-align: center; font-size: 12.5px; font-weight: 500; color: var(--teal); cursor: pointer; border-top: 1px solid var(--cream2); transition: background .1s; }
+  .targeting-toggle:hover { background: var(--cream); }
+  .tgt-extra { display: none; }
+
   /* filter bar */
   .filter-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .filter-input { background: var(--cream); border: 1px solid var(--border); border-radius: 7px; padding: 8px 12px; font-size: 13px; font-family: var(--sans); color: var(--text); outline: none; min-width: 240px; }
@@ -268,19 +273,7 @@
       <div id="insights-list"></div>
     </div>
 
-    <!-- ═══ SECTION C · PROGRAM INTELLIGENCE ═══ -->
-    <div class="section-label">Program targeting <span class="sl-note">· most-tracked across your school</span></div>
-    <div class="table-card">
-      <div class="table-card-header"><h3>Programs by students tracking</h3><span class="td-muted" id="targeting-meta"></span></div>
-      <div style="overflow-x:auto">
-        <table>
-          <thead><tr><th>#</th><th>Program</th><th>Company</th><th>Function</th><th>Geo</th><th class="th-right">Students tracking</th></tr></thead>
-          <tbody id="targeting-tbody"></tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- ═══ SECTION D · PIPELINE + COHORT COMPARISON ═══ -->
+    <!-- ═══ SECTION C · PIPELINE + COHORT COMPARISON ═══ -->
     <div class="section-label">Application pipeline</div>
     <div class="two-col">
       <div class="chart-card">
@@ -329,6 +322,19 @@
           <tbody id="stuck-tbody"></tbody>
         </table>
       </div>
+    </div>
+
+    <!-- ═══ SECTION D · PROGRAM INTELLIGENCE (moved before student detail in ADMIN-V3.1) ═══ -->
+    <div class="section-label">Program targeting <span class="sl-note">· most-tracked across your school</span></div>
+    <div class="table-card">
+      <div class="table-card-header"><h3>Programs by students tracking</h3><span class="td-muted" id="targeting-meta"></span></div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th>#</th><th>Program</th><th>Company</th><th>Function</th><th>Geo</th><th class="th-right">Students tracking</th></tr></thead>
+          <tbody id="targeting-tbody"></tbody>
+        </table>
+      </div>
+      <div id="targeting-toggle" class="targeting-toggle" onclick="toggleTargeting()" style="display:none"></div>
     </div>
 
     <!-- ═══ SECTION E · STUDENT DETAIL (moved below the rollups in ADMIN-V3) ═══ -->
@@ -405,6 +411,7 @@ let sortKey = 'created_at', sortDir = 'desc';
 let fText = '';                      // student-table text search (the year filter is now the global cohort filter)
 let gYear = '';                      // [ADMIN-V2] global cohort filter (mba_year; '' = all cohorts)
 let expanded = new Set();            // user_ids whose detail row is open
+let _targetingExpanded = false;      // [ADMIN-V3.1] targeting table showing rows beyond the top 10
 let pipelineChart = null;            // Chart.js instance — destroyed before each re-render
 
 // ── tiny helpers ──
@@ -942,13 +949,16 @@ function renderTargeting(){
     rows.length ? `${rows.length} programs${customN ? ` · ${customN} custom` : ''}` : '';
 
   const tbody = document.getElementById('targeting-tbody');
+  const toggle = document.getElementById('targeting-toggle');
+  _targetingExpanded = false;        // every re-render collapses back to the top 10
   if(!rows.length){
     tbody.innerHTML = `<tr><td class="empty-cell" colspan="6">No programs are being tracked yet.</td></tr>`;
+    if(toggle) toggle.style.display = 'none';
     return;
   }
   tbody.innerHTML = rows.map((r, i) => {
     const w = maxC ? (r.count / maxC) * 100 : 0;
-    return `<tr>
+    return `<tr${i >= 10 ? ' class="tgt-extra"' : ''}>
       <td class="td-muted">${i + 1}</td>
       <td><strong>${esc(r.name || '—')}</strong>${r.custom ? ' <span class="pill pill-sand" style="margin-left:4px">custom</span>' : ''}</td>
       <td>${esc(r.company || '—')}</td>
@@ -957,6 +967,31 @@ function renderTargeting(){
       <td><div class="prog-bar-wrap"><div class="prog-bar-track"><div class="prog-bar-fill" style="width:${w}%"></div></div><span class="prog-bar-num">${r.count}</span></div></td>
     </tr>`;
   }).join('');
+
+  // [ADMIN-V3.1] rows beyond the top 10 carry .tgt-extra (hidden via CSS) — the
+  // toggle below the table reveals them.
+  if(toggle){
+    if(rows.length > 10){
+      toggle.style.display = '';
+      toggle.textContent = `Show all ${rows.length} programs ▾`;
+    } else {
+      toggle.style.display = 'none';
+    }
+  }
+}
+
+// [ADMIN-V3.1] expand/collapse the targeting rows beyond the top 10. Shows with
+// an explicit 'table-row' — an empty string would let the .tgt-extra CSS rule
+// re-hide the rows.
+function toggleTargeting(){
+  _targetingExpanded = !_targetingExpanded;
+  document.querySelectorAll('.tgt-extra').forEach(r => {
+    r.style.display = _targetingExpanded ? 'table-row' : 'none';
+  });
+  const el = document.getElementById('targeting-toggle');
+  if(el) el.textContent = _targetingExpanded
+    ? 'Show top 10 only ▴'
+    : `Show all ${document.querySelectorAll('#targeting-tbody tr').length} programs ▾`;
 }
 
 // ═══════════════ APPLICATION PIPELINE ═══════════════
